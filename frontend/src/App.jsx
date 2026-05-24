@@ -1253,8 +1253,8 @@ function App() {
                                         className={`cell-input ${slot.status || ''}`}
                                         style={{ 
                                           color: textColor,
-                                          borderColor: activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser ? '#ec4899' : 'transparent',
-                                          borderWidth: activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser ? '2px' : '1px'
+                                          borderColor: activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser ? '#ec4899' : undefined,
+                                          borderWidth: activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser ? '2px' : undefined
                                         }}
                                         value={slot.text || ''}
                                         onFocus={() => window.appSocket && window.appSocket.emit('user_focus', { key: cellKey, slotIndex, user: currentUser })}
