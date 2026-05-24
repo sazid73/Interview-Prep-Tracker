@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import { io } from 'socket.io-client';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -164,6 +165,35 @@ function App() {
         .catch(err => console.error("Failed to load logs", err));
     }
   }, [showLogs]);
+
+  // Connect WebSocket for Real-Time Live Sync
+  useEffect(() => {
+    const socketUrl = API_BASE || 'http://localhost:5000';
+    const socket = io(socketUrl);
+
+    socket.on('cell_updated', (data) => {
+      setGridData(prev => ({
+        ...prev,
+        [data.key]: data.cell
+      }));
+    });
+
+    socket.on('month_cleared', (data) => {
+      setGridData(prev => {
+        const newData = { ...prev };
+        Object.keys(newData).forEach(key => {
+          if (key.startsWith(`${data.year}-${data.month}-`)) {
+            delete newData[key];
+          }
+        });
+        return newData;
+      });
+    });
+
+    return () => socket.disconnect();
+  }, []);
+
+
 
   // Compute days when navigating into a month
   useEffect(() => {

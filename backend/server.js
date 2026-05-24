@@ -1,11 +1,23 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import cors from 'cors';
 import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: [
+      'http://localhost:5173',
+      'https://interview-prep-tracker-d2t1.vercel.app'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true
+  }
+});
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -88,6 +100,9 @@ app.post('/api/grid/:key', async (req, res) => {
       { upsert: true, new: true }
     );
     
+    // Broadcast change to all connected users instantly
+    io.emit('cell_updated', { key, cell: { color, textColor, slots } });
+    
     res.json({ success: true, message: 'Cell updated successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update cell' });
@@ -101,6 +116,10 @@ app.delete('/api/grid/month', async (req, res) => {
     const prefixRegex = new RegExp(`^${year}-${month}-`);
     
     await GridCell.deleteMany({ key: prefixRegex });
+    
+    // Broadcast clear to all connected users
+    io.emit('month_cleared', { year, month });
+    
     res.json({ success: true, message: 'Month cleared successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to clear month' });
@@ -132,6 +151,6 @@ app.post('/api/logs', async (req, res) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
