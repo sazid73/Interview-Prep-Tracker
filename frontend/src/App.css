@@ -447,3 +447,51 @@
   background: transparent;
   padding: 0;
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1rem 0.5rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 1rem;
+  }
+
+  .header > div {
+    flex-wrap: wrap;
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+  }
+
+  .toolbar-group {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .color-btn-labeled {
+    flex: 1 1 100px;
+    font-size: 0.75rem;
+    padding: 0.4rem;
+  }
+
+  .report-body {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem;
+  }
+
+  .report-card {
+    padding: 1.5rem 1rem;
+    width: 95%;
+  }
+}
