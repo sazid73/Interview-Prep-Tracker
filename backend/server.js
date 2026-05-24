@@ -59,6 +59,17 @@ const logSchema = new mongoose.Schema({
 });
 const ActivityLog = mongoose.model('ActivityLog', logSchema);
 
+// 2b. Cell Edit History
+const cellHistorySchema = new mongoose.Schema({
+  cellKey: String,
+  slotIndex: Number,
+  user: String,
+  timestamp: String,
+  oldText: String,
+  newText: String
+});
+const CellHistory = mongoose.model('CellHistory', cellHistorySchema);
+
 // 3. Users & Roles
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
@@ -152,6 +163,30 @@ app.post('/api/logs', async (req, res) => {
     res.json({ success: true, message: 'Log created' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create log' });
+  }
+});
+
+// --- HISTORY ENDPOINTS ---
+app.get('/api/history/:cellKey/:slotIndex', async (req, res) => {
+  try {
+    const history = await CellHistory.find({ 
+      cellKey: req.params.cellKey, 
+      slotIndex: req.params.slotIndex 
+    }).sort({ _id: -1 }); // newest first
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+app.post('/api/history', async (req, res) => {
+  try {
+    const { cellKey, slotIndex, user, timestamp, oldText, newText } = req.body;
+    const newEntry = new CellHistory({ cellKey, slotIndex, user, timestamp, oldText, newText });
+    await newEntry.save();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create history' });
   }
 });
 

@@ -164,6 +164,10 @@ function App() {
   const [newUserError, setNewUserError] = useState('');
 
   const [monthDays, setMonthDays] = useState([]);
+  
+  const [historyModalData, setHistoryModalData] = useState(null);
+  const [cellHistory, setCellHistory] = useState([]);
+  const initialTextRefs = React.useRef({});
 
   const toggleAnalyticsExpand = (key) => {
     setExpandedAnalytics(prev => ({
@@ -180,11 +184,12 @@ function App() {
     }).catch(err => console.error("Failed to sync cell", err));
   };
 
-  const logActivity = (action, details) => {
-    if (!currentUser) return;
+  const logActivity = (action, details, overrideUser = null) => {
+    const userToLog = overrideUser || currentUser;
+    if (!userToLog) return;
     const logData = {
       timestamp: new Date().toLocaleString(),
-      user: currentUser,
+      user: userToLog,
       action,
       details
     };
@@ -222,6 +227,18 @@ function App() {
         .catch(err => console.error("Failed to load users", err));
     }
   }, [showAdminModal, currentUserRole]);
+
+  // Fetch cell history when history modal opens
+  useEffect(() => {
+    if (historyModalData) {
+      fetch(`${API_BASE}/api/history/${historyModalData.cellKey}/${historyModalData.slotIndex}`)
+        .then(res => res.json())
+        .then(data => setCellHistory(data))
+        .catch(err => console.error(err));
+    } else {
+      setCellHistory([]);
+    }
+  }, [historyModalData]);
 
   // Connect WebSocket for Real-Time Live Sync
   useEffect(() => {
@@ -302,14 +319,6 @@ function App() {
       const oldText = newSlots[slotIndex]?.text || '';
       
       newSlots[slotIndex] = { ...newSlots[slotIndex], text };
-      
-      if (oldText && !text) {
-         logActivity('Deleted Booking', `Removed "${oldText}" from ${MONTHS[currentMonth]} ${dateNum} at ${time}`);
-      } else if (!oldText && text) {
-         logActivity('Added Booking', `Added "${text}" to ${MONTHS[currentMonth]} ${dateNum} at ${time}`);
-      } else if (oldText && text && oldText !== text) {
-         logActivity('Edited Booking', `Changed "${oldText}" to "${text}" on ${MONTHS[currentMonth]} ${dateNum} at ${time}`);
-      }
 
       const newCell = { ...cell, slots: newSlots };
       syncCellToServer(cellKey, newCell);
@@ -337,6 +346,7 @@ function App() {
           textColor: activeColor === 'erase' ? null : activeColor.textColor
         };
         syncCellToServer(cellKey, newCell);
+        logActivity('Painted Cell', `Painted ${MONTHS[currentMonth]} ${dateNum} at ${time} to ${activeColor === 'erase' ? 'default' : activeColor.label}`);
         return { ...prev, [cellKey]: newCell };
       });
     }
@@ -868,6 +878,7 @@ function App() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: newPassword })
         });
+        logActivity('Reset Password', `Reset password for user ${name}`);
         alert(`Password for ${name} updated successfully!`);
       } catch (err) {
         alert('Failed to update password');
@@ -883,6 +894,7 @@ function App() {
       
       try {
         await fetch(`${API_BASE}/api/users/${name}`, { method: 'DELETE' });
+        logActivity('Deleted User', `Deleted user ${name}`);
         setAdminUsersList(prev => prev.filter(u => u.name !== name));
       } catch (err) {
         alert('Failed to delete user');
@@ -981,6 +993,47 @@ function App() {
     );
   };
 
+  const renderHistoryModal = () => {
+    if (!historyModalData) return null;
+
+    return (
+      <div className="report-modal">
+        <div className="report-card" style={{ width: '500px', maxHeight: '80vh', overflowY: 'auto' }}>
+          <div className="report-header">
+            <h2>Edit History (Slot {historyModalData.slotIndex + 1})</h2>
+            <button onClick={() => setHistoryModalData(null)} className="close-btn">✗</button>
+          </div>
+          <div className="report-body">
+            <p style={{ marginTop: 0, marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+              {historyModalData.month} {historyModalData.dateNum} at {historyModalData.time}
+            </p>
+            {cellHistory.length === 0 ? (
+              <p>No edit history found for this cell.</p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {cellHistory.map((entry, idx) => (
+                  <li key={idx} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>{entry.user}</strong>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{entry.timestamp}</span>
+                    </div>
+                    {entry.oldText && !entry.newText ? (
+                       <span style={{ color: '#ef4444' }}>Deleted "{entry.oldText}"</span>
+                    ) : !entry.oldText && entry.newText ? (
+                       <span style={{ color: '#10b981' }}>Added "{entry.newText}"</span>
+                    ) : (
+                       <span>Changed <s style={{ color: '#ef4444', opacity: 0.8 }}>"{entry.oldText}"</s> to <span style={{ color: '#10b981' }}>"{entry.newText}"</span></span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const clearMonth = () => {
     if (window.confirm(`Are you sure you want to clear all data for ${MONTHS[currentMonth]} ${currentYear}? This cannot be undone.`)) {
       setGridData(prev => {
@@ -1005,6 +1058,7 @@ function App() {
         localStorage.setItem('trackerRole', role);
         setCurrentUser(name);
         setCurrentUserRole(role);
+        logActivity('Login', 'User logged in', name);
       }} />
     );
   }
@@ -1019,7 +1073,7 @@ function App() {
                <button className="btn-secondary" style={{ background: '#ec4899', color: 'white', borderColor: '#ec4899', whiteSpace: 'nowrap' }} onClick={() => setShowAdminModal(true)}>👥 Manage Access</button>
              )}
              <span style={{ color: 'var(--text-secondary)' }}>Logged in as <strong style={{ color: 'var(--text-primary)' }}>{currentUser}</strong> ({currentUserRole})</span>
-             <button className="btn-secondary" onClick={() => { localStorage.removeItem('trackerUser'); localStorage.removeItem('trackerRole'); setCurrentUser(null); }}>Logout</button>
+             <button className="btn-secondary" onClick={() => { logActivity('Logout', 'User logged out'); localStorage.removeItem('trackerUser'); localStorage.removeItem('trackerRole'); setCurrentUser(null); }}>Logout</button>
           </div>
 
           <h1 style={{ fontSize: '3rem', margin: 0 }}>Interview Tracker</h1>
@@ -1257,8 +1311,33 @@ function App() {
                                           borderWidth: activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser ? '2px' : undefined
                                         }}
                                         value={slot.text || ''}
-                                        onFocus={() => window.appSocket && window.appSocket.emit('user_focus', { key: cellKey, slotIndex, user: currentUser })}
-                                        onBlur={() => window.appSocket && window.appSocket.emit('user_blur', { key: cellKey, slotIndex })}
+                                        onFocus={() => {
+                                          initialTextRefs.current[`${cellKey}-${slotIndex}`] = slot.text || '';
+                                          window.appSocket && window.appSocket.emit('user_focus', { key: cellKey, slotIndex, user: currentUser });
+                                        }}
+                                        onBlur={() => {
+                                          const initialText = initialTextRefs.current[`${cellKey}-${slotIndex}`] || '';
+                                          const currentText = slot.text || '';
+                                          if (initialText !== currentText) {
+                                            fetch(`${API_BASE}/api/history`, {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({
+                                                cellKey,
+                                                slotIndex,
+                                                user: currentUser,
+                                                timestamp: new Date().toLocaleString(),
+                                                oldText: initialText,
+                                                newText: currentText
+                                              })
+                                            });
+                                          }
+                                          window.appSocket && window.appSocket.emit('user_blur', { key: cellKey, slotIndex });
+                                        }}
+                                        onContextMenu={(e) => {
+                                          e.preventDefault();
+                                          setHistoryModalData({ cellKey, slotIndex, time, dateNum: dayObj.dateNum, month: MONTHS[currentMonth] });
+                                        }}
                                         onChange={(e) => handleSlotChange(dayObj.dateNum, time, slotIndex, e.target.value)}
                                         onKeyDown={(e) => handleKeyDown(e, item.indexInMonth, time, slotIndex)}
                                         placeholder={`Slot ${slotIndex + 1}...`}
@@ -1307,6 +1386,7 @@ function App() {
       {renderAnalyticsModal()}
       {renderLogsModal()}
       {renderAdminModal()}
+      {renderHistoryModal()}
     </div>
   );
 }
