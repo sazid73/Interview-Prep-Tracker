@@ -62,6 +62,13 @@ const logSchema = new mongoose.Schema({
 });
 const ActivityLog = mongoose.model('ActivityLog', logSchema);
 
+// 3. Users & Roles
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  role: { type: String, default: 'standard' } // 'standard', 'special', 'admin'
+});
+const User = mongoose.model('User', userSchema);
+
 // =======================
 // API ENDPOINTS
 // =======================
@@ -147,6 +154,52 @@ app.post('/api/logs', async (req, res) => {
     res.json({ success: true, message: 'Log created' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create log' });
+  }
+});
+
+// --- USERS & AUTH ENDPOINTS ---
+
+// POST: Login / Register user
+app.post('/api/login', async (req, res) => {
+  try {
+    const { name } = req.body;
+    const normalizedName = name.trim();
+    let user = await User.findOne({ name: { $regex: new RegExp(`^${normalizedName}$`, 'i') } });
+    
+    if (!user) {
+      // Auto-assign 'admin' role if their name is exactly 'admin'
+      const role = normalizedName.toLowerCase() === 'admin' ? 'admin' : 'standard';
+      user = new User({ name: normalizedName, role });
+      await user.save();
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// GET: Fetch all users (Admin only)
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find({}).sort({ name: 1 });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// PUT: Change user role
+app.put('/api/users/:name/role', async (req, res) => {
+  try {
+    const { role } = req.body;
+    const user = await User.findOneAndUpdate(
+      { name: req.params.name },
+      { role },
+      { new: true }
+    );
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update role' });
   }
 });
 

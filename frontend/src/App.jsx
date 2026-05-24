@@ -76,7 +76,19 @@ const LoginScreen = ({ onLogin }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (name.trim().length > 1) {
-      onLogin(normalizeName(name));
+      fetch(`${API_BASE}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      })
+      .then(res => res.json())
+      .then(user => {
+        onLogin(user.name, user.role);
+      })
+      .catch(err => {
+        console.error("Login API failed", err);
+        onLogin(normalizeName(name), 'standard'); // fallback
+      });
     }
   };
 
@@ -123,6 +135,9 @@ function App() {
   const [activeEditors, setActiveEditors] = useState({});
   const [rescheduleData, setRescheduleData] = useState(null);
   const [currentUser, setCurrentUser] = useState(() => localStorage.getItem('trackerUser') || null);
+  const [currentUserRole, setCurrentUserRole] = useState(() => localStorage.getItem('trackerRole') || 'standard');
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [adminUsersList, setAdminUsersList] = useState([]);
 
   const [monthDays, setMonthDays] = useState([]);
 
@@ -173,6 +188,16 @@ function App() {
         .catch(err => console.error("Failed to load logs", err));
     }
   }, [showLogs]);
+
+  // Fetch admin users list when modal opens
+  useEffect(() => {
+    if (showAdminModal && currentUserRole === 'admin') {
+      fetch(`${API_BASE}/api/users`)
+        .then(res => res.json())
+        .then(data => setAdminUsersList(data))
+        .catch(err => console.error("Failed to load users", err));
+    }
+  }, [showAdminModal, currentUserRole]);
 
   // Connect WebSocket for Real-Time Live Sync
   useEffect(() => {
@@ -785,6 +810,61 @@ function App() {
     );
   };
 
+  const renderAdminModal = () => {
+    if (!showAdminModal) return null;
+
+    return (
+      <div className="report-modal">
+        <div className="report-card" style={{ width: '600px' }}>
+          <div className="report-header">
+            <h2>👥 Manage Access</h2>
+            <button onClick={() => setShowAdminModal(false)} className="close-btn">✗</button>
+          </div>
+          
+          <div className="report-body">
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              Assign roles to users. "Special" users have access to Paint slots. "Admin" users can manage access.
+            </p>
+            <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                  <th style={{ padding: '0.5rem' }}>User Name</th>
+                  <th style={{ padding: '0.5rem' }}>Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                {adminUsersList.map(u => (
+                  <tr key={u._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '0.5rem', fontWeight: 'bold' }}>{u.name}</td>
+                    <td style={{ padding: '0.5rem' }}>
+                      <select
+                        value={u.role}
+                        onChange={(e) => {
+                          fetch(`${API_BASE}/api/users/${u.name}/role`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ role: e.target.value })
+                          }).then(() => {
+                            setAdminUsersList(prev => prev.map(usr => usr.name === u.name ? { ...usr, role: e.target.value } : usr));
+                          });
+                        }}
+                        style={{ padding: '0.3rem', background: 'var(--bg-surface-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px' }}
+                      >
+                        <option value="standard">Standard</option>
+                        <option value="special">Special (Paint Access)</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const clearMonth = () => {
     if (window.confirm(`Are you sure you want to clear all data for ${MONTHS[currentMonth]} ${currentYear}? This cannot be undone.`)) {
       setGridData(prev => {
@@ -804,9 +884,11 @@ function App() {
   // ---------------- Render Calendar Dashboard ----------------
   if (!currentUser) {
     return (
-      <LoginScreen onLogin={(name) => {
+      <LoginScreen onLogin={(name, role) => {
         localStorage.setItem('trackerUser', name);
+        localStorage.setItem('trackerRole', role);
         setCurrentUser(name);
+        setCurrentUserRole(role);
       }} />
     );
   }
@@ -817,8 +899,11 @@ function App() {
         <header className="header" style={{ flexDirection: 'column', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem', position: 'relative' }}>
           
           <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-             <span style={{ color: 'var(--text-secondary)' }}>Logged in as <strong style={{ color: 'var(--text-primary)' }}>{currentUser}</strong></span>
-             <button className="btn-secondary" onClick={() => { localStorage.removeItem('trackerUser'); setCurrentUser(null); }}>Logout</button>
+             {currentUserRole === 'admin' && (
+               <button className="btn-secondary" style={{ background: '#ec4899', color: 'white', borderColor: '#ec4899' }} onClick={() => setShowAdminModal(true)}>👥 Manage Access</button>
+             )}
+             <span style={{ color: 'var(--text-secondary)' }}>Logged in as <strong style={{ color: 'var(--text-primary)' }}>{currentUser}</strong> ({currentUserRole})</span>
+             <button className="btn-secondary" onClick={() => { localStorage.removeItem('trackerUser'); localStorage.removeItem('trackerRole'); setCurrentUser(null); }}>Logout</button>
           </div>
 
           <h1 style={{ fontSize: '3rem' }}>Interview Tracker</h1>
@@ -884,29 +969,33 @@ function App() {
         </div>
 
         <div className="toolbar">
-          <div className="toolbar-group">
-            <span className="toolbar-label">Paint:</span>
-            {COLORS.map(color => (
+          {(currentUserRole === 'admin' || currentUserRole === 'special') && (
+            <div className="toolbar-group">
+              <span className="toolbar-label">Paint:</span>
+              {COLORS.map(color => (
+                <button
+                  key={color.id}
+                  className={`color-btn-labeled ${activeColor?.hex === color.hex ? 'active' : ''}`}
+                  style={{ backgroundColor: color.hex, color: color.textColor }}
+                  onClick={() => setActiveColor(activeColor?.hex === color.hex ? null : color)}
+                  title={color.id}
+                >
+                  {color.label}
+                </button>
+              ))}
               <button
-                key={color.id}
-                className={`color-btn-labeled ${activeColor?.hex === color.hex ? 'active' : ''}`}
-                style={{ backgroundColor: color.hex, color: color.textColor }}
-                onClick={() => setActiveColor(activeColor?.hex === color.hex ? null : color)}
-                title={color.id}
+                className={`color-btn-labeled erase ${activeColor === 'erase' ? 'active' : ''}`}
+                onClick={() => setActiveColor(activeColor === 'erase' ? null : 'erase')}
+                title="Erase Color"
               >
-                {color.label}
+                ✗ Erase
               </button>
-            ))}
-            <button
-              className={`color-btn-labeled erase ${activeColor === 'erase' ? 'active' : ''}`}
-              onClick={() => setActiveColor(activeColor === 'erase' ? null : 'erase')}
-              title="Erase Color"
-            >
-              ✗ Erase
-            </button>
-          </div>
+            </div>
+          )}
 
-          <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 8px' }}></div>
+          {(currentUserRole === 'admin' || currentUserRole === 'special') && (
+            <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 8px' }}></div>
+          )}
 
           <button
             className="btn-secondary"
@@ -932,11 +1021,14 @@ function App() {
             📋 Logs
           </button>
 
-          <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 8px' }}></div>
-
-          <button className="btn-secondary" onClick={clearMonth}>
-            Clear Month
-          </button>
+          {currentUserRole === 'admin' && (
+            <>
+              <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 8px' }}></div>
+              <button className="btn-secondary" onClick={clearMonth}>
+                Clear Month
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -1097,6 +1189,7 @@ function App() {
       {renderRescheduleModal()}
       {renderAnalyticsModal()}
       {renderLogsModal()}
+      {renderAdminModal()}
     </div>
   );
 }
