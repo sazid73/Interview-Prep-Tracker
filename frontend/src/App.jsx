@@ -126,6 +126,13 @@ function App() {
 
   const [monthDays, setMonthDays] = useState([]);
 
+  const toggleAnalyticsExpand = (key) => {
+    setExpandedAnalytics(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
   const syncCellToServer = (key, cellObj) => {
     fetch(`${API_BASE}/api/grid/${key}`, {
       method: 'POST',
