@@ -243,6 +243,31 @@ app.put('/api/users/:name/role', async (req, res) => {
   }
 });
 
+// PUT: Change user password
+app.put('/api/users/:name/password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    const user = await User.findOneAndUpdate(
+      { name: req.params.name },
+      { password },
+      { new: true }
+    );
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update password' });
+  }
+});
+
+// DELETE: Remove user
+app.delete('/api/users/:name', async (req, res) => {
+  try {
+    await User.findOneAndDelete({ name: req.params.name });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
 // --- SOCKET.IO REAL-TIME PRESENCE ---
 io.on('connection', (socket) => {
   // When a user clicks into a slot

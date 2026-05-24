@@ -858,6 +858,37 @@ function App() {
       }
     };
 
+    const handleResetPassword = async (name) => {
+      const newPassword = window.prompt(`Enter new password for ${name}:`);
+      if (!newPassword || newPassword.trim() === '') return;
+      
+      try {
+        await fetch(`${API_BASE}/api/users/${name}/password`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: newPassword })
+        });
+        alert(`Password for ${name} updated successfully!`);
+      } catch (err) {
+        alert('Failed to update password');
+      }
+    };
+
+    const handleDeleteUser = async (name) => {
+      if (name.toLowerCase() === 'admin') {
+        alert("Cannot delete the Genesis Admin!");
+        return;
+      }
+      if (!window.confirm(`Are you absolutely sure you want to delete ${name}? This will permanently revoke their access.`)) return;
+      
+      try {
+        await fetch(`${API_BASE}/api/users/${name}`, { method: 'DELETE' });
+        setAdminUsersList(prev => prev.filter(u => u.name !== name));
+      } catch (err) {
+        alert('Failed to delete user');
+      }
+    };
+
     return (
       <div className="report-modal">
         <div className="report-card" style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -872,11 +903,11 @@ function App() {
               <form onSubmit={handleCreateUser} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Name</label>
-                  <input required value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="e.g. Jane" style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }} />
+                  <input required value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="e.g. Jane" style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Password</label>
-                  <input required value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} type="password" placeholder="Password" style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }} />
+                  <input required value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} type="password" placeholder="Password" style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Role</label>
@@ -899,6 +930,7 @@ function App() {
                 <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                   <th style={{ padding: '0.5rem' }}>User Name</th>
                   <th style={{ padding: '0.5rem' }}>Role</th>
+                  <th style={{ padding: '0.5rem' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -923,6 +955,20 @@ function App() {
                         <option value="special">Special (Paint Access)</option>
                         <option value="admin">Admin</option>
                       </select>
+                    </td>
+                    <td style={{ padding: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                      <button 
+                        onClick={() => handleResetPassword(u.name)}
+                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        Reset Pass
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteUser(u.name)}
+                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -965,17 +1011,17 @@ function App() {
   if (currentMonth === null) {
     return (
       <div className="app-container">
-        <header className="header" style={{ flexDirection: 'column', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem', position: 'relative' }}>
+        <header className="header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
           
-          <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
              {currentUserRole === 'admin' && (
-               <button className="btn-secondary" style={{ background: '#ec4899', color: 'white', borderColor: '#ec4899' }} onClick={() => setShowAdminModal(true)}>👥 Manage Access</button>
+               <button className="btn-secondary" style={{ background: '#ec4899', color: 'white', borderColor: '#ec4899', whiteSpace: 'nowrap' }} onClick={() => setShowAdminModal(true)}>👥 Manage Access</button>
              )}
              <span style={{ color: 'var(--text-secondary)' }}>Logged in as <strong style={{ color: 'var(--text-primary)' }}>{currentUser}</strong> ({currentUserRole})</span>
              <button className="btn-secondary" onClick={() => { localStorage.removeItem('trackerUser'); localStorage.removeItem('trackerRole'); setCurrentUser(null); }}>Logout</button>
           </div>
 
-          <h1 style={{ fontSize: '3rem' }}>Interview Tracker</h1>
+          <h1 style={{ fontSize: '3rem', margin: 0 }}>Interview Tracker</h1>
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
             <button className="btn-secondary" style={{ fontSize: '1.2rem', padding: '0.8rem 1.5rem' }} onClick={() => setCurrentYear(y => y - 1)}>←</button>
             <span style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--text-primary)' }}>{currentYear}</span>
@@ -1018,6 +1064,7 @@ function App() {
             </div>
           ))}
         </div>
+        {renderAdminModal()}
       </div>
     );
   }
