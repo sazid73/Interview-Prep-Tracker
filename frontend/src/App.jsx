@@ -176,10 +176,13 @@ function App() {
     }));
   };
 
+  const typingTimeoutRef = React.useRef({});
+
   const syncCellToServer = (key, cellObj) => {
+    const socketId = window.appSocket ? window.appSocket.id : '';
     fetch(`${API_BASE}/api/grid/${key}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Socket-ID': socketId },
       body: JSON.stringify(cellObj)
     }).catch(err => console.error("Failed to sync cell", err));
   };
@@ -321,7 +324,12 @@ function App() {
       newSlots[slotIndex] = { ...newSlots[slotIndex], text };
 
       const newCell = { ...cell, slots: newSlots };
-      syncCellToServer(cellKey, newCell);
+      
+      // Debounce the server sync to prevent DB flooding
+      if (typingTimeoutRef.current[cellKey]) clearTimeout(typingTimeoutRef.current[cellKey]);
+      typingTimeoutRef.current[cellKey] = setTimeout(() => {
+        syncCellToServer(cellKey, newCell);
+      }, 1000);
 
       // Instantly broadcast keystrokes via WebSocket for Google Sheets feel
       if (window.appSocket) {

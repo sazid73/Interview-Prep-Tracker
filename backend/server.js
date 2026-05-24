@@ -116,8 +116,15 @@ app.post('/api/grid/:key', async (req, res) => {
       { upsert: true, new: true }
     );
     
-    // Broadcast change to all connected users instantly
-    io.emit('cell_updated', { key, cell: { color, textColor, slots } });
+    // Broadcast change to all connected users instantly (excluding the sender if socket ID is provided)
+    const senderSocketId = req.headers['x-socket-id'];
+    const cellData = { key, cell: { color, textColor, slots } };
+    
+    if (senderSocketId && io.sockets.sockets.get(senderSocketId)) {
+      io.sockets.sockets.get(senderSocketId).broadcast.emit('cell_updated', cellData);
+    } else {
+      io.emit('cell_updated', cellData);
+    }
     
     res.json({ success: true, message: 'Cell updated successfully' });
   } catch (error) {
