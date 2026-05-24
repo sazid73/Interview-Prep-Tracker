@@ -909,7 +909,7 @@ function App() {
             <button onClick={() => setShowAdminModal(false)} className="close-btn">✗</button>
           </div>
           
-          <div className="report-body">
+          <div style={{ padding: '1.5rem' }}>
             <div style={{ background: 'var(--bg-surface-hover)', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid var(--border-color)' }}>
               <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--text-primary)' }}>Create New User</h3>
               <form onSubmit={handleCreateUser} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -1003,8 +1003,8 @@ function App() {
             <h2>Edit History (Slot {historyModalData.slotIndex + 1})</h2>
             <button onClick={() => setHistoryModalData(null)} className="close-btn">✗</button>
           </div>
-          <div className="report-body">
-            <p style={{ marginTop: 0, marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontWeight: 500 }}>
               {historyModalData.month} {historyModalData.dateNum} at {historyModalData.time}
             </p>
             {cellHistory.length === 0 ? (
@@ -1013,16 +1013,16 @@ function App() {
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {cellHistory.map((entry, idx) => (
                   <li key={idx} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <strong style={{ color: 'var(--text-primary)' }}>{entry.user}</strong>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{entry.timestamp}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '0.8rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
+                      <strong style={{ color: 'var(--text-primary)', fontSize: '1.05rem' }}>{entry.user}</strong>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{entry.timestamp}</span>
                     </div>
                     {entry.oldText && !entry.newText ? (
-                       <span style={{ color: '#ef4444' }}>Deleted "{entry.oldText}"</span>
+                       <span style={{ color: '#ef4444' }}>Deleted <span style={{ background: 'rgba(239,68,68,0.2)', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>"{entry.oldText}"</span></span>
                     ) : !entry.oldText && entry.newText ? (
-                       <span style={{ color: '#10b981' }}>Added "{entry.newText}"</span>
+                       <span style={{ color: '#10b981' }}>Added <span style={{ background: 'rgba(16,185,129,0.2)', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>"{entry.newText}"</span></span>
                     ) : (
-                       <span>Changed <s style={{ color: '#ef4444', opacity: 0.8 }}>"{entry.oldText}"</s> to <span style={{ color: '#10b981' }}>"{entry.newText}"</span></span>
+                       <span>Changed <s style={{ color: '#ef4444', opacity: 0.8 }}>"{entry.oldText}"</s> to <span style={{ color: '#10b981', background: 'rgba(16,185,129,0.2)', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>"{entry.newText}"</span></span>
                     )}
                   </li>
                 ))}
