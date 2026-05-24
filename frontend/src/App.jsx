@@ -113,6 +113,7 @@ function App() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(null); // null = Calendar View
 
+  const [reportDayObj, setReportDayObj] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
