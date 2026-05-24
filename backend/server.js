@@ -65,6 +65,7 @@ const ActivityLog = mongoose.model('ActivityLog', logSchema);
 // 3. Users & Roles
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
+  password: { type: String }, // Plain text for simplicity, as per requirements
   role: { type: String, default: 'standard' } // 'standard', 'special', 'admin'
 });
 const User = mongoose.model('User', userSchema);
@@ -162,16 +163,39 @@ app.post('/api/logs', async (req, res) => {
 // POST: Login / Register user
 app.post('/api/login', async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, password } = req.body;
     const normalizedName = name.trim();
+    
+    // Check if it's the very first user ever (Genesis Admin)
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+      const genesisAdmin = new User({ name: 'Admin', password, role: 'admin' });
+      await genesisAdmin.save();
+      if (normalizedName.toLowerCase() === 'admin') {
+        return res.json(genesisAdmin);
+      }
+    }
+
     let user = await User.findOne({ name: { $regex: new RegExp(`^${normalizedName}$`, 'i') } });
     
     if (!user) {
-      // Auto-assign 'admin' role if their name is exactly 'admin'
-      const role = normalizedName.toLowerCase() === 'admin' ? 'admin' : 'standard';
-      user = new User({ name: normalizedName, role });
-      await user.save();
+      // Allow Genesis Admin creation even if db has legacy users
+      if (normalizedName.toLowerCase() === 'admin') {
+        user = new User({ name: 'Admin', password, role: 'admin' });
+        await user.save();
+        return res.json(user);
+      }
+      return res.status(401).json({ error: 'User does not exist. Ask the Admin to create an account for you.' });
     }
+
+    // Migration for users created in the previous step without passwords
+    if (!user.password) {
+      user.password = password;
+      await user.save();
+    } else if (user.password !== password) {
+      return res.status(401).json({ error: 'Incorrect password' });
+    }
+
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: 'Login failed' });
@@ -185,6 +209,22 @@ app.get('/api/users', async (req, res) => {
     res.json(users);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// POST: Create new user (Admin only)
+app.post('/api/users', async (req, res) => {
+  try {
+    const { name, password, role } = req.body;
+    const normalizedName = name.trim();
+    const existing = await User.findOne({ name: { $regex: new RegExp(`^${normalizedName}$`, 'i') } });
+    if (existing) return res.status(400).json({ error: 'User already exists' });
+    
+    const newUser = new User({ name: normalizedName, password, role });
+    await newUser.save();
+    res.json({ success: true, user: newUser });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create user' });
   }
 });
 

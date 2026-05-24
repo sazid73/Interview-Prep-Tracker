@@ -72,23 +72,29 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 const LoginScreen = ({ onLogin }) => {
   const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (name.trim().length > 1) {
-      fetch(`${API_BASE}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-      })
-      .then(res => res.json())
-      .then(user => {
-        onLogin(user.name, user.role);
-      })
-      .catch(err => {
+    if (name.trim().length > 1 && password.trim().length > 0) {
+      try {
+        const res = await fetch(`${API_BASE}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, password })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          setError(data.error || 'Login failed');
+        } else {
+          onLogin(data.name, data.role);
+        }
+      } catch (err) {
         console.error("Login API failed", err);
-        onLogin(normalizeName(name), 'standard'); // fallback
-      });
+        setError('Network error. Backend might be down.');
+      }
     }
   };
 
@@ -105,10 +111,22 @@ const LoginScreen = ({ onLogin }) => {
             autoFocus
             required
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => { setName(e.target.value); setError(''); }}
             placeholder="e.g. John Doe"
+            style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-hover)', color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '1rem' }}
+          />
+          
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Password</label>
+          <input 
+            type="password" 
+            required
+            value={password}
+            onChange={e => { setPassword(e.target.value); setError(''); }}
+            placeholder="Enter your password"
             style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-hover)', color: 'var(--text-primary)', fontSize: '1rem' }}
           />
+          
+          {error && <div style={{ color: '#ef4444', marginTop: '1rem', fontSize: '0.9rem', fontWeight: 600 }}>{error}</div>}
         </div>
         
         <button type="submit" style={{ width: '100%', padding: '0.8rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 700, cursor: 'pointer' }}>
@@ -138,6 +156,12 @@ function App() {
   const [currentUserRole, setCurrentUserRole] = useState(() => localStorage.getItem('trackerRole') || 'standard');
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [adminUsersList, setAdminUsersList] = useState([]);
+  
+  // State for Admin creating a new user
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState('standard');
+  const [newUserError, setNewUserError] = useState('');
 
   const [monthDays, setMonthDays] = useState([]);
 
@@ -813,18 +837,63 @@ function App() {
   const renderAdminModal = () => {
     if (!showAdminModal) return null;
 
+    const handleCreateUser = async (e) => {
+      e.preventDefault();
+      setNewUserError('');
+      try {
+        const res = await fetch(`${API_BASE}/api/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newUserName, password: newUserPassword, role: newUserRole })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to create user');
+        
+        setAdminUsersList(prev => [...prev, data.user].sort((a, b) => a.name.localeCompare(b.name)));
+        setNewUserName('');
+        setNewUserPassword('');
+        setNewUserRole('standard');
+      } catch (err) {
+        setNewUserError(err.message);
+      }
+    };
+
     return (
       <div className="report-modal">
-        <div className="report-card" style={{ width: '600px' }}>
+        <div className="report-card" style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
           <div className="report-header">
             <h2>👥 Manage Access</h2>
             <button onClick={() => setShowAdminModal(false)} className="close-btn">✗</button>
           </div>
           
           <div className="report-body">
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-              Assign roles to users. "Special" users have access to Paint slots. "Admin" users can manage access.
-            </p>
+            <div style={{ background: 'var(--bg-surface-hover)', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--text-primary)' }}>Create New User</h3>
+              <form onSubmit={handleCreateUser} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Name</label>
+                  <input required value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="e.g. Jane" style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Password</label>
+                  <input required value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} type="password" placeholder="Password" style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Role</label>
+                  <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
+                    <option value="standard">Standard</option>
+                    <option value="special">Special (Paint Access)</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                  <button type="submit" className="btn-secondary" style={{ width: '100%', background: '#10b981', color: 'white', borderColor: '#10b981' }}>+ Create User</button>
+                </div>
+              </form>
+              {newUserError && <div style={{ color: '#ef4444', marginTop: '0.5rem', fontSize: '0.9rem' }}>{newUserError}</div>}
+            </div>
+
+            <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Existing Users</h3>
             <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
