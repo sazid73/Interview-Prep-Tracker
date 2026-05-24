@@ -911,7 +911,7 @@ function App() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Role</label>
-                  <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
+                  <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
                     <option value="standard">Standard</option>
                     <option value="special">Special (Paint Access)</option>
                     <option value="admin">Admin</option>
@@ -941,12 +941,13 @@ function App() {
                       <select
                         value={u.role}
                         onChange={(e) => {
+                          const newRole = e.target.value;
                           fetch(`${API_BASE}/api/users/${u.name}/role`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ role: e.target.value })
+                            body: JSON.stringify({ role: newRole })
                           }).then(() => {
-                            setAdminUsersList(prev => prev.map(usr => usr.name === u.name ? { ...usr, role: e.target.value } : usr));
+                            setAdminUsersList(prev => prev.map(usr => usr.name === u.name ? { ...usr, role: newRole } : usr));
                           });
                         }}
                         style={{ padding: '0.3rem', background: 'var(--bg-surface-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px' }}
