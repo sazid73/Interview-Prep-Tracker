@@ -150,6 +150,24 @@ app.post('/api/logs', async (req, res) => {
   }
 });
 
+// --- SOCKET.IO REAL-TIME PRESENCE ---
+io.on('connection', (socket) => {
+  // When a user clicks into a slot
+  socket.on('user_focus', (data) => {
+    socket.broadcast.emit('user_focus', data);
+  });
+  
+  // When a user clicks out of a slot
+  socket.on('user_blur', (data) => {
+    socket.broadcast.emit('user_blur', data);
+  });
+  
+  // When a user is typing (instant google sheets sync)
+  socket.on('user_typing', (data) => {
+    socket.broadcast.emit('user_typing', data);
+  });
+});
+
 // Start Server
 httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

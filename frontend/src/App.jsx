@@ -120,6 +120,7 @@ function App() {
   const [showLogs, setShowLogs] = useState(false);
   const [serverLogs, setServerLogs] = useState([]);
   const [expandedAnalytics, setExpandedAnalytics] = useState({});
+  const [activeEditors, setActiveEditors] = useState({});
   const [rescheduleData, setRescheduleData] = useState(null);
   const [currentUser, setCurrentUser] = useState(() => localStorage.getItem('trackerUser') || null);
 
@@ -170,6 +171,7 @@ function App() {
   useEffect(() => {
     const socketUrl = API_BASE || 'http://localhost:5000';
     const socket = io(socketUrl);
+    window.appSocket = socket;
 
     socket.on('cell_updated', (data) => {
       setGridData(prev => ({
@@ -190,7 +192,31 @@ function App() {
       });
     });
 
-    return () => socket.disconnect();
+    socket.on('user_focus', (data) => {
+      setActiveEditors(prev => ({ ...prev, [`${data.key}-${data.slotIndex}`]: data.user }));
+    });
+
+    socket.on('user_blur', (data) => {
+      setActiveEditors(prev => {
+        const next = { ...prev };
+        delete next[`${data.key}-${data.slotIndex}`];
+        return next;
+      });
+    });
+
+    socket.on('user_typing', (data) => {
+      setGridData(prev => {
+        const cell = prev[data.key] || {};
+        const slots = cell.slots ? [...cell.slots] : [{}, {}, {}];
+        slots[data.slotIndex] = { ...slots[data.slotIndex], text: data.text };
+        return { ...prev, [data.key]: { ...cell, slots } };
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+      window.appSocket = null;
+    };
   }, []);
 
 
@@ -231,6 +257,11 @@ function App() {
 
       const newCell = { ...cell, slots: newSlots };
       syncCellToServer(cellKey, newCell);
+
+      // Instantly broadcast keystrokes via WebSocket for Google Sheets feel
+      if (window.appSocket) {
+        window.appSocket.emit('user_typing', { key: cellKey, slotIndex, text });
+      }
 
       return {
         ...prev,
@@ -992,15 +1023,26 @@ function App() {
                             const slot = cellSlots[slotIndex] || {};
 
                             return (
-                              <div key={slotIndex} className={`slot-wrapper ${!isOpen ? 'closed' : ''}`}>
+                              <div key={slotIndex} className={`slot-wrapper ${!isOpen ? 'closed' : ''}`} style={{ position: 'relative' }}>
                                 {isOpen ? (
                                   <>
+                                    {activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser && (
+                                      <div style={{ position: 'absolute', top: '-18px', left: '4px', background: '#ec4899', color: 'white', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', zIndex: 10, boxShadow: '0 2px 4px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
+                                        {activeEditors[`${cellKey}-${slotIndex}`]} is typing...
+                                      </div>
+                                    )}
                                     <div className="textarea-grid-wrapper" data-replicated-value={(slot.text || '') + ' '}>
                                       <textarea
                                         id={`cell-${dayObj.dateNum}-${time}-${slotIndex}`}
                                         className={`cell-input ${slot.status || ''}`}
-                                        style={{ color: textColor }}
+                                        style={{ 
+                                          color: textColor,
+                                          borderColor: activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser ? '#ec4899' : 'transparent',
+                                          borderWidth: activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser ? '2px' : '1px'
+                                        }}
                                         value={slot.text || ''}
+                                        onFocus={() => window.appSocket && window.appSocket.emit('user_focus', { key: cellKey, slotIndex, user: currentUser })}
+                                        onBlur={() => window.appSocket && window.appSocket.emit('user_blur', { key: cellKey, slotIndex })}
                                         onChange={(e) => handleSlotChange(dayObj.dateNum, time, slotIndex, e.target.value)}
                                         onKeyDown={(e) => handleKeyDown(e, item.indexInMonth, time, slotIndex)}
                                         placeholder={`Slot ${slotIndex + 1}...`}
