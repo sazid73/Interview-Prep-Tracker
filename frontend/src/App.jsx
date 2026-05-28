@@ -1140,7 +1140,7 @@ function App() {
 
   // ---------------- Render Tracker Grid ----------------
   return (
-    <div className="app-container" style={{ padding: '2rem' }}>
+    <div className="app-container">
       <header className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           <button
@@ -1406,7 +1406,7 @@ function App() {
   }; // end renderPrepInterviews
 
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden', background: '#f3f4f6' }}>
+    <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden', background: 'var(--bg-color)' }}>
       <Sidebar currentView={currentView} setCurrentView={setCurrentView} mobileOpen={mobileMenuOpen} setMobileOpen={setMobileMenuOpen} />
       
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
