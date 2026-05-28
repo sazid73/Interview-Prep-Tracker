@@ -78,6 +78,23 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
+// 4. Students Lead Management
+const studentLeadSchema = new mongoose.Schema({
+  studentId: { type: String, required: true }, // e.g., #9071
+  source: { type: String, default: 'manual entry' },
+  createdAt: { type: String },
+  modifiedAt: { type: String },
+  session: { type: String },
+  name: { type: String, required: true },
+  email: { type: String },
+  mobile: { type: String },
+  courseAndCampus1: { type: String },
+  courseAndCampus2: { type: String },
+  refCompany: { type: String },
+  statusType: { type: String, default: 'white' } // e.g., 'white', 'red'
+});
+const StudentLead = mongoose.model('StudentLead', studentLeadSchema);
+
 // =======================
 // API ENDPOINTS
 // =======================
@@ -146,6 +163,39 @@ app.delete('/api/grid/month', async (req, res) => {
     res.json({ success: true, message: 'Month cleared successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to clear month' });
+  }
+});
+
+// --- STUDENTS LEAD ENDPOINTS ---
+
+app.get('/api/students', async (req, res) => {
+  try {
+    const students = await StudentLead.find({}).sort({ _id: -1 });
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+});
+
+app.post('/api/students', async (req, res) => {
+  try {
+    // Generate a new ID if not provided
+    if (!req.body.studentId) {
+      const count = await StudentLead.countDocuments();
+      req.body.studentId = `#${9000 + count + 1}`;
+    }
+    
+    if (!req.body.createdAt) {
+       const today = new Date();
+       req.body.createdAt = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+       req.body.modifiedAt = req.body.createdAt;
+    }
+
+    const newStudent = new StudentLead(req.body);
+    await newStudent.save();
+    res.json({ success: true, student: newStudent });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create student' });
   }
 });
 

@@ -1,0 +1,78 @@
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  color: #111827;
+  height: 70px;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.menu-toggle {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.breadcrumb h3 {
+  margin: 0 0 0.2rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.breadcrumb span {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.theme-toggle {
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+}

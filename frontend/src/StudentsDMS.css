@@ -1,0 +1,281 @@
+.dms-container {
+  padding: 1.5rem;
+  background-color: #f3f4f6;
+  min-height: calc(100vh - 70px);
+  color: #374151;
+}
+
+.dms-accordion {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.dms-accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #4b5563;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.dms-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.dms-toolbar-left, .dms-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dms-search {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  width: 250px;
+  font-size: 0.9rem;
+}
+
+.dms-rows-select {
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: white;
+  color: #4b5563;
+}
+
+.dms-btn-filter {
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  color: #4b5563;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.dms-btn-add {
+  background: #6366f1;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dms-table-wrapper {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+}
+
+.dms-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.dms-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.dms-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+}
+
+.dms-table tr.row-red {
+  background-color: #fee2e2;
+}
+
+.dms-table tr.row-red td {
+  border-bottom: 1px solid #fecaca;
+}
+
+.id-col {
+  color: #6b7280;
+}
+
+.name-col {
+  font-weight: 500;
+  color: #111827;
+}
+
+.email-link {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.email-link:hover {
+  text-decoration: underline;
+}
+
+.session-badge {
+  background: #e5e7eb;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: #4b5563;
+}
+
+.int-badge {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.dms-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.page-btn {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #4b5563;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.page-btn.active {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}
+
+.page-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-dots {
+  padding: 0.25rem;
+}
+
+.pagination-jump {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pagination-jump input {
+  width: 80px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+}
+
+.pagination-jump button {
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dms-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dms-modal {
+  background: white;
+  width: 500px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.dms-modal-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dms-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.dms-modal-header button {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.dms-modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dms-modal-body input, .dms-modal-body select {
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.dms-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.dms-btn-cancel {
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dms-btn-save {
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}

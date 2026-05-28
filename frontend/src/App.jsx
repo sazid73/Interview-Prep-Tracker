@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { io } from 'socket.io-client';
+import Sidebar from './Sidebar';
+import Topbar from './Topbar';
+import StudentsDMS from './StudentsDMS';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -138,6 +141,8 @@ const LoginScreen = ({ onLogin }) => {
 };
 
 function App() {
+  const [currentView, setCurrentView] = useState('students');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [gridData, setGridData] = useState({});
   const [activeColor, setActiveColor] = useState(null);
 
@@ -1058,7 +1063,7 @@ function App() {
     }
   };
 
-  // ---------------- Render Calendar Dashboard ----------------
+  // ---------------- Main Layout Render ----------------
   if (!currentUser) {
     return (
       <LoginScreen onLogin={(name, role) => {
@@ -1071,8 +1076,9 @@ function App() {
     );
   }
 
-  if (currentMonth === null) {
-    return (
+  const renderPrepInterviews = () => {
+    if (currentMonth === null) {
+      return (
       <div className="app-container">
         <header className="header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
           
@@ -1134,7 +1140,7 @@ function App() {
 
   // ---------------- Render Tracker Grid ----------------
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ padding: '2rem' }}>
       <header className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           <button
@@ -1395,6 +1401,31 @@ function App() {
       {renderLogsModal()}
       {renderAdminModal()}
       {renderHistoryModal()}
+    </div>
+  );
+  }; // end renderPrepInterviews
+
+  return (
+    <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden', background: '#f3f4f6' }}>
+      <Sidebar currentView={currentView} setCurrentView={setCurrentView} mobileOpen={mobileMenuOpen} setMobileOpen={setMobileMenuOpen} />
+      
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Topbar currentView={currentView} currentUser={currentUser} toggleMenu={() => setMobileMenuOpen(!mobileMenuOpen)} />
+        
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {currentView === 'students' && <StudentsDMS />}
+          
+          {currentView === 'prep_interviews' && renderPrepInterviews()}
+          
+          {currentView !== 'students' && currentView !== 'prep_interviews' && (
+            <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
+              <h2>{currentView.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</h2>
+              <p style={{ fontSize: '1.2rem', marginTop: '1rem' }}>This module is currently under construction.</p>
+              <div style={{ marginTop: '2rem', fontSize: '4rem' }}>🛠️</div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
