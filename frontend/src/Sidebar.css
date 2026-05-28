@@ -7,7 +7,19 @@
   flex-direction: column;
   border-right: 1px solid var(--border-color);
   overflow-y: auto;
+  overflow-x: hidden;
+  white-space: nowrap;
   flex-shrink: 0;
+  transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 0;
+  border-right: none;
+}
+
+.sidebar-overlay {
+  display: none;
 }
 
 .sidebar-logo {

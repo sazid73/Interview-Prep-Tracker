@@ -142,7 +142,7 @@ const LoginScreen = ({ onLogin }) => {
 
 function App() {
   const [currentView, setCurrentView] = useState('students');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [gridData, setGridData] = useState({});
   const [activeColor, setActiveColor] = useState(null);
 
@@ -1407,10 +1407,10 @@ function App() {
 
   return (
     <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden', background: 'var(--bg-color)' }}>
-      <Sidebar currentView={currentView} setCurrentView={setCurrentView} mobileOpen={mobileMenuOpen} setMobileOpen={setMobileMenuOpen} />
+      <Sidebar currentView={currentView} setCurrentView={setCurrentView} isOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar currentView={currentView} currentUser={currentUser} toggleMenu={() => setMobileMenuOpen(!mobileMenuOpen)} />
+        <Topbar currentView={currentView} currentUser={currentUser} toggleMenu={() => setSidebarOpen(!sidebarOpen)} />
         
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {currentView === 'students' && <StudentsDMS />}

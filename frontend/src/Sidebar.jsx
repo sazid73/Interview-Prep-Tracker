@@ -1,7 +1,7 @@
 import React from 'react';
 import './Sidebar.css';
 
-const Sidebar = ({ currentView, setCurrentView, mobileOpen, setMobileOpen }) => {
+const Sidebar = ({ currentView, setCurrentView, isOpen, setSidebarOpen }) => {
   const navItems = [
     { section: 'MAIN', items: [
       { id: 'dashboard', label: 'Dashboard', icon: '⏱️' }
@@ -24,8 +24,8 @@ const Sidebar = ({ currentView, setCurrentView, mobileOpen, setMobileOpen }) => 
 
   return (
     <>
-      {mobileOpen && <div className="sidebar-overlay" onClick={() => setMobileOpen(false)} style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999}}></div>}
-      <div className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
+      <div className={`sidebar-overlay ${isOpen ? 'active' : ''}`} onClick={() => setSidebarOpen(false)}></div>
+      <div className={`sidebar ${isOpen ? 'open' : 'collapsed'}`}>
       <div className="sidebar-logo">
         <h2>RAY</h2>
         <p>EDUCATION & RECRUITMENT</p>
