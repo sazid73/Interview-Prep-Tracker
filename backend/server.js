@@ -80,7 +80,7 @@ const User = mongoose.model('User', userSchema);
 
 // 4. Students Lead Management
 const studentLeadSchema = new mongoose.Schema({
-  studentId: { type: String, required: true }, // e.g., #9071
+  studentId: { type: String, required: true },
   source: { type: String, default: 'manual entry' },
   createdAt: { type: String },
   modifiedAt: { type: String },
@@ -91,7 +91,24 @@ const studentLeadSchema = new mongoose.Schema({
   courseAndCampus1: { type: String },
   courseAndCampus2: { type: String },
   refCompany: { type: String },
-  statusType: { type: String, default: 'white' } // e.g., 'white', 'red'
+  intStatus: { type: String },
+  recruiter: { type: String },
+  chaser: { type: String },
+  agent: { type: String },
+  residential: { type: String },
+  location: { type: String },
+  appId: { type: String },
+  clTime: { type: String },
+  submit: { type: String },
+  docs: { type: String },
+  statusType: { type: String, default: 'white' },
+  appStatus: { type: String, default: 'Awaiting submission' },
+  chasers: {
+    cv: { type: String, default: '' },
+    ps: { type: String, default: '' },
+    qa: { type: String, default: '' },
+    sub: { type: String, default: '' }
+  }
 });
 const StudentLead = mongoose.model('StudentLead', studentLeadSchema);
 
@@ -152,8 +169,9 @@ app.post('/api/grid/:key', async (req, res) => {
 // DELETE: Clear a specific month's data
 app.delete('/api/grid/month', async (req, res) => {
   try {
-    const { year, month } = req.query; // e.g. ?year=2026&month=4
-    const prefixRegex = new RegExp(`^${year}-${month}-`);
+    const { year, month, prefix } = req.query; // e.g. ?year=2026&month=4&prefix=interview
+    const matchStr = prefix ? `^${prefix}-${year}-${month}-` : `^${year}-${month}-`;
+    const prefixRegex = new RegExp(matchStr);
     
     await GridCell.deleteMany({ key: prefixRegex });
     
@@ -196,6 +214,79 @@ app.post('/api/students', async (req, res) => {
     res.json({ success: true, student: newStudent });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create student' });
+  }
+});
+
+app.put('/api/students/:id', async (req, res) => {
+  try {
+    const today = new Date();
+    req.body.modifiedAt = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const updatedStudent = await StudentLead.findByIdAndUpdate(
+      req.params.id, 
+      { $set: req.body },
+      { new: true }
+    );
+    res.json({ success: true, student: updatedStudent });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update student' });
+  }
+});
+
+const interviewSchema = new mongoose.Schema({
+  intake: { type: String, default: 'May 26' },
+  date: { type: String, required: true },
+  studentName: { type: String, required: true },
+  status: { type: String, default: 'pending' },
+  college: { type: String },
+  subject: { type: String },
+  pendingAction: { type: String },
+  comments: { type: String },
+  recruiter: { type: String }
+});
+const Interview = mongoose.model('Interview', interviewSchema);
+
+// GET Interviews
+app.get('/api/interviews', async (req, res) => {
+  try {
+    const interviews = await Interview.find({}).sort({ date: 1 });
+    res.json(interviews);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch interviews' });
+  }
+});
+
+// POST Interviews
+app.post('/api/interviews', async (req, res) => {
+  try {
+    const newInterview = new Interview(req.body);
+    await newInterview.save();
+    res.json({ success: true, interview: newInterview });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create interview' });
+  }
+});
+
+// PUT Interviews
+app.put('/api/interviews/:id', async (req, res) => {
+  try {
+    const updated = await Interview.findByIdAndUpdate(
+      req.params.id, 
+      { $set: req.body },
+      { new: true }
+    );
+    res.json({ success: true, interview: updated });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update interview' });
+  }
+});
+
+// DELETE Interviews
+app.delete('/api/interviews/:id', async (req, res) => {
+  try {
+    await Interview.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete interview' });
   }
 });
 

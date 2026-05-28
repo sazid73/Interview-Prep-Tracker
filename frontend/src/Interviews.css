@@ -1,0 +1,171 @@
+.interviews-container {
+  padding: 2rem;
+  background-color: var(--bg-color);
+  min-height: calc(100vh - 75px);
+  color: var(--text-primary);
+}
+
+.interviews-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.interviews-table-wrapper {
+  background: var(--bg-surface);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+}
+
+.interviews-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+.interviews-table th {
+  text-align: center;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.interviews-table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.interviews-table td:nth-child(3) {
+  text-align: left;
+  font-weight: 600;
+}
+
+.interviews-table tr:hover {
+  background: var(--bg-surface-hover);
+}
+
+.status-badge {
+  padding: 0.4rem 1.5rem;
+  font-weight: bold;
+  border-radius: 4px;
+  color: #000;
+  text-transform: capitalize;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.status-pass { background-color: #00ff00; }
+.status-failed { background-color: #ff0000; color: #fff; }
+.status-missed { background-color: #ffff00; }
+.status-pending { background-color: #e5e7eb; }
+.status-rescheduled { background-color: #bae6fd; color: #0284c7; } /* Light Blue */
+.status-attended--awaiting { background-color: #f97316; color: #fff; }
+
+.interviews-table select, .interviews-table input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: center;
+}
+
+.interviews-table input:focus, .interviews-table select:focus {
+  outline: 1px solid var(--accent-color);
+  background: rgba(255,255,255,0.1);
+}
+
+.week-separator.target-below td {
+  background-color: #ffeb3b !important;
+  color: #000 !important;
+  font-weight: bold;
+  text-align: left !important;
+  padding: 0.6rem 1rem !important;
+}
+
+.week-separator.target-met td {
+  background-color: #22c55e !important;
+  color: #fff !important;
+  font-weight: bold;
+  text-align: left !important;
+  padding: 0.6rem 1rem !important;
+}
+
+.btn-add-test {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.week-filter-select {
+  padding: 0.6rem 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.action-cell {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.delete-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.delete-btn:hover {
+  background: #dc2626;
+}
+
+/* Modal styles for Reschedule */
+.reschedule-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.reschedule-modal {
+  background: var(--bg-surface);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  max-width: 400px;
+  color: var(--text-primary);
+}
+.reschedule-modal h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+.reschedule-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}

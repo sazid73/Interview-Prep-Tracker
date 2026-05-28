@@ -4,6 +4,8 @@ import { io } from 'socket.io-client';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import StudentsDMS from './StudentsDMS';
+import Interviews from './Interviews';
+import Dashboard from './Dashboard';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -159,20 +161,14 @@ function App() {
   const [rescheduleData, setRescheduleData] = useState(null);
   const [currentUser, setCurrentUser] = useState(() => localStorage.getItem('trackerUser') || null);
   const [currentUserRole, setCurrentUserRole] = useState(() => localStorage.getItem('trackerRole') || 'standard');
-  const [showAdminModal, setShowAdminModal] = useState(false);
-  const [adminUsersList, setAdminUsersList] = useState([]);
-  
-  // State for Admin creating a new user
-  const [newUserName, setNewUserName] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserRole, setNewUserRole] = useState('standard');
-  const [newUserError, setNewUserError] = useState('');
-
   const [monthDays, setMonthDays] = useState([]);
   
   const [historyModalData, setHistoryModalData] = useState(null);
   const [cellHistory, setCellHistory] = useState([]);
   const initialTextRefs = React.useRef({});
+  const [prepSearchTerm, setPrepSearchTerm] = useState('');
+  const [prepSearchStatus, setPrepSearchStatus] = useState('');
+  const [showPrepFilters, setShowPrepFilters] = useState(false);
 
   const toggleAnalyticsExpand = (key) => {
     setExpandedAnalytics(prev => ({
@@ -225,16 +221,6 @@ function App() {
         .catch(err => console.error("Failed to load logs", err));
     }
   }, [showLogs]);
-
-  // Fetch admin users list when modal opens
-  useEffect(() => {
-    if (showAdminModal && currentUserRole === 'admin') {
-      fetch(`${API_BASE}/api/users`)
-        .then(res => res.json())
-        .then(data => setAdminUsersList(data))
-        .catch(err => console.error("Failed to load users", err));
-    }
-  }, [showAdminModal, currentUserRole]);
 
   // Fetch cell history when history modal opens
   useEffect(() => {
@@ -318,8 +304,12 @@ function App() {
     }
   }, [currentMonth, currentYear]);
 
+  const getCellKey = (y, m, d, t) => {
+    return currentView === 'interviews' ? `interview-${y}-${m}-${d}-${t}` : `${y}-${m}-${d}-${t}`;
+  };
+
   const handleSlotChange = (dateNum, time, slotIndex, text) => {
-    const cellKey = `${currentYear}-${currentMonth}-${dateNum}-${time}`;
+    const cellKey = getCellKey(currentYear, currentMonth, dateNum, time);
     setGridData(prev => {
       const cell = prev[cellKey] || {};
       const slots = getSlots(cell);
@@ -350,7 +340,7 @@ function App() {
 
   const handleCellClick = (dateNum, time) => {
     if (activeColor !== null) {
-      const cellKey = `${currentYear}-${currentMonth}-${dateNum}-${time}`;
+      const cellKey = getCellKey(currentYear, currentMonth, dateNum, time);
       setGridData(prev => {
         const currentCell = prev[cellKey] || {};
         const newCell = {
@@ -367,7 +357,7 @@ function App() {
 
   const handleSlotStatus = (e, dateNum, time, slotIndex, status) => {
     e.stopPropagation();
-    const cellKey = `${currentYear}-${currentMonth}-${dateNum}-${time}`;
+    const cellKey = getCellKey(currentYear, currentMonth, dateNum, time);
     
     const currentCell = gridData[cellKey] || {};
     const currentSlots = getSlots(currentCell);
@@ -407,7 +397,7 @@ function App() {
 
   const handleRescheduleClick = (e, dateNum, time, slotIndex) => {
     e.stopPropagation();
-    const cellKey = `${currentYear}-${currentMonth}-${dateNum}-${time}`;
+    const cellKey = getCellKey(currentYear, currentMonth, dateNum, time);
     const cell = gridData[cellKey] || {};
     const slots = getSlots(cell);
     const slot = slots[slotIndex];
@@ -465,7 +455,7 @@ function App() {
              return;
           }
 
-          const cellKey = `${y}-${m}-${d}-${time}`;
+          const cellKey = getCellKey(y, m, d, time);
           const cell = gridData[cellKey] || {};
           const slots = getSlots(cell);
           
@@ -748,7 +738,7 @@ function App() {
     const rescheduledList = [];
 
     TIME_SLOTS.forEach(time => {
-      const cellKey = `${currentYear}-${currentMonth}-${reportDayObj.dateNum}-${time}`;
+      const cellKey = getCellKey(currentYear, currentMonth, reportDayObj.dateNum, time);
       const cell = gridData[cellKey];
       if (cell) {
         const slots = getSlots(cell);
@@ -857,155 +847,6 @@ function App() {
     );
   };
 
-  const renderAdminModal = () => {
-    if (!showAdminModal) return null;
-
-    const handleCreateUser = async (e) => {
-      e.preventDefault();
-      setNewUserError('');
-      try {
-        const res = await fetch(`${API_BASE}/api/users`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newUserName, password: newUserPassword, role: newUserRole })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to create user');
-        
-        setAdminUsersList(prev => [...prev, data.user].sort((a, b) => a.name.localeCompare(b.name)));
-        setNewUserName('');
-        setNewUserPassword('');
-        setNewUserRole('standard');
-      } catch (err) {
-        setNewUserError(err.message);
-      }
-    };
-
-    const handleResetPassword = async (name) => {
-      const newPassword = window.prompt(`Enter new password for ${name}:`);
-      if (!newPassword || newPassword.trim() === '') return;
-      
-      try {
-        await fetch(`${API_BASE}/api/users/${name}/password`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: newPassword })
-        });
-        logActivity('Reset Password', `Reset password for user ${name}`);
-        alert(`Password for ${name} updated successfully!`);
-      } catch (err) {
-        alert('Failed to update password');
-      }
-    };
-
-    const handleDeleteUser = async (name) => {
-      if (name.toLowerCase() === 'admin') {
-        alert("Cannot delete the Genesis Admin!");
-        return;
-      }
-      if (!window.confirm(`Are you absolutely sure you want to delete ${name}? This will permanently revoke their access.`)) return;
-      
-      try {
-        await fetch(`${API_BASE}/api/users/${name}`, { method: 'DELETE' });
-        logActivity('Deleted User', `Deleted user ${name}`);
-        setAdminUsersList(prev => prev.filter(u => u.name !== name));
-      } catch (err) {
-        alert('Failed to delete user');
-      }
-    };
-
-    return (
-      <div className="report-modal">
-        <div className="report-card" style={{ width: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-          <div className="report-header">
-            <h2>👥 Manage Access</h2>
-            <button onClick={() => setShowAdminModal(false)} className="close-btn">✗</button>
-          </div>
-          
-          <div style={{ padding: '1.5rem' }}>
-            <div style={{ background: 'var(--bg-surface-hover)', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem', border: '1px solid var(--border-color)' }}>
-              <h3 style={{ marginTop: 0, marginBottom: '1rem', color: 'var(--text-primary)' }}>Create New User</h3>
-              <form onSubmit={handleCreateUser} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Name</label>
-                  <input required value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="e.g. Jane" style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Password</label>
-                  <input required value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} type="password" placeholder="Password" style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Role</label>
-                  <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}>
-                    <option value="standard">Standard</option>
-                    <option value="special">Special (Paint Access)</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                  <button type="submit" className="btn-secondary" style={{ width: '100%', background: '#10b981', color: 'white', borderColor: '#10b981' }}>+ Create User</button>
-                </div>
-              </form>
-              {newUserError && <div style={{ color: '#ef4444', marginTop: '0.5rem', fontSize: '0.9rem' }}>{newUserError}</div>}
-            </div>
-
-            <h3 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Existing Users</h3>
-            <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <th style={{ padding: '0.5rem' }}>User Name</th>
-                  <th style={{ padding: '0.5rem' }}>Role</th>
-                  <th style={{ padding: '0.5rem' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {adminUsersList.map(u => (
-                  <tr key={u._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '0.5rem', fontWeight: 'bold' }}>{u.name}</td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <select
-                        value={u.role}
-                        onChange={(e) => {
-                          const newRole = e.target.value;
-                          fetch(`${API_BASE}/api/users/${u.name}/role`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ role: newRole })
-                          }).then(() => {
-                            setAdminUsersList(prev => prev.map(usr => usr.name === u.name ? { ...usr, role: newRole } : usr));
-                          });
-                        }}
-                        style={{ padding: '0.3rem', background: 'var(--bg-surface-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px' }}
-                      >
-                        <option value="standard">Standard</option>
-                        <option value="special">Special (Paint Access)</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-                    <td style={{ padding: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                      <button 
-                        onClick={() => handleResetPassword(u.name)}
-                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                      >
-                        Reset Pass
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteUser(u.name)}
-                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderHistoryModal = () => {
     if (!historyModalData) return null;
 
@@ -1083,11 +924,7 @@ function App() {
         <header className="header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
           
           <div style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-             {currentUserRole === 'admin' && (
-               <button className="btn-secondary" style={{ background: '#ec4899', color: 'white', borderColor: '#ec4899', whiteSpace: 'nowrap' }} onClick={() => setShowAdminModal(true)}>👥 Manage Access</button>
-             )}
-             <span style={{ color: 'var(--text-secondary)' }}>Logged in as <strong style={{ color: 'var(--text-primary)' }}>{currentUser}</strong> ({currentUserRole})</span>
-             <button className="btn-secondary" onClick={() => { logActivity('Logout', 'User logged out'); localStorage.removeItem('trackerUser'); localStorage.removeItem('trackerRole'); setCurrentUser(null); }}>Logout</button>
+             {/* Login/Logout moved to Topbar */}
           </div>
 
           <h1 style={{ fontSize: '3rem', margin: 0 }}>Interview Tracker</h1>
@@ -1133,7 +970,6 @@ function App() {
             </div>
           ))}
         </div>
-        {renderAdminModal()}
       </div>
     );
   }
@@ -1181,11 +1017,19 @@ function App() {
           {(currentUserRole === 'admin' || currentUserRole === 'special') && (
             <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 8px' }}></div>
           )}
-
+          
+          <button
+            className="btn-secondary"
+            onClick={() => setShowPrepFilters(!showPrepFilters)}
+            style={{ marginLeft: 'auto', background: 'var(--bg-surface-hover)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+          >
+            ⧨ Search & Filters
+          </button>
+          
           <button
             className="btn-secondary"
             onClick={() => setShowReport(true)}
-            style={{ marginLeft: 'auto', background: 'var(--accent-color)', borderColor: 'var(--accent-color)', color: '#fff' }}
+            style={{ background: 'var(--accent-color)', borderColor: 'var(--accent-color)', color: '#fff' }}
           >
             📊 Daily Report
           </button>
@@ -1215,6 +1059,32 @@ function App() {
             </>
           )}
         </div>
+        
+        {showPrepFilters && (
+          <div style={{ padding: '1rem', background: 'var(--bg-surface-hover)', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Search Text</label>
+              <input 
+                type="text" 
+                placeholder="Name or details..." 
+                value={prepSearchTerm} 
+                onChange={e => setPrepSearchTerm(e.target.value)}
+                style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status</label>
+              <select value={prepSearchStatus} onChange={e => setPrepSearchStatus(e.target.value)} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+                <option value="">All</option>
+                <option value="done">Done (✓)</option>
+                <option value="missed">Missed (✗)</option>
+                <option value="rescheduled">Rescheduled (🔄)</option>
+                <option value="pending">Pending (No Status)</option>
+              </select>
+            </div>
+            <button onClick={() => { setPrepSearchTerm(''); setPrepSearchStatus(''); }} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
+          </div>
+        )}
       </header>
 
       <div className="table-wrapper">
@@ -1284,7 +1154,7 @@ function App() {
                 <tr key={dayObj.dateNum}>
                   <th className="row-header">{dayObj.label}</th>
                   {TIME_SLOTS.map(time => {
-                    const cellKey = `${currentYear}-${currentMonth}-${dayObj.dateNum}-${time}`;
+                    const cellKey = getCellKey(currentYear, currentMonth, dayObj.dateNum, time);
                     const cell = gridData[cellKey] || {};
 
                     const presetColor = getPresetColor(dayObj.dayName, time);
@@ -1305,9 +1175,40 @@ function App() {
                           {Array.from({ length: 3 }).map((_, slotIndex) => {
                             const isOpen = slotIndex < numSlots;
                             const slot = cellSlots[slotIndex] || {};
+                            const isFocused = activeEditors[`${cellKey}-${slotIndex}`];
+                            
+                            // Advanced Search Highlighting Logic
+                            let isHighlighted = false;
+                            let isDimmed = false;
+                            if (prepSearchTerm || prepSearchStatus) {
+                              let matchesSearch = true;
+                              if (prepSearchTerm) {
+                                matchesSearch = slot.text && slot.text.toLowerCase().includes(prepSearchTerm.toLowerCase());
+                              }
+                              
+                              let matchesStatus = true;
+                              if (prepSearchStatus) {
+                                if (prepSearchStatus === 'pending') {
+                                  matchesStatus = !slot.status;
+                                } else {
+                                  matchesStatus = slot.status === prepSearchStatus;
+                                }
+                              }
+                              
+                              if (matchesSearch && matchesStatus && slot.text) {
+                                isHighlighted = true;
+                              } else {
+                                isDimmed = true;
+                              }
+                            }
 
                             return (
-                              <div key={slotIndex} className={`slot-wrapper ${!isOpen ? 'closed' : ''}`} style={{ position: 'relative' }}>
+                              <div key={slotIndex} className={`slot-wrapper ${!isOpen ? 'closed' : ''}`} style={{ 
+                                position: 'relative', 
+                                opacity: isDimmed ? 0.3 : 1, 
+                                boxShadow: isHighlighted ? '0 0 0 2px #3b82f6 inset, 0 0 10px rgba(59,130,246,0.5)' : 'none',
+                                transition: 'all 0.2s'
+                              }}>
                                 {isOpen ? (
                                   <>
                                     {activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser && (
@@ -1399,7 +1300,6 @@ function App() {
       {renderRescheduleModal()}
       {renderAnalyticsModal()}
       {renderLogsModal()}
-      {renderAdminModal()}
       {renderHistoryModal()}
     </div>
   );
@@ -1410,14 +1310,28 @@ function App() {
       <Sidebar currentView={currentView} setCurrentView={setCurrentView} isOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Topbar currentView={currentView} currentUser={currentUser} toggleMenu={() => setSidebarOpen(!sidebarOpen)} />
+        <Topbar 
+          currentView={currentView} 
+          currentUser={currentUser} 
+          currentUserRole={currentUserRole}
+          toggleMenu={() => setSidebarOpen(!sidebarOpen)} 
+          onLogout={() => {
+            logActivity('Logout', 'User logged out'); 
+            localStorage.removeItem('trackerUser'); 
+            localStorage.removeItem('trackerRole'); 
+            setCurrentUser(null);
+            setCurrentUserRole('standard');
+          }}
+        />
         
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {currentView === 'students' && <StudentsDMS />}
+          {currentView === 'dashboard' && <Dashboard currentUserRole={currentUserRole} />}
+          {currentView === 'students' && <StudentsDMS setCurrentView={setCurrentView} />}
           
           {currentView === 'prep_interviews' && renderPrepInterviews()}
+          {currentView === 'interviews' && <Interviews />}
           
-          {currentView !== 'students' && currentView !== 'prep_interviews' && (
+          {currentView !== 'dashboard' && currentView !== 'students' && currentView !== 'prep_interviews' && currentView !== 'interviews' && (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
               <h2>{currentView.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</h2>
               <p style={{ fontSize: '1.2rem', marginTop: '1rem' }}>This module is currently under construction.</p>

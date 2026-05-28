@@ -184,7 +184,49 @@
 .int-badge {
   color: #34d399;
   font-weight: 600;
+  background: rgba(52, 211, 153, 0.1);
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
 }
+
+.docs-badge {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.action-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: var(--text-primary);
+}
+
+.action-btn:hover {
+  background: var(--bg-surface-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.view-btn:hover { border-color: #38bdf8; color: #38bdf8; }
+.edit-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+.book-btn:hover { border-color: #34d399; color: #34d399; }
 
 .dms-pagination {
   display: flex;
@@ -274,56 +316,103 @@
 
 .dms-modal {
   background: var(--bg-surface);
-  width: 500px;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
   border: 1px solid var(--border-color);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
 }
 
 .dms-modal-header {
   display: flex;
   justify-content: space-between;
-  padding: 1.5rem;
+  align-items: center;
+  padding: 1.5rem 2rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .dms-modal-header h3 {
   margin: 0;
   font-size: 1.25rem;
-  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .dms-modal-header button {
   background: transparent;
   border: none;
+  color: var(--text-secondary);
   font-size: 1.25rem;
   cursor: pointer;
-  color: var(--text-secondary);
+  padding: 0.5rem;
 }
 
-.dms-modal-header button:hover {
-  color: #fff;
+.dms-modal-tabs {
+  display: flex;
+  padding: 0 2rem;
+  border-bottom: 1px solid var(--border-color);
+  gap: 1.5rem;
+  background: rgba(0,0,0,0.1);
+}
+
+.dms-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 1rem 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.dms-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.dms-tab-btn.active {
+  color: #818cf8;
+  border-bottom-color: #818cf8;
 }
 
 .dms-modal-body {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
+  padding: 2rem;
 }
 
-.dms-modal-body input, .dms-modal-body select {
-  padding: 0.8rem;
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.input-group label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.dms-modal-body input,
+.dms-modal-body select {
+  width: 100%;
+  background: transparent;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-color);
+  border-radius: 6px;
+  padding: 0.6rem;
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-family: inherit;
+  font-size: 0.9rem;
 }
 
 .dms-modal-body input:focus, .dms-modal-body select:focus {
   outline: none;
   border-color: var(--accent-color);
+}
+
+select option {
+  background: #1f2937;
+  color: #f3f4f6;
 }
 
 .dms-modal-footer {
@@ -361,4 +450,34 @@
 .dms-btn-save:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 15px rgba(99, 102, 241, 0.4);
+}
+
+.dms-modal-body fieldset[disabled] input,
+.dms-modal-body fieldset[disabled] select,
+.dms-modal-body fieldset[disabled] textarea,
+.dms-modal-body fieldset[disabled] button {
+  border: none !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+  cursor: default;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.dms-modal-body fieldset[disabled] select {
+  background-image: none !important;
+}
+
+.dms-modal-body fieldset[disabled] .input-group {
+  border-bottom: 1px dashed rgba(255,255,255,0.1);
+  padding-bottom: 0.5rem;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
 }

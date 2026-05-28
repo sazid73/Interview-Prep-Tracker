@@ -1,7 +1,7 @@
 import React from 'react';
 import './Topbar.css';
 
-const Topbar = ({ currentView, currentUser, toggleMenu }) => {
+const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogout }) => {
   const formatViewName = (viewId) => {
     return viewId.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
@@ -18,13 +18,28 @@ const Topbar = ({ currentView, currentUser, toggleMenu }) => {
         </div>
       </div>
       
-      <div className="topbar-right">
+      <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
         <button className="theme-toggle">☀️ Light</button>
-        <div className="user-profile">
+        <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div className="avatar">
             {currentUser ? currentUser.substring(0, 2).toUpperCase() : 'U'}
           </div>
-          <span className="user-name">{currentUser}</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className="user-name" style={{ fontWeight: 'bold' }}>{currentUser}</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
+              {currentUserRole ? currentUserRole.replace('_', ' ') : 'Standard'}
+            </span>
+          </div>
+          <button 
+            onClick={onLogout} 
+            style={{ 
+              marginLeft: '0.5rem', padding: '0.4rem 0.8rem', background: '#ef4444', 
+              color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer',
+              fontSize: '0.8rem', fontWeight: 'bold'
+            }}
+          >
+            Logout
+          </button>
         </div>
       </div>
     </div>

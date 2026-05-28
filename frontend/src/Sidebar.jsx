@@ -9,9 +9,8 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setSidebarOpen }) => {
     { section: 'STUDENTS', items: [
       { id: 'students', label: 'Students', icon: '👤' },
       { id: 'student_activity', label: 'Student Activity', icon: '📋' },
-      { id: 'interviews', label: 'Interviews', icon: '💬' },
       { id: 'prep_interviews', label: 'Prep Interviews', icon: '🎯' },
-      { id: 'prep_interview_activity', label: 'Prep Interview Activity', icon: '📊' },
+      { id: 'interviews', label: 'Interviews', icon: '💬' },
       { id: 'interview_status', label: 'Interview Status', icon: '✓' }
     ]},
     { section: 'ACADEMIC', items: [
