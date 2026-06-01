@@ -112,6 +112,22 @@ const studentLeadSchema = new mongoose.Schema({
 });
 const StudentLead = mongoose.model('StudentLead', studentLeadSchema);
 
+// 5. Tasks and Weekly WL
+const taskSchema = new mongoose.Schema({
+  day: { type: String }, // e.g. 'Monday', 'Tuesday'
+  shift: { type: String, default: 'DAY TIME' }, // 'DAY TIME' or 'EVENING TIME'
+  leadNum: { type: String },
+  assignedTo: { type: String },
+  assignedBy: { type: String },
+  taskType: { type: String, default: 'Call' }, // 'Call', 'CV', 'QA', 'PS', 'Submission'
+  status: { type: String, default: 'pending' }, // 'pending', 'working', 'completed', 'Leave'
+  startDateAndTime: { type: String },
+  endTime: { type: String },
+  notes: { type: String },
+  createdAt: { type: Date, default: Date.now }
+});
+const TaskAssignment = mongoose.model('TaskAssignment', taskSchema);
+
 // =======================
 // API ENDPOINTS
 // =======================
@@ -287,6 +303,58 @@ app.delete('/api/interviews/:id', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete interview' });
+  }
+});
+
+// --- TASKS & WEEKLY WL ENDPOINTS ---
+
+app.get('/api/tasks', async (req, res) => {
+  try {
+    const tasks = await TaskAssignment.find({}).sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch tasks' });
+  }
+});
+
+app.post('/api/tasks', async (req, res) => {
+  try {
+    const newTask = new TaskAssignment(req.body);
+    await newTask.save();
+    res.json({ success: true, task: newTask });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create task' });
+  }
+});
+
+app.post('/api/tasks/bulk', async (req, res) => {
+  try {
+    const tasks = await TaskAssignment.insertMany(req.body);
+    res.json({ success: true, tasks });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to bulk create tasks' });
+  }
+});
+
+app.put('/api/tasks/:id', async (req, res) => {
+  try {
+    const updatedTask = await TaskAssignment.findByIdAndUpdate(
+      req.params.id, 
+      { $set: req.body },
+      { new: true }
+    );
+    res.json({ success: true, task: updatedTask });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update task' });
+  }
+});
+
+app.delete('/api/tasks/:id', async (req, res) => {
+  try {
+    await TaskAssignment.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete task' });
   }
 });
 

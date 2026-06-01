@@ -7,8 +7,13 @@ const Dashboard = ({ currentUserRole }) => {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showRecruiterModal, setShowRecruiterModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
   const [analyticsMonth, setAnalyticsMonth] = useState('All');
   const [recruiterMonth, setRecruiterMonth] = useState('All');
+  const [serverLogs, setServerLogs] = useState([]);
+  const [logsTab, setLogsTab] = useState('Prep Tracker');
+  const [logSearchTerm, setLogSearchTerm] = useState('');
+  const [logUserFilter, setLogUserFilter] = useState('');
   
   // Admin Management State
   const [adminUsersList, setAdminUsersList] = useState([]);
@@ -23,6 +28,15 @@ const Dashboard = ({ currentUserRole }) => {
       .then(data => setStudents(data))
       .catch(err => console.error(err));
   }, []);
+
+  useEffect(() => {
+    if (showLogs) {
+      fetch(`${API_BASE}/api/logs`)
+        .then(res => res.json())
+        .then(data => setServerLogs(data))
+        .catch(err => console.error(err));
+    }
+  }, [showLogs]);
 
   useEffect(() => {
     if (showAdminModal && (currentUserRole === 'admin' || currentUserRole === 'super_admin')) {
@@ -179,6 +193,34 @@ const Dashboard = ({ currentUserRole }) => {
   const adminStats = getAdminStats();
   const recruiterStats = getRecruiterStats();
 
+  const prepLogs = serverLogs.filter(log => !log.action.includes('Student') && !log.action.includes('Interview '));
+  const studentLogs = serverLogs.filter(log => log.action.includes('Student'));
+  const interviewLogs = serverLogs.filter(log => log.action.includes('Interview '));
+
+  const getActiveLogs = () => {
+    let logs = [];
+    if (logsTab === 'Students') logs = studentLogs;
+    else if (logsTab === 'Interviews') logs = interviewLogs;
+    else logs = prepLogs;
+
+    if (logSearchTerm) {
+      const term = logSearchTerm.toLowerCase();
+      logs = logs.filter(l => 
+        (l.action && l.action.toLowerCase().includes(term)) ||
+        (l.details && l.details.toLowerCase().includes(term)) ||
+        (l.user && l.user.toLowerCase().includes(term))
+      );
+    }
+    
+    if (logUserFilter) {
+      logs = logs.filter(l => l.user === logUserFilter);
+    }
+    
+    return logs;
+  };
+
+  const uniqueLogUsers = [...new Set(serverLogs.map(l => l.user).filter(Boolean))].sort();
+
   return (
     <div style={{ padding: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -216,13 +258,98 @@ const Dashboard = ({ currentUserRole }) => {
           >
             📊 Admin App Analytics
           </button>
+          <button 
+            onClick={() => setShowLogs(true)} 
+            style={{ 
+              background: '#f59e0b', color: '#fff', border: 'none', padding: '0.8rem 1.5rem', 
+              borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            }}
+          >
+            📋 Activity Logs
+          </button>
         </div>
       </div>
 
       <div style={{ background: 'var(--bg-surface)', padding: '2rem', borderRadius: '12px', border: '1px solid var(--border-color)', textAlign: 'center', color: 'var(--text-secondary)' }}>
         <p>Welcome to the central Dashboard.</p>
-        <p>Click the "Admin App Analytics" button above to view detailed performance reports.</p>
+        <p>Click the buttons above to view detailed performance reports and user activity.</p>
       </div>
+
+      {showLogs && (
+        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '900px', width: '90%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: 'none' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Shift Activity Logs</h3>
+              <button onClick={() => setShowLogs(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '1rem', padding: '0 1.5rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
+              {['Prep Tracker', 'Students', 'Interviews'].map(tab => (
+                <button 
+                  key={tab}
+                  onClick={() => setLogsTab(tab)}
+                  style={{ 
+                    background: 'transparent', 
+                    border: 'none', 
+                    color: logsTab === tab ? '#3b82f6' : 'var(--text-secondary)',
+                    fontWeight: logsTab === tab ? 'bold' : 'normal',
+                    padding: '0.5rem 0',
+                    borderBottom: logsTab === tab ? '2px solid #3b82f6' : '2px solid transparent',
+                    cursor: 'pointer',
+                    fontSize: '1rem'
+                  }}
+                >
+                  {tab === 'Prep Tracker' ? '📅' : tab === 'Students' ? '🧑‍🎓' : '🎤'} {tab}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', padding: '0 1.5rem', marginBottom: '1rem' }}>
+              <input 
+                type="text" 
+                placeholder="Search logs by action or details..." 
+                value={logSearchTerm}
+                onChange={e => setLogSearchTerm(e.target.value)}
+                style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
+              />
+              <select 
+                value={logUserFilter}
+                onChange={e => setLogUserFilter(e.target.value)}
+                style={{ padding: '0.6rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
+              >
+                <option value="">All Users</option>
+                {uniqueLogUsers.map(u => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="dms-modal-body" style={{ display: 'block', flex: 1, padding: '0 1.5rem 1.5rem 1.5rem', overflowY: 'auto' }}>
+              {getActiveLogs().length === 0 ? (
+                <p style={{ color: 'var(--text-secondary)' }}>No activities recorded yet for {logsTab}.</p>
+              ) : (
+                <ul style={{ padding: 0, listStyle: 'none', margin: 0 }}>
+                  {getActiveLogs().map(log => (
+                    <li key={log._id || log.id} style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)', marginBottom: '0.5rem', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <strong style={{ color: '#3b82f6' }}>{log.user}</strong>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{log.timestamp}</span>
+                      </div>
+                      <div>
+                        <span style={{ display: 'inline-block', padding: '0.15rem 0.5rem', background: 'var(--bg-surface-hover)', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700, marginRight: '0.75rem', border: '1px solid var(--border-color)' }}>
+                          {log.action}
+                        </span>
+                        <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{log.details}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAnalyticsModal && (
         <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -423,11 +550,14 @@ const Dashboard = ({ currentUserRole }) => {
                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem', color: 'var(--text-secondary)' }}>Professional Role</label>
                     <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}>
                       <option value="super_admin">Super Admin (Full System Control)</option>
-                      <option value="manager">Manager / Team Lead</option>
-                      <option value="compliance">Compliance & QA Officer</option>
-                      <option value="recruiter">Senior Recruiter</option>
+                      <option value="admin">Admin</option>
+                      <option value="admins for task assigns">Admins for Task Assigns</option>
+                      <option value="team leader">Team Leader</option>
+                      <option value="asst. team leader">Asst. Team Leader</option>
+                      <option value="recruiter">Recruiter</option>
+                      <option value="chaser">Chaser</option>
+                      <option value="prep coach">Prep Coach</option>
                       <option value="standard">Standard User</option>
-                      <option value="viewer">Read-Only / Guest</option>
                     </select>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'flex-end' }}>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './StudentsDMS.css';
+import './StudentsDMS_colors.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-const StudentsDMS = ({ setCurrentView }) => {
+const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
   const [students, setStudents] = useState([]);
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,7 +16,46 @@ const StudentsDMS = ({ setCurrentView }) => {
   const [editingCell, setEditingCell] = useState({ id: null, field: null });
   const [chaserModal, setChaserModal] = useState({ show: false, student: null, readOnly: false });
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({ appStatus: '', recruiter: '', session: '' });
+  const [filters, setFilters] = useState({ appStatus: '', recruiter: '', session: '', intStatus: '', agent: '', chaser: '', source: '', course: '', residential: '', location: '' });
+  const [activeCollegeTab, setActiveCollegeTab] = useState('All Students');
+  
+  const defaultCollegeCourses = {
+    "Arden": ["BA (Hons) Business Management", "BA (Hons) Business Management with Foundation Year", "BA (Hons) Business Management (Top-Up)", "BSc (Hons) Accounting and Finance", "BSc (Hons) Accounting and Finance with Foundation Year", "BSc (Hons) Computing", "BSc (Hons) Computing with Foundation Year", "BSc (Hons) Computing (Top-Up)", "BSc (Hons) Health and Care Management", "BSc (Hons) Health and Care Management with Foundation Year", "BSc (Hons) Health and Care Management (Top-Up)", "BSc (Hons) Project Management", "BSc (Hons) Project Management with Foundation Year", "BSc (Hons) Digital Marketing", "BSc (Hons) Digital Marketing with Foundation Year", "BSc (Hons) International Hospitality and Tourism Management", "BSc (Hons) International Hospitality and Tourism Management with Foundation Year", "BSc (Hons) Psychology", "BSc (Hons) Psychology with Foundation Year", "BSc (Hons) Psychology with Counselling", "BSc (Hons) Psychology with Counselling with Foundation Year", "BA (Hons) Criminology and Psychology", "BA (Hons) Criminology and Psychology with Foundation Year", "BSc (Hons) Criminology", "LLB (Hons) Law", "LLB (Hons) Law with Foundation Year", "FdA Business and Innovation", "FdSc Computing and Digital Futures", "FdSc Health and Care Management", "Master of Public Health (MPH)", "MSc International Business Management", "MSc Project Management", "MSc Data Science", "MSc Cyber Security", "MBA"],
+    "LCCA": ["BA (Hons) Business Management and Entrepreneurship", "BA (Hons) Fashion", "BA (Hons) Fashion Management and Marketing", "BA (Hons) Graphic Design", "BA (Hons) Hospitality Management and Leadership", "BA (Hons) Computer Games Art", "BA (Hons) Computer Games Design", "Foundation Degree (FdA) Applied Business Management", "Foundation Degree (FdA) Hospitality and Event Management"],
+    "GBS": ["BSc (Hons) Construction Management with Foundation Year", "BA (Hons) Business & Management (Level 6 Top-Up)", "MSc Global Business", "BSc (Hons) Computing with Foundation Year", "BSc (Hons) Project Management with Foundation Year", "BSc (Hons) Applied Business Psychology with Foundation Year", "BSc (Hons) Construction Management (Level 6 Top-Up)", "MSc Project Management", "MSc Counselling & Psychotherapy", "BSc (Hons) Psychology with Counselling with Foundation Year", "BSc (Hons) Business and Tourism Management", "BSc (Hons) Accounting and Financial Management", "BSc (Hons) Health, Wellbeing and Social Care with Foundation Year", "BA (Hons) Global Business and Entrepreneurship with Foundation Year", "BSc (Hons) Health, Wellbeing and Social Care (Level 6 Direct Entry)", "HND in Business", "HND in Digital Technologies (Cyber Security)", "HND Business (Level 5 Direct Entry)", "HND in Health Care Practice", "HND in Health Care Practice (Level 5 Direct Entry)", "BA (Hons) Global Business (Business Management) with Foundation", "BA (Hons) Global Business (Business Management) (Level 4 Direct Entry)"],
+    "OLC": ["Cert HE Business Management with Foundation Year", "Cert HE Business Management", "FdA Business Management", "BA (Hons) Business Management Top-Up", "Cert HE Integrated Health, Social Care & Wellbeing with Foundation Year", "Cert HE Integrated Health, Social Care & Wellbeing", "FdA Integrated Health, Social Care & Wellbeing", "BA (Hons) Integrated Health, Social Care & Wellbeing Top-Up", "BSc (Hons) Computing Top-Up"],
+    "LSC": ["CertHE Business with Foundation Year", "CertHE Health and Social Care with Foundation Year", "CertHE Public Health with Foundation Year", "CertHE Public Health (Level 4)"],
+    "QA": ["Cert HE Business Management", "BA Business Management", "BSc (Hons) Construction Management with Foundation Year", "BSc Health and Social Care", "BSc Health and Social Care with Foundation Year", "MSc International Business Management", "BSc (Hons) Data Science with Foundation Year", "BSc Business Management", "FdSc Business Management", "BSc Computer Science", "BSc Computer Science with Foundation Year", "BSc Cyber Security", "BSc Cyber Security with Foundation Year", "BSc Psychology", "BSc Psychology with Foundation Year"],
+    "CECOS": ["Business Management and Sustainability", "BSc Health and Social Care", "BA Top-Up", "MBA", "Foundation Degree in Business", "Foundation Degree in Business with Human Resource Management", "BSc Business Management with Foundation", "BSc Health and Social Care with Foundation"],
+    "UKMC": ["BSc (Hons) Health & Social Care with Foundation Year", "BA (Hons) Business Management with Foundation Year", "BA (Hons) Digital Marketing Management with Foundation Year"],
+    "VCAD": [], "Arden Sky": [], "Arden BBSL": [], "Arden GVA": [], "QA-Solent/Lmet": [], "William College": []
+  };
+
+  const [collegeCourses, setCollegeCourses] = useState(defaultCollegeCourses);
+  const [collegeResponsible, setCollegeResponsible] = useState({});
+  const [showCourseSettings, setShowCourseSettings] = useState(false);
+  const [newCourseInput, setNewCourseInput] = useState('');
+  const [selectedConfigCollege, setSelectedConfigCollege] = useState('GBS');
+  
+  const collegeTabs = [
+    'All Students', 'GBS', 'VCAD', 'LCCA', 'CECOS', 'Arden', 'QA-Solent/Lmet', 'OLC', 'William College', 'UKMC', 'LSC'
+  ];
+
+  const getTabStyle = (tab) => {
+    switch (tab) {
+      case 'GBS': return { bg: '#f59e0b', text: '#000', tabText: '#fff' }; // orange
+      case 'QA-Solent/Lmet': return { bg: '#bbf7d0', text: '#000', tabText: '#064e3b' }; // light green
+      case 'LSC': return { bg: '#c4b5fd', text: '#000', tabText: '#000' }; // light purple
+      case 'VCAD': return { bg: '#fbcfe8', text: '#000', tabText: '#000' }; // pink
+      case 'LCCA': return { bg: '#fde68a', text: '#000', tabText: '#000' }; // yellow
+      case 'CECOS': return { bg: '#bfdbfe', text: '#000', tabText: '#000' }; // light blue
+      case 'Arden': return { bg: '#fca5a5', text: '#000', tabText: '#000' }; // red
+      case 'OLC': return { bg: '#99f6e4', text: '#000', tabText: '#000' }; // teal
+      case 'William College': return { bg: '#fed7aa', text: '#000', tabText: '#000' }; // orange
+      case 'UKMC': return { bg: '#ddd6fe', text: '#000', tabText: '#000' }; // purple
+      default: return { bg: 'var(--bg-surface)', text: 'var(--text-primary)', tabText: '#fff' }; // default
+    }
+  };
   const initialStudentState = {
     name: '', email: '', mobile: '', source: 'manual entry', session: '', 
     courseAndCampus1: '', courseAndCampus2: '', refCompany: '', intStatus: 'Interested and Responding',
@@ -36,10 +76,49 @@ const StudentsDMS = ({ setCurrentView }) => {
       .then(res => res.json())
       .then(data => setUsers(data))
       .catch(err => console.error(err));
+
+    fetch(`${API_BASE}/api/grid`)
+      .then(res => res.json())
+      .then(data => {
+         const courseConfig = data['COLLEGE_COURSES'];
+         if (courseConfig && courseConfig.slots && courseConfig.slots[0] && courseConfig.slots[0].text) {
+           setCollegeCourses(JSON.parse(courseConfig.slots[0].text));
+         }
+         const respConfig = data['COLLEGE_RESPONSIBLE'];
+         if (respConfig && respConfig.slots && respConfig.slots[0] && respConfig.slots[0].text) {
+           setCollegeResponsible(JSON.parse(respConfig.slots[0].text));
+         }
+      })
+      .catch(e => console.error(e));
   }, []);
+
+  const logActivity = (action, details) => {
+    fetch(`${API_BASE}/api/logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: currentUser || 'Unknown', action, details })
+    }).catch(e => console.error(e));
+  };
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
+
+    // Strict Course Validation
+    if (newStudent.courseAndCampus1) {
+      const allValidCourses = Object.entries(collegeCourses).flatMap(([c, courses]) => courses.map(course => `${c} - ${course}`));
+      if (!allValidCourses.includes(newStudent.courseAndCampus1)) {
+        alert("Please select a valid Course & Campus from the dropdown.");
+        return;
+      }
+    }
+    if (newStudent.courseAndCampus2) {
+      const allValidCourses = Object.entries(collegeCourses).flatMap(([c, courses]) => courses.map(course => `${c} - ${course}`));
+      if (!allValidCourses.includes(newStudent.courseAndCampus2)) {
+        alert("Please select a valid Course & Campus 2 from the dropdown.");
+        return;
+      }
+    }
+
     try {
       if (newStudent._id) {
         // Edit existing student
@@ -53,6 +132,7 @@ const StudentsDMS = ({ setCurrentView }) => {
           setStudents(students.map(s => s._id === newStudent._id ? data.student : s));
           setShowAddModal(false);
           setNewStudent(initialStudentState);
+          logActivity('Student Edit', `Updated student details for ${newStudent.name}`);
         }
       } else {
         // Add new student
@@ -66,6 +146,7 @@ const StudentsDMS = ({ setCurrentView }) => {
           setStudents([data.student, ...students]);
           setShowAddModal(false);
           setNewStudent(initialStudentState);
+          logActivity('Student Created', `Created new student lead: ${newStudent.name}`);
         }
       }
     } catch (error) {
@@ -120,19 +201,46 @@ const StudentsDMS = ({ setCurrentView }) => {
   };
 
   const filteredStudents = students.filter(s => {
+    // Search Term
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.studentId && s.studentId.includes(searchTerm));
     
+    // Dropdown Filters
     const matchesApp = !filters.appStatus || s.appStatus === filters.appStatus;
     const matchesRecruiter = !filters.recruiter || (s.recruiter && s.recruiter.includes(filters.recruiter));
     const matchesSession = !filters.session || s.session === filters.session;
+    const matchesIntStatus = !filters.intStatus || s.intStatus === filters.intStatus;
+    const matchesAgent = !filters.agent || (s.agent && s.agent.toLowerCase().includes(filters.agent.toLowerCase()));
+    const matchesChaser = !filters.chaser || (s.chaser && s.chaser.toLowerCase().includes(filters.chaser.toLowerCase()));
+    const matchesSource = !filters.source || (s.source && s.source.toLowerCase().includes(filters.source.toLowerCase()));
+    const matchesCourse = !filters.course || (s.courseAndCampus1 && s.courseAndCampus1.toLowerCase().includes(filters.course.toLowerCase()));
+    const matchesResidential = !filters.residential || (s.residential && s.residential.toLowerCase() === filters.residential.toLowerCase());
+    const matchesLocation = !filters.location || (s.location && s.location.toLowerCase().includes(filters.location.toLowerCase()));
 
-    return matchesSearch && matchesApp && matchesRecruiter && matchesSession;
+    // College Tab Filter
+    let matchesCollege = true;
+    if (activeCollegeTab !== 'All Students') {
+      const course = (s.courseAndCampus1 || '').toLowerCase();
+      
+      // Handle special grouped Arden matches
+      if (activeCollegeTab === 'Arden') {
+        matchesCollege = course.includes('arden sky') || course.includes('arden bbsl') || course.includes('arden gva') || course.includes('arden');
+      } else {
+        matchesCollege = course.includes(activeCollegeTab.toLowerCase());
+      }
+    }
+
+    return matchesSearch && matchesApp && matchesRecruiter && matchesSession && matchesCollege && matchesIntStatus && matchesAgent && matchesChaser && matchesSource && matchesCourse && matchesResidential && matchesLocation;
   });
 
   const uniqueRecruiters = [...new Set(students.map(s => s.recruiter).filter(Boolean))];
   const uniqueSessions = [...new Set(students.map(s => s.session).filter(Boolean))];
+  const uniqueIntStatuses = [...new Set(students.map(s => s.intStatus).filter(Boolean))];
+  const uniqueAgents = [...new Set(students.map(s => s.agent).filter(Boolean))];
+  const uniqueChasers = [...new Set(students.map(s => s.chaser).filter(c => c && c !== 'Click to assign'))];
+  const uniqueSources = [...new Set(students.map(s => s.source).filter(Boolean))];
+  const uniqueResidential = [...new Set(students.map(s => s.residential).filter(Boolean))];
 
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / rowsPerPage));
   const currentData = filteredStudents.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
@@ -160,6 +268,14 @@ const StudentsDMS = ({ setCurrentView }) => {
     const targetStudent = students.find(s => s._id === studentId);
     if (!targetStudent || targetStudent[field] === newValue) return;
 
+    if (field === 'courseAndCampus1') {
+      const allValidCourses = Object.entries(collegeCourses).flatMap(([c, courses]) => courses.map(course => `${c} - ${course}`));
+      if (newValue && !allValidCourses.includes(newValue)) {
+        alert("Please select a valid Course & Campus from the dropdown.");
+        return;
+      }
+    }
+
     const updatedStudent = { ...targetStudent, [field]: newValue };
     setStudents(students.map(s => s._id === studentId ? updatedStudent : s));
 
@@ -169,6 +285,7 @@ const StudentsDMS = ({ setCurrentView }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: newValue })
       });
+      logActivity('Student Edit', `Changed ${field} to "${newValue}" for ${targetStudent.name}`);
     } catch (err) {
       console.error(err);
     }
@@ -189,6 +306,7 @@ const StudentsDMS = ({ setCurrentView }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chasers: newChasers })
       });
+      logActivity('Student Edit', `Assigned ${type} chaser to ${val} for ${student.name}`);
     } catch (err) {
       console.error(err);
     }
@@ -207,6 +325,7 @@ const StudentsDMS = ({ setCurrentView }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ appStatus: newStatus })
       });
+      logActivity('Student Edit', `Updated appStatus to ${newStatus} for ${student.name}`);
     } catch (err) {
       console.error(err);
     }
@@ -234,6 +353,7 @@ const StudentsDMS = ({ setCurrentView }) => {
           </select>
         ) : (
           <span 
+            className="app-status-text"
             onClick={() => setEditingCell({ id: student._id, field: 'appStatus' })} 
             style={{ cursor: 'pointer', color: status === 'Submitted' ? '#34d399' : status === 'Submission ongoing' ? '#60a5fa' : '#fbbf24', fontWeight: 'bold' }}
           >
@@ -287,6 +407,27 @@ const StudentsDMS = ({ setCurrentView }) => {
           </select>
         );
       }
+      if (field === 'courseAndCampus1') {
+        const allOptions = Object.entries(collegeCourses).flatMap(([c, courses]) => courses.map(course => `${c} - ${course}`));
+
+        return (
+          <div style={{ position: 'relative', width: '100%' }}>
+            <input 
+              autoFocus
+              defaultValue={student[field]}
+              list={`course-options-${student._id}`}
+              onBlur={(e) => handleCellEdit(student._id, field, e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+              placeholder="Search..."
+              style={{ width: '100%', padding: '0.4rem', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
+            />
+            <datalist id={`course-options-${student._id}`}>
+               {allOptions.map(opt => <option key={opt} value={opt} />)}
+            </datalist>
+          </div>
+        );
+      }
+
       return (
         <input 
           autoFocus
@@ -355,14 +496,99 @@ const StudentsDMS = ({ setCurrentView }) => {
               {uniqueSessions.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Int Status</label>
+            <select value={filters.intStatus} onChange={e => setFilters({...filters, intStatus: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+              <option value="">All</option>
+              {uniqueIntStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Agent</label>
+            <select value={filters.agent} onChange={e => setFilters({...filters, agent: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+              <option value="">All</option>
+              {uniqueAgents.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Chaser</label>
+            <select value={filters.chaser} onChange={e => setFilters({...filters, chaser: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+              <option value="">All</option>
+              {uniqueChasers.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Source</label>
+            <select value={filters.source} onChange={e => setFilters({...filters, source: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+              <option value="">All</option>
+              {uniqueSources.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Residential</label>
+            <select value={filters.residential} onChange={e => setFilters({...filters, residential: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+              <option value="">All</option>
+              {uniqueResidential.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Course</label>
+            <input type="text" value={filters.course} onChange={e => setFilters({...filters, course: e.target.value})} placeholder="Filter course..." style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '120px' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Location</label>
+            <input type="text" value={filters.location} onChange={e => setFilters({...filters, location: e.target.value})} placeholder="Filter location..." style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '120px' }} />
+          </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <button onClick={() => setFilters({ appStatus: '', recruiter: '', session: '' })} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
+            <button onClick={() => setFilters({ appStatus: '', recruiter: '', session: '', intStatus: '', agent: '', chaser: '', source: '', course: '', residential: '', location: '' })} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
           </div>
         </div>
       )}
 
-      <div className="dms-table-wrapper">
-        <table className="dms-table">
+      {/* Excel-style College Tabs */}
+      {activeCollegeTab !== 'All Students' && collegeResponsible[activeCollegeTab] && (
+        <div style={{ padding: '0.5rem 1.5rem', marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          👤 Responsible Person for {activeCollegeTab}: <strong style={{ color: 'var(--text-primary)' }}>{collegeResponsible[activeCollegeTab]}</strong>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: '0.2rem', overflowX: 'auto', padding: '0 1.5rem', marginTop: '0.5rem', borderBottom: `2px solid ${getTabStyle(activeCollegeTab).bg}`, scrollbarWidth: 'thin' }} className="college-tabs">
+        {collegeTabs.map(tab => {
+          const style = getTabStyle(tab);
+          const isActive = activeCollegeTab === tab;
+          return (
+            <button 
+              key={tab}
+              onClick={() => { setActiveCollegeTab(tab); setCurrentPage(1); }}
+              style={{ 
+                padding: '0.6rem 1.2rem', 
+                background: isActive ? style.bg : 'var(--bg-surface-hover)', 
+                color: isActive ? style.tabText : 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                borderBottom: 'none',
+                borderRadius: '8px 8px 0 0',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: isActive ? 'bold' : 'normal',
+                transition: 'background 0.2s',
+                minWidth: 'max-content',
+                ...(isActive && activeCollegeTab !== 'All Students' && { boxShadow: `0 -2px 10px rgba(0,0,0,0.1)` })
+              }}
+            >
+              {tab}
+            </button>
+          )
+        })}
+      </div>
+
+      <div 
+        className={`dms-table-wrapper ${activeCollegeTab !== 'All Students' ? 'colored-sheet-wrapper' : ''}`} 
+        style={{ 
+          marginTop: '0', 
+          borderTopLeftRadius: '0',
+          background: activeCollegeTab === 'All Students' ? 'var(--bg-surface)' : getTabStyle(activeCollegeTab).bg
+        }}
+      >
+        <table className={`dms-table ${activeCollegeTab !== 'All Students' ? 'colored-sheet' : ''}`}>
           <thead>
             <tr>
               <th><input type="checkbox" /></th>
@@ -620,10 +846,18 @@ const StudentsDMS = ({ setCurrentView }) => {
                   </div>
                   <div className="input-group">
                     <label>Course & Campus 1</label>
-                    <select value={newStudent.courseAndCampus1} onChange={e => setNewStudent({...newStudent, courseAndCampus1: e.target.value})}>
-                      <option value="">Select</option>
-                      <option value="Course 1">Course 1</option>
-                    </select>
+                    <input 
+                      list="course-options-add-1"
+                      value={newStudent.courseAndCampus1 || ''} 
+                      onChange={e => setNewStudent({...newStudent, courseAndCampus1: e.target.value})}
+                      placeholder="Type to search..."
+                      style={{ width: '100%', padding: '0.4rem', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
+                    />
+                    <datalist id="course-options-add-1">
+                      {Object.entries(collegeCourses).flatMap(([c, courses]) => courses.map(course => (
+                        <option key={`${c} - ${course}`} value={`${c} - ${course}`} />
+                      )))}
+                    </datalist>
                   </div>
                   <div className="input-group">
                     <label>Application Status</label>

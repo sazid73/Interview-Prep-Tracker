@@ -15,9 +15,11 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setSidebarOpen }) => {
     ]},
     { section: 'ACADEMIC', items: [
       { id: 'course_campus', label: 'Course and Campus', icon: '🏛️' },
-      { id: 'awarding_body', label: 'Awarding Body', icon: '🎓' },
-      { id: 'subjects', label: 'Subjects', icon: '📚' },
       { id: 'sessions', label: 'Sessions', icon: '📅' }
+    ]},
+    { section: 'MANAGEMENT', items: [
+      { id: 'weekly_wl', label: 'Weekly WL', icon: '📝' },
+      { id: 'taskboard', label: 'Taskboard', icon: '📋' }
     ]}
   ];
 

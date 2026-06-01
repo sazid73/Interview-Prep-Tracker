@@ -3,12 +3,12 @@ import './Interviews.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-const Interviews = () => {
+const Interviews = ({ currentUser }) => {
   const [interviews, setInterviews] = useState([]);
   const [editingCell, setEditingCell] = useState({ id: null, field: null });
   const [filterWeek, setFilterWeek] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState({ status: '', college: '', recruiter: '' });
+  const [filters, setFilters] = useState({ status: '', college: '', recruiter: '', intake: '', subject: '' });
   const [showFilters, setShowFilters] = useState(false);
   const [rescheduleModal, setRescheduleModal] = useState({ show: false, interview: null, newDate: '' });
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
@@ -25,6 +25,14 @@ const Interviews = () => {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const logActivity = (action, details) => {
+    fetch(`${API_BASE}/api/logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: currentUser || 'Unknown', action, details })
+    }).catch(e => console.error(e));
   };
 
   const handleCellEdit = async (id, field, value) => {
@@ -45,6 +53,8 @@ const Interviews = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value })
       });
+      const invToLog = interviews.find(i => i._id === id);
+      logActivity('Interview Edit', `Changed ${field} to "${value}" for interview ${invToLog ? invToLog.studentName : 'lead'}`);
     } catch (err) {
       console.error(err);
     }
@@ -56,6 +66,7 @@ const Interviews = () => {
     setInterviews(prev => prev.filter(inv => inv._id !== id));
     try {
       await fetch(`${API_BASE}/api/interviews/${id}`, { method: 'DELETE' });
+      logActivity('Interview Delete', `Deleted interview record`);
     } catch (err) {
       console.error(err);
     }
@@ -74,6 +85,7 @@ const Interviews = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: rescheduleModal.newDate, status: 'rescheduled' })
       });
+      logActivity('Interview Rescheduled', `Rescheduled interview for ${rescheduleModal.interview.studentName} to ${rescheduleModal.newDate}`);
     } catch (err) {
       console.error(err);
     }
@@ -267,7 +279,9 @@ const Interviews = () => {
     const matchesStatus = !filters.status || (inv.status || '').toLowerCase() === filters.status;
     const matchesCollege = !filters.college || inv.college === filters.college;
     const matchesRecruiter = !filters.recruiter || inv.recruiter === filters.recruiter;
-    return matchesWeek && matchesSearch && matchesStatus && matchesCollege && matchesRecruiter;
+    const matchesIntake = !filters.intake || inv.intake === filters.intake;
+    const matchesSubject = !filters.subject || (inv.subject && inv.subject.toLowerCase().includes(filters.subject.toLowerCase()));
+    return matchesWeek && matchesSearch && matchesStatus && matchesCollege && matchesRecruiter && matchesIntake && matchesSubject;
   });
 
   const groupedByWeek = { 1: [], 2: [], 3: [], 4: [], 5: [] };
@@ -370,8 +384,19 @@ const Interviews = () => {
               {[...new Set(interviews.map(i => i.recruiter).filter(Boolean))].map(r => <option key={r} value={r}>{r}</option>)}
             </select>
           </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Intake</label>
+            <select value={filters.intake} onChange={e => setFilters({...filters, intake: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+              <option value="">All</option>
+              {[...new Set(interviews.map(i => i.intake).filter(Boolean))].map(i => <option key={i} value={i}>{i}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Subject</label>
+            <input type="text" value={filters.subject} onChange={e => setFilters({...filters, subject: e.target.value})} placeholder="Filter subject..." style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '120px' }} />
+          </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <button onClick={() => { setFilters({ status: '', college: '', recruiter: '' }); setSearchTerm(''); }} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear Filters</button>
+            <button onClick={() => { setFilters({ status: '', college: '', recruiter: '', intake: '', subject: '' }); setSearchTerm(''); }} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear Filters</button>
           </div>
         </div>
       )}

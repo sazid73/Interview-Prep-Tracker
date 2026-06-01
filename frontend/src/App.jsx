@@ -4,8 +4,11 @@ import { io } from 'socket.io-client';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import StudentsDMS from './StudentsDMS';
+import CourseAndCampus from './CourseAndCampus';
 import Interviews from './Interviews';
 import Dashboard from './Dashboard';
+import WeeklyWL from './WeeklyWL';
+import Taskboard from './Taskboard';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -154,8 +157,6 @@ function App() {
   const [reportDayObj, setReportDayObj] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const [showLogs, setShowLogs] = useState(false);
-  const [serverLogs, setServerLogs] = useState([]);
   const [expandedAnalytics, setExpandedAnalytics] = useState({});
   const [activeEditors, setActiveEditors] = useState({});
   const [rescheduleData, setRescheduleData] = useState(null);
@@ -168,6 +169,8 @@ function App() {
   const initialTextRefs = React.useRef({});
   const [prepSearchTerm, setPrepSearchTerm] = useState('');
   const [prepSearchStatus, setPrepSearchStatus] = useState('');
+  const [prepSearchCollege, setPrepSearchCollege] = useState('');
+  const [prepSearchRecruiter, setPrepSearchRecruiter] = useState('');
   const [showPrepFilters, setShowPrepFilters] = useState(false);
 
   const toggleAnalyticsExpand = (key) => {
@@ -211,16 +214,6 @@ function App() {
       .then(data => setGridData(data))
       .catch(err => console.error("Failed to load grid data", err));
   }, []);
-
-  // Fetch logs when modal opens
-  useEffect(() => {
-    if (showLogs) {
-      fetch(`${API_BASE}/api/logs`)
-        .then(res => res.json())
-        .then(data => setServerLogs(data))
-        .catch(err => console.error("Failed to load logs", err));
-    }
-  }, [showLogs]);
 
   // Fetch cell history when history modal opens
   useEffect(() => {
@@ -809,44 +802,6 @@ function App() {
     );
   };
 
-  const renderLogsModal = () => {
-    if (!showLogs) return null;
-
-    return (
-      <div className="report-modal">
-        <div className="report-card" style={{ width: '700px' }}>
-          <div className="report-header">
-            <h2>Activity Logs</h2>
-            <button onClick={() => setShowLogs(false)} className="close-btn">✗</button>
-          </div>
-          
-          <div className="report-body" style={{ display: 'block', maxHeight: '60vh', overflowY: 'auto' }}>
-            {serverLogs.length === 0 ? (
-              <p className="empty-text">No activities recorded yet.</p>
-            ) : (
-              <ul style={{ padding: 0, listStyle: 'none', margin: 0 }}>
-                {serverLogs.map(log => (
-                  <li key={log._id || log.id} style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)', marginBottom: '0.5rem', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <strong style={{ color: '#3b82f6' }}>{log.user}</strong>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{log.timestamp}</span>
-                    </div>
-                    <div>
-                      <span style={{ display: 'inline-block', padding: '0.15rem 0.5rem', background: 'var(--bg-surface-hover)', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700, marginRight: '0.75rem', border: '1px solid var(--border-color)' }}>
-                        {log.action}
-                      </span>
-                      <span style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{log.details}</span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderHistoryModal = () => {
     if (!historyModalData) return null;
 
@@ -1042,14 +997,6 @@ function App() {
             📈 Analytics
           </button>
 
-          <button
-            className="btn-secondary"
-            onClick={() => setShowLogs(true)}
-            style={{ background: '#f59e0b', borderColor: '#f59e0b', color: '#fff' }}
-          >
-            📋 Logs
-          </button>
-
           {currentUserRole === 'admin' && (
             <>
               <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 8px' }}></div>
@@ -1082,7 +1029,32 @@ function App() {
                 <option value="pending">Pending (No Status)</option>
               </select>
             </div>
-            <button onClick={() => { setPrepSearchTerm(''); setPrepSearchStatus(''); }} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>College</label>
+              <select value={prepSearchCollege} onChange={e => setPrepSearchCollege(e.target.value)} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+                <option value="">All</option>
+                <option value="GBS">GBS</option>
+                <option value="VCAD">VCAD</option>
+                <option value="LCCA">LCCA</option>
+                <option value="CECOS">CECOS</option>
+                <option value="Arden">Arden</option>
+                <option value="QA">QA</option>
+                <option value="OLC">OLC</option>
+                <option value="UKMC">UKMC</option>
+                <option value="LSC">LSC</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Recruiter</label>
+              <input 
+                type="text" 
+                placeholder="Name..." 
+                value={prepSearchRecruiter} 
+                onChange={e => setPrepSearchRecruiter(e.target.value)}
+                style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '120px' }}
+              />
+            </div>
+            <button onClick={() => { setPrepSearchTerm(''); setPrepSearchStatus(''); setPrepSearchCollege(''); setPrepSearchRecruiter(''); }} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
           </div>
         )}
       </header>
@@ -1180,7 +1152,7 @@ function App() {
                             // Advanced Search Highlighting Logic
                             let isHighlighted = false;
                             let isDimmed = false;
-                            if (prepSearchTerm || prepSearchStatus) {
+                            if (prepSearchTerm || prepSearchStatus || prepSearchCollege || prepSearchRecruiter) {
                               let matchesSearch = true;
                               if (prepSearchTerm) {
                                 matchesSearch = slot.text && slot.text.toLowerCase().includes(prepSearchTerm.toLowerCase());
@@ -1195,7 +1167,17 @@ function App() {
                                 }
                               }
                               
-                              if (matchesSearch && matchesStatus && slot.text) {
+                              let matchesCollege = true;
+                              if (prepSearchCollege) {
+                                matchesCollege = slot.text && slot.text.toLowerCase().includes(prepSearchCollege.toLowerCase());
+                              }
+                              
+                              let matchesRecruiter = true;
+                              if (prepSearchRecruiter) {
+                                matchesRecruiter = slot.text && slot.text.toLowerCase().includes(prepSearchRecruiter.toLowerCase());
+                              }
+                              
+                              if (matchesSearch && matchesStatus && matchesCollege && matchesRecruiter && slot.text) {
                                 isHighlighted = true;
                               } else {
                                 isDimmed = true;
@@ -1299,7 +1281,6 @@ function App() {
       {renderDailyReport()}
       {renderRescheduleModal()}
       {renderAnalyticsModal()}
-      {renderLogsModal()}
       {renderHistoryModal()}
     </div>
   );
@@ -1326,12 +1307,15 @@ function App() {
         
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {currentView === 'dashboard' && <Dashboard currentUserRole={currentUserRole} />}
-          {currentView === 'students' && <StudentsDMS setCurrentView={setCurrentView} />}
+          {currentView === 'students' && <StudentsDMS setCurrentView={setCurrentView} currentUser={currentUser} currentUserRole={currentUserRole} />}
           
           {currentView === 'prep_interviews' && renderPrepInterviews()}
-          {currentView === 'interviews' && <Interviews />}
+          {currentView === 'interviews' && <Interviews currentUser={currentUser} />}
+          {currentView === 'course_campus' && <CourseAndCampus currentUserRole={currentUserRole} currentUser={currentUser} />}
+          {currentView === 'weekly_wl' && <WeeklyWL currentUserRole={currentUserRole} currentUser={currentUser} />}
+          {currentView === 'taskboard' && <Taskboard currentUser={currentUser} />}
           
-          {currentView !== 'dashboard' && currentView !== 'students' && currentView !== 'prep_interviews' && currentView !== 'interviews' && (
+          {currentView !== 'dashboard' && currentView !== 'students' && currentView !== 'prep_interviews' && currentView !== 'interviews' && currentView !== 'course_campus' && currentView !== 'weekly_wl' && currentView !== 'taskboard' && (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
               <h2>{currentView.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</h2>
               <p style={{ fontSize: '1.2rem', marginTop: '1rem' }}>This module is currently under construction.</p>

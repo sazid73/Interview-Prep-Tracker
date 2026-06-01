@@ -1,0 +1,53 @@
+.colored-sheet {
+  color: #000 !important;
+}
+.colored-sheet td, .colored-sheet th {
+  color: #000 !important;
+  border-bottom: 1px solid rgba(0,0,0,0.15) !important;
+}
+.colored-sheet-wrapper {
+  border-color: #115e59 !important;
+}
+.colored-sheet th {
+  background: #115e59 !important; /* Dark Green Header */
+  color: #ffffff !important;
+  border: none !important;
+  border-bottom: none !important;
+}
+.colored-sheet .name-col, .colored-sheet .app-status-text {
+  color: #000 !important;
+}
+.colored-sheet .id-col {
+  color: rgba(0,0,0,0.7) !important;
+}
+.colored-sheet .session-badge, .colored-sheet .int-badge {
+  background: rgba(255,255,255,0.5) !important;
+  color: #000 !important;
+  border-color: rgba(0,0,0,0.2) !important;
+}
+.colored-sheet select, .colored-sheet input {
+  background: rgba(255,255,255,0.9) !important;
+  color: #000 !important;
+  border: 1px solid rgba(0,0,0,0.3) !important;
+}
+.colored-sheet .docs-badge {
+  background: rgba(255,255,255,0.4) !important;
+  color: #000 !important;
+  border-color: rgba(0,0,0,0.3) !important;
+}
+
+.colored-sheet tr:hover td, 
+.colored-sheet tr:hover .name-col, 
+.colored-sheet tr:hover .id-col,
+.colored-sheet tr:hover .session-badge,
+.colored-sheet tr:hover .docs-badge,
+.colored-sheet tr:hover .int-badge,
+.colored-sheet tr:hover .app-status-text {
+  color: #ffffff !important;
+  border-color: rgba(255,255,255,0.4) !important;
+}
+
+.colored-sheet tr:hover select,
+.colored-sheet tr:hover input {
+  color: #000 !important;
+}
