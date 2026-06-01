@@ -3,6 +3,20 @@ import './WeeklyWL.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+const EditableInput = ({ initialValue, onSave }) => {
+  const [val, setVal] = useState(initialValue || '');
+  useEffect(() => { setVal(initialValue || ''); }, [initialValue]);
+  return (
+    <input 
+      type="text" 
+      value={val} 
+      onChange={e => setVal(e.target.value)} 
+      onBlur={() => { if(val !== initialValue) onSave(val); }} 
+      onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+    />
+  );
+};
+
 const WeeklyWL = ({ currentUserRole, currentUser }) => {
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
@@ -108,15 +122,22 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
     }
   };
 
-  const handleRandomAssign = () => {
+  const handleRandomAssign = async () => {
     if (!isAdmin) return;
-    if (wlRecruiters.length === 0) return alert("No recruiters added to WL pool.");
+    if (wlRecruiters.length === 0) return alert("No recruiters or chasers found in the system.");
     
-    // Assign random recruiters to all unassigned tasks
-    tasks.filter(t => !t.assignedTo).forEach(async (task) => {
+    const unassignedTasks = tasks.filter(t => !t.assignedTo);
+    if (unassignedTasks.length === 0) return alert("All tasks are already assigned!");
+
+    for (const task of unassignedTasks) {
        const randomRecruiter = wlRecruiters[Math.floor(Math.random() * wlRecruiters.length)].name;
-       await handleUpdateTask(task._id, 'assignedTo', randomRecruiter);
-    });
+       await fetch(`${API_BASE}/api/tasks/${task._id}`, {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ assignedTo: randomRecruiter })
+       });
+    }
+    fetchTasks(); // Refresh tasks after bulk update
   };
 
   const renderTable = (shift) => {
@@ -147,7 +168,7 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
                 </td>
                 <td>
                   {isAdmin ? (
-                    <input type="text" value={task.leadNum} onChange={e => handleUpdateTask(task._id, 'leadNum', e.target.value)} />
+                    <EditableInput initialValue={task.leadNum} onSave={val => handleUpdateTask(task._id, 'leadNum', val)} />
                   ) : (
                     <span>{task.leadNum}</span>
                   )}
@@ -168,14 +189,14 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
                 </td>
                 <td>
                   {isAdmin ? (
-                    <input type="text" value={task.startDateAndTime} onChange={e => handleUpdateTask(task._id, 'startDateAndTime', e.target.value)} />
+                    <EditableInput initialValue={task.startDateAndTime} onSave={val => handleUpdateTask(task._id, 'startDateAndTime', val)} />
                   ) : (
                     <span>{task.startDateAndTime}</span>
                   )}
                 </td>
                 <td>
                   {isAdmin ? (
-                    <input type="text" value={task.endTime} onChange={e => handleUpdateTask(task._id, 'endTime', e.target.value)} />
+                    <EditableInput initialValue={task.endTime} onSave={val => handleUpdateTask(task._id, 'endTime', val)} />
                   ) : (
                     <span>{task.endTime}</span>
                   )}
