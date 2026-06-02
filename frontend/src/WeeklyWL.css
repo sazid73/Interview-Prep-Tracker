@@ -98,8 +98,10 @@
 }
 
 .wl-table td {
-  padding: 0.5rem;
+  padding: 0.8rem 0.5rem;
   border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+  text-align: left;
 }
 
 .wl-table input, .wl-table select {
@@ -140,10 +142,11 @@
   font-weight: bold;
 }
 
-.status-badge.working { background: #fca5a5 !important; color: #7f1d1d !important; }
+.status-badge.working { background: #dcfce7 !important; color: #166534 !important; }
 .status-badge.pending { background: #e2e8f0 !important; color: #475569 !important; }
-.status-badge.completed { background: #86efac !important; color: #14532d !important; }
-.status-badge.Leave { background: #fef08a !important; color: #713f12 !important; }
+.status-badge.completed { background: #dbeafe !important; color: #1e40af !important; }
+.status-badge.break { background: #fef08a !important; color: #854d0e !important; }
+.status-badge.Leave { background: #fee2e2 !important; color: #991b1b !important; }
 
 .del-btn {
   background: #ef4444;
