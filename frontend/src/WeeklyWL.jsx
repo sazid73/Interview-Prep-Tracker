@@ -77,13 +77,22 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
     if (!window.confirm(`Are you sure you want to clear ALL assigned leads for ${selectedDay}?`)) return;
     
     const tasksToClear = tasks.filter(t => t.day === selectedDay && t.leadNum);
-    for (const t of tasksToClear) {
-      await fetch(`${API_BASE}/api/tasks/${t._id}`, {
+    
+    // Instantly clear locally
+    setTasks(prev => prev.map(t => {
+      if (t.day === selectedDay && t.leadNum) return { ...t, leadNum: '' };
+      return t;
+    }));
+
+    // Save to DB in parallel
+    await Promise.all(tasksToClear.map(t => 
+      fetch(`${API_BASE}/api/tasks/${t._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadNum: '' })
-      });
-    }
+      })
+    ));
+    
     fetchTasks();
     alert(`Cleared leads for ${tasksToClear.length} tasks.`);
   };
@@ -184,10 +193,13 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
      // Shuffle recruiters for fair assignment
      const shuffledRecruiters = [...activeRecruiters].sort(() => 0.5 - Math.random());
      
-     // Split chunks into first half (Day - fresh) and second half (Evening - back)
-     const midpoint = Math.ceil(chunks.length / 2);
-     const dayChunks = chunks.slice(0, midpoint).sort(() => 0.5 - Math.random());
-     const eveningChunks = chunks.slice(midpoint).sort(() => 0.5 - Math.random());
+     // Day gets a full shuffled copy of the chunks
+     const dayChunks = [...chunks].sort(() => 0.5 - Math.random());
+     
+     // Evening gets a different shuffled copy of the chunks
+     // To absolutely guarantee they don't get the same chunk they got in the day, we offset the assignment
+     const eveningChunks = [...dayChunks]; 
+     eveningChunks.push(eveningChunks.shift()); // Shift by 1 ensures no overlap if evenly distributed
      
      const processAssignment = async (chunkList, shift) => {
          for(let i = 0; i < chunkList.length; i++) {
@@ -229,7 +241,7 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
      setDistStart('');
      setDistEnd('');
      fetchTasks(); 
-     alert(`Successfully randomized and distributed ${dayChunks.length} Day chunks and ${eveningChunks.length} Evening chunks across ${shuffledRecruiters.length} active recruiters!`);
+     alert(`Successfully distributed all chunks to Day and Evening across ${shuffledRecruiters.length} active recruiters!`);
   };
 
   return (
