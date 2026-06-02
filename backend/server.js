@@ -77,7 +77,8 @@ const userSchema = new mongoose.Schema({
   role: { type: String, default: 'standard' }, // 'standard', 'special', 'admin'
   presence: { type: String, default: 'working' }, // 'working', 'break', 'leave', 'prep'
   shiftStart: { type: String, default: '' },
-  shiftEnd: { type: String, default: '' }
+  shiftEnd: { type: String, default: '' },
+  isWlBoard: { type: Boolean, default: false }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -497,11 +498,12 @@ app.put('/api/users/:name/role', async (req, res) => {
 // PUT: Change user profile/presence
 app.put('/api/users/:name/profile', async (req, res) => {
   try {
-    const { presence, shiftStart, shiftEnd } = req.body;
+    const { presence, shiftStart, shiftEnd, isWlBoard } = req.body;
     let updateFields = {};
     if (presence !== undefined) updateFields.presence = presence;
     if (shiftStart !== undefined) updateFields.shiftStart = shiftStart;
     if (shiftEnd !== undefined) updateFields.shiftEnd = shiftEnd;
+    if (isWlBoard !== undefined) updateFields.isWlBoard = isWlBoard;
     
     const user = await User.findOneAndUpdate(
       { name: req.params.name },

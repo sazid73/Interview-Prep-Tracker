@@ -66,10 +66,41 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
       const res = await fetch(`${API_BASE}/api/users`);
       const data = await res.json();
       setUsers(data);
-      setWlRecruiters(data.filter(u => defaultWlNames.includes(u.name)));
+      setWlRecruiters(data.filter(u => u.isWlBoard || defaultWlNames.includes(u.name)));
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleClearLeads = async () => {
+    if (!isAdmin) return;
+    if (!window.confirm(`Are you sure you want to clear ALL assigned leads for ${selectedDay}?`)) return;
+    
+    const tasksToClear = tasks.filter(t => t.day === selectedDay && t.leadNum);
+    for (const t of tasksToClear) {
+      await fetch(`${API_BASE}/api/tasks/${t._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadNum: '' })
+      });
+    }
+    fetchTasks();
+    alert(`Cleared leads for ${tasksToClear.length} tasks.`);
+  };
+
+  const handleRemoveRecruiter = async (recruiterName) => {
+    if (!isAdmin) return;
+    if (!window.confirm(`Remove ${recruiterName} from the board?`)) return;
+    
+    setWlRecruiters(prev => prev.filter(r => r.name !== recruiterName));
+    
+    try {
+      await fetch(`${API_BASE}/api/users/${recruiterName}/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isWlBoard: false })
+      });
+    } catch (e) { console.error(e); }
   };
 
   const handleUpdateRecruiterTask = async (recruiterName, shift, field, value) => {
@@ -216,11 +247,19 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
               {days.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <select onChange={e => {
+              <select onChange={async (e) => {
                  if (e.target.value) {
-                   const u = users.find(user => user.name === e.target.value);
+                   const userName = e.target.value;
+                   const u = users.find(user => user.name === userName);
                    if (u && !wlRecruiters.find(r => r.name === u.name)) {
                      setWlRecruiters([...wlRecruiters, u]);
+                     try {
+                       await fetch(`${API_BASE}/api/users/${userName}/profile`, {
+                         method: 'PUT',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({ isWlBoard: true })
+                       });
+                     } catch(err) { console.error(err); }
                    }
                    e.target.value = '';
                  }
@@ -263,8 +302,9 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
                 <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Pages Per Chunk</label>
                 <input type="number" placeholder="5" value={distSize} onChange={e => setDistSize(e.target.value)} style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem' }}>
                 <button onClick={handleAdvancedDistribute} className="random-btn" style={{ padding: '0.6rem 2rem' }}>Distribute</button>
+                <button onClick={handleClearLeads} style={{ padding: '0.6rem 1rem', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Clear Leads</button>
               </div>
             </div>
           </div>
@@ -301,6 +341,13 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
               return (
                 <tr key={recruiter._id} style={{ opacity: isLeave ? 0.6 : 1, background: isLeave ? 'var(--bg-surface-hover)' : 'transparent' }}>
                   <td style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {isAdmin && (
+                      <button 
+                        onClick={() => handleRemoveRecruiter(recruiter.name)}
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.2rem' }}
+                        title="Remove from board"
+                      >×</button>
+                    )}
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: status === 'working' ? '#10b981' : status === 'break' ? '#f59e0b' : status === 'prep' ? '#8b5cf6' : '#ef4444' }}></div>
                     {recruiter.name}
                   </td>
