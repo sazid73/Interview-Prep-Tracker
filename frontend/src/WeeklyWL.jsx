@@ -3,16 +3,19 @@ import './WeeklyWL.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-const EditableInput = ({ initialValue, onSave }) => {
+const EditableInput = ({ initialValue, onSave, disabled }) => {
   const [val, setVal] = useState(initialValue || '');
   useEffect(() => { setVal(initialValue || ''); }, [initialValue]);
   return (
     <input 
       type="text" 
+      disabled={disabled}
       value={val} 
       onChange={e => setVal(e.target.value)} 
       onBlur={() => { if(val !== initialValue) onSave(val); }} 
       onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+      style={{ width: '100%', padding: '0.4rem', border: '1px solid transparent', background: 'transparent', color: 'var(--text-primary)' }}
+      className="editable-cell-input"
     />
   );
 };
@@ -21,13 +24,14 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [wlRecruiters, setWlRecruiters] = useState([]);
-  const [newTaskDay, setNewTaskDay] = useState('Monday');
-  const [newTaskShift, setNewTaskShift] = useState('DAY TIME');
-  const [newTaskLeadNum, setNewTaskLeadNum] = useState('');
   
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  const [selectedDay, setSelectedDay] = useState(days.includes(todayName) ? todayName : 'Monday');
+  
+  const [randomLeadsInput, setRandomLeadsInput] = useState('');
 
-  const isAdmin = ['super_admin', 'admin', 'admins for task assigns', 'team leader'].includes(currentUserRole);
+  const isAdmin = ['super_admin', 'admin', 'admins for task assigns', 'team leader', 'asst. team leader'].includes(currentUserRole);
 
   useEffect(() => {
     fetchTasks();
@@ -49,199 +53,202 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
       const res = await fetch(`${API_BASE}/api/users`);
       const data = await res.json();
       setUsers(data);
-      // default wl recruiters could be all recruiters
+      // Only Recruiters and Chasers will appear on the WL board
       setWlRecruiters(data.filter(u => u.role === 'recruiter' || u.role === 'chaser'));
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleAddTask = async (e) => {
-    e.preventDefault();
-    if (!isAdmin) return alert("Only admins can assign tasks");
+  const handleUpdateRecruiterTask = async (recruiterName, field, value) => {
+    if (!isAdmin && currentUser !== recruiterName) return;
+    if (!isAdmin && field !== 'status') return; // Non-admins can only update their own status
     
-    try {
-      const res = await fetch(`${API_BASE}/api/tasks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          day: newTaskDay,
-          shift: newTaskShift,
-          leadNum: newTaskLeadNum,
-          assignedTo: '',
-          assignedBy: currentUser,
-          status: 'pending',
-          taskType: 'Call',
-          startDateAndTime: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
-          endTime: 'End-Time'
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setTasks([data.task, ...tasks]);
-        setNewTaskLeadNum('');
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleUpdateTask = async (id, field, value) => {
-    if (!isAdmin && currentUserRole !== 'team leader' && currentUserRole !== 'asst. team leader') {
-       // Regular users can only update status of their own tasks
-       const task = tasks.find(t => t._id === id);
-       if (!task || task.assignedTo !== currentUser) {
-         return; // not allowed
-       }
-       if (field !== 'status' && field !== 'notes') return; 
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setTasks(tasks.map(t => t._id === id ? data.task : t));
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDeleteTask = async (id) => {
-    if (!isAdmin) return;
-    if (!window.confirm("Delete this task?")) return;
-    try {
-      await fetch(`${API_BASE}/api/tasks/${id}`, { method: 'DELETE' });
-      setTasks(tasks.filter(t => t._id !== id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleRandomAssign = async () => {
-    if (!isAdmin) return;
-    if (wlRecruiters.length === 0) return alert("No recruiters or chasers found in the system.");
+    // Find existing task for this recruiter on selectedDay
+    const existingTask = tasks.find(t => t.day === selectedDay && t.assignedTo === recruiterName);
     
-    const unassignedTasks = tasks.filter(t => !t.assignedTo);
-    if (unassignedTasks.length === 0) return alert("All tasks are already assigned!");
-
-    for (const task of unassignedTasks) {
-       const randomRecruiter = wlRecruiters[Math.floor(Math.random() * wlRecruiters.length)].name;
-       await fetch(`${API_BASE}/api/tasks/${task._id}`, {
-         method: 'PUT',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ assignedTo: randomRecruiter })
-       });
+    if (existingTask) {
+       try {
+         const res = await fetch(`${API_BASE}/api/tasks/${existingTask._id}`, {
+           method: 'PUT',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ [field]: value })
+         });
+         const data = await res.json();
+         if (data.success) setTasks(tasks.map(t => t._id === existingTask._id ? data.task : t));
+       } catch (e) { console.error(e); }
+    } else {
+       if (!isAdmin) return; // Only admins can implicitly create tasks
+       try {
+         const res = await fetch(`${API_BASE}/api/tasks`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({
+             day: selectedDay,
+             shift: '6 Hours', // Implicit single shift
+             leadNum: field === 'leadNum' ? value : '',
+             assignedTo: recruiterName,
+             assignedBy: currentUser,
+             status: field === 'status' ? value : 'pending',
+             taskType: 'Call',
+             startDateAndTime: field === 'startDateAndTime' ? value : '',
+             endTime: field === 'endTime' ? value : ''
+           })
+         });
+         const data = await res.json();
+         if (data.success) setTasks([data.task, ...tasks]);
+       } catch (e) { console.error(e); }
     }
-    fetchTasks(); // Refresh tasks after bulk update
   };
 
-  const renderTable = (shift) => {
-    const shiftTasks = tasks.filter(t => t.shift === shift);
-    
-    return (
-      <div className="wl-table-container">
-        <h3 className="wl-shift-title">{shift}</h3>
-        <table className="wl-table">
-          <thead>
-            <tr>
-              <th>DAY</th>
-              <th>Lead Num</th>
-              <th>Recruiter</th>
-              <th>Status</th>
-              <th>Start date & Time</th>
-              <th>End- Time</th>
-              {isAdmin && <th>Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {shiftTasks.map(task => (
-              <tr key={task._id}>
-                <td>
-                  <select disabled={!isAdmin} value={task.day} onChange={e => handleUpdateTask(task._id, 'day', e.target.value)} className={`day-badge ${task.day}`}>
-                    {days.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </td>
-                <td>
-                  {isAdmin ? (
-                    <EditableInput initialValue={task.leadNum} onSave={val => handleUpdateTask(task._id, 'leadNum', val)} />
-                  ) : (
-                    <span>{task.leadNum}</span>
-                  )}
-                </td>
-                <td>
-                  <select disabled={!isAdmin} value={task.assignedTo || ''} onChange={e => handleUpdateTask(task._id, 'assignedTo', e.target.value)}>
-                    <option value="">Unassigned</option>
-                    {users.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
-                  </select>
-                </td>
-                <td>
-                  <select className={`status-badge ${task.status}`} value={task.status} onChange={e => handleUpdateTask(task._id, 'status', e.target.value)}>
-                    <option value="pending">pending</option>
-                    <option value="working">working</option>
-                    <option value="completed">completed</option>
-                    <option value="Leave">Leave</option>
-                  </select>
-                </td>
-                <td>
-                  {isAdmin ? (
-                    <EditableInput initialValue={task.startDateAndTime} onSave={val => handleUpdateTask(task._id, 'startDateAndTime', val)} />
-                  ) : (
-                    <span>{task.startDateAndTime}</span>
-                  )}
-                </td>
-                <td>
-                  {isAdmin ? (
-                    <EditableInput initialValue={task.endTime} onSave={val => handleUpdateTask(task._id, 'endTime', val)} />
-                  ) : (
-                    <span>{task.endTime}</span>
-                  )}
-                </td>
-                {isAdmin && (
-                  <td><button className="del-btn" onClick={() => handleDeleteTask(task._id)}>✗</button></td>
-                )}
-              </tr>
-            ))}
-            {shiftTasks.length === 0 && (
-              <tr><td colSpan={isAdmin ? 7 : 6} style={{textAlign: 'center', padding: '1rem'}}>No tasks for this shift</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    );
+  const handleRandomDistribute = async () => {
+     if(!isAdmin) return;
+     if(!randomLeadsInput.trim()) return alert("Enter some leads to distribute. Separate groups with semicolons (;).");
+     
+     // Find recruiters who are NOT on Leave today
+     const activeRecruiters = wlRecruiters.filter(r => {
+        const t = tasks.find(tsk => tsk.day === selectedDay && tsk.assignedTo === r.name);
+        return !t || t.status !== 'Leave';
+     });
+     
+     if(activeRecruiters.length === 0) return alert("No active recruiters found for today.");
+     
+     const chunks = randomLeadsInput.split(';').map(s => s.trim()).filter(s => s);
+     
+     for(const chunk of chunks) {
+         const randomR = activeRecruiters[Math.floor(Math.random() * activeRecruiters.length)].name;
+         const t = tasks.find(tsk => tsk.day === selectedDay && tsk.assignedTo === randomR);
+         
+         if(t) {
+             const newLead = t.leadNum ? `${t.leadNum}, ${chunk}` : chunk;
+             await fetch(`${API_BASE}/api/tasks/${t._id}`, {
+               method: 'PUT',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ leadNum: newLead })
+             });
+         } else {
+             await fetch(`${API_BASE}/api/tasks`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({
+                 day: selectedDay,
+                 shift: '6 Hours',
+                 leadNum: chunk,
+                 assignedTo: randomR,
+                 assignedBy: currentUser,
+                 status: 'pending',
+                 taskType: 'Call',
+                 startDateAndTime: '',
+                 endTime: ''
+               })
+             });
+         }
+     }
+     setRandomLeadsInput('');
+     fetchTasks(); // Refresh tasks after bulk random distribution
   };
 
   return (
     <div className="wl-container">
-      <div className="wl-header">
-        <h2>Weekly Work List (WL)</h2>
-        <div className="wl-actions">
-          {isAdmin && (
-            <div className="admin-wl-tools">
-              <form onSubmit={handleAddTask} className="add-task-form">
-                <select value={newTaskDay} onChange={e => setNewTaskDay(e.target.value)}>
-                  {days.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-                <select value={newTaskShift} onChange={e => setNewTaskShift(e.target.value)}>
-                  <option value="DAY TIME">DAY TIME</option>
-                  <option value="EVENING TIME">EVENING TIME</option>
-                </select>
-                <input type="text" placeholder="Lead Num (e.g. pg-1,10)" value={newTaskLeadNum} onChange={e => setNewTaskLeadNum(e.target.value)} required />
-                <button type="submit" className="add-btn">+ Add Lead Row</button>
-              </form>
-              <button onClick={handleRandomAssign} className="random-btn">🎲 Randomly Assign Unassigned</button>
-            </div>
-          )}
+      <div className="wl-header" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>Weekly Work List (WL)</h2>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>Viewing Day:</span>
+            <select 
+              value={selectedDay} 
+              onChange={e => setSelectedDay(e.target.value)}
+              style={{ padding: '0.6rem 1rem', borderRadius: '8px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontSize: '1.1rem', fontWeight: 'bold' }}
+            >
+              {days.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
         </div>
+
+        {isAdmin && (
+          <div style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '1.5rem' }}>🎲</span>
+            <div style={{ flex: 1 }}>
+              <strong style={{ display: 'block', marginBottom: '0.2rem' }}>Random Lead Distributor</strong>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Separate lead groups with semicolons. (e.g. <code>pg-1,10; pg-11,20; lsc-1,5</code>)</span>
+            </div>
+            <input 
+              type="text" 
+              placeholder="e.g. pg-1,10; pg-11,20" 
+              value={randomLeadsInput} 
+              onChange={e => setRandomLeadsInput(e.target.value)}
+              style={{ flex: 2, padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
+            />
+            <button onClick={handleRandomDistribute} className="random-btn">Distribute Randomly</button>
+          </div>
+        )}
       </div>
 
-      <div className="wl-split-view">
-        {renderTable('DAY TIME')}
-        {renderTable('EVENING TIME')}
+      <div className="wl-table-container">
+        <table className="wl-table">
+          <thead>
+            <tr>
+              <th style={{ width: '200px' }}>Recruiter</th>
+              <th>Assigned Leads</th>
+              <th style={{ width: '150px' }}>Status</th>
+              <th style={{ width: '200px' }}>Start Time</th>
+              <th style={{ width: '200px' }}>End Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {wlRecruiters.map(recruiter => {
+              const task = tasks.find(t => t.day === selectedDay && t.assignedTo === recruiter.name) || {};
+              const isLeave = task.status === 'Leave';
+              
+              return (
+                <tr key={recruiter._id} style={{ opacity: isLeave ? 0.6 : 1, background: isLeave ? 'var(--bg-surface-hover)' : 'transparent' }}>
+                  <td style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isLeave ? '#ef4444' : '#10b981' }}></div>
+                    {recruiter.name}
+                  </td>
+                  <td>
+                    <EditableInput 
+                      disabled={!isAdmin}
+                      initialValue={task.leadNum} 
+                      onSave={val => handleUpdateRecruiterTask(recruiter.name, 'leadNum', val)} 
+                    />
+                  </td>
+                  <td>
+                    <select 
+                      disabled={!isAdmin && currentUser !== recruiter.name}
+                      className={`status-badge ${task.status || 'pending'}`} 
+                      value={task.status || 'pending'} 
+                      onChange={e => handleUpdateRecruiterTask(recruiter.name, 'status', e.target.value)}
+                      style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid transparent' }}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="working">Working</option>
+                      <option value="completed">Completed</option>
+                      <option value="Leave">Leave</option>
+                    </select>
+                  </td>
+                  <td>
+                    <EditableInput 
+                      disabled={!isAdmin}
+                      initialValue={task.startDateAndTime} 
+                      onSave={val => handleUpdateRecruiterTask(recruiter.name, 'startDateAndTime', val)} 
+                    />
+                  </td>
+                  <td>
+                    <EditableInput 
+                      disabled={!isAdmin}
+                      initialValue={task.endTime} 
+                      onSave={val => handleUpdateRecruiterTask(recruiter.name, 'endTime', val)} 
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+            {wlRecruiters.length === 0 && (
+              <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>No recruiters found in the system.</td></tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
