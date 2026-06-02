@@ -43,6 +43,10 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
   useEffect(() => {
     fetchTasks();
     fetchUsers();
+    
+    const handleProfileUpdate = () => fetchUsers();
+    window.addEventListener('user-profile-updated', handleProfileUpdate);
+    return () => window.removeEventListener('user-profile-updated', handleProfileUpdate);
   }, []);
 
   const fetchTasks = async () => {
@@ -336,7 +340,7 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
                     <EditableInput 
                       disabled={!isAdmin}
                       placeholder="HH:MM AM"
-                      initialValue={dayTask.startDateAndTime || eveningTask.startDateAndTime} 
+                      initialValue={dayTask.startDateAndTime || eveningTask.startDateAndTime || recruiter.shiftStart || ''} 
                       onSave={val => {
                         handleUpdateRecruiterTask(recruiter.name, 'DAY TIME', 'startDateAndTime', val);
                         handleUpdateRecruiterTask(recruiter.name, 'EVENING TIME', 'startDateAndTime', val);
@@ -347,7 +351,7 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
                     <EditableInput 
                       disabled={!isAdmin}
                       placeholder="HH:MM PM"
-                      initialValue={dayTask.endTime || eveningTask.endTime} 
+                      initialValue={dayTask.endTime || eveningTask.endTime || recruiter.shiftEnd || ''} 
                       onSave={val => {
                         handleUpdateRecruiterTask(recruiter.name, 'DAY TIME', 'endTime', val);
                         handleUpdateRecruiterTask(recruiter.name, 'EVENING TIME', 'endTime', val);

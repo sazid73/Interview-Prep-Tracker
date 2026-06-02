@@ -75,7 +75,9 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   password: { type: String }, // Plain text for simplicity, as per requirements
   role: { type: String, default: 'standard' }, // 'standard', 'special', 'admin'
-  presence: { type: String, default: 'working' } // 'working', 'break', 'leave', 'prep'
+  presence: { type: String, default: 'working' }, // 'working', 'break', 'leave', 'prep'
+  shiftStart: { type: String, default: '' },
+  shiftEnd: { type: String, default: '' }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -492,18 +494,23 @@ app.put('/api/users/:name/role', async (req, res) => {
   }
 });
 
-// PUT: Change user presence
-app.put('/api/users/:name/presence', async (req, res) => {
+// PUT: Change user profile/presence
+app.put('/api/users/:name/profile', async (req, res) => {
   try {
-    const { presence } = req.body;
+    const { presence, shiftStart, shiftEnd } = req.body;
+    let updateFields = {};
+    if (presence !== undefined) updateFields.presence = presence;
+    if (shiftStart !== undefined) updateFields.shiftStart = shiftStart;
+    if (shiftEnd !== undefined) updateFields.shiftEnd = shiftEnd;
+    
     const user = await User.findOneAndUpdate(
       { name: req.params.name },
-      { presence },
+      { $set: updateFields },
       { new: true }
     );
     res.json({ success: true, user });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update presence' });
+    res.status(500).json({ error: 'Failed to update user profile' });
   }
 });
 
