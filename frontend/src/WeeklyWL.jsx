@@ -181,11 +181,11 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
         chunks.push(`${distPrefix}${i}-${chunkEnd}`);
      }
      
-     // Find recruiters who are NOT on Leave globally or via task
+     // Find recruiters who are NOT on Leave or Prep globally or via task
      const activeRecruiters = wlRecruiters.filter(r => {
-        if (r.presence === 'leave') return false;
+        if (r.presence === 'leave' || r.presence === 'prep') return false;
         const t = tasks.find(tsk => tsk.day === selectedDay && tsk.assignedTo === r.name && tsk.shift === 'DAY TIME');
-        return !t || t.status !== 'Leave';
+        return !t || (t.status !== 'Leave' && t.status !== 'prep');
      });
      
      if(activeRecruiters.length === 0) return alert("No active recruiters found for today.");
