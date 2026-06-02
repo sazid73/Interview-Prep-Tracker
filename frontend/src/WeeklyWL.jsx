@@ -55,13 +55,14 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
     }
   };
 
+  const defaultWlNames = ['Sazid', 'Ahasan', 'Alee', 'Arnika', 'Aryan', 'Diya', 'Evan', 'Isha', 'Mohaimen', 'Tunajjinah', 'Tunajjina', 'Arusa'];
+
   const fetchUsers = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/users`);
       const data = await res.json();
       setUsers(data);
-      // Only Recruiters and Chasers will appear on the WL board
-      setWlRecruiters(data.filter(u => u.role === 'recruiter' || u.role === 'chaser'));
+      setWlRecruiters(data.filter(u => defaultWlNames.includes(u.name)));
     } catch (err) {
       console.error(err);
     }
@@ -136,56 +137,64 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
         chunks.push(`${distPrefix}${i}-${chunkEnd}`);
      }
      
-     // Find recruiters who are NOT on Leave today
+     // Find recruiters who are NOT on Leave globally or via task
      const activeRecruiters = wlRecruiters.filter(r => {
+        if (r.presence === 'leave') return false;
         const t = tasks.find(tsk => tsk.day === selectedDay && tsk.assignedTo === r.name && tsk.shift === 'DAY TIME');
         return !t || t.status !== 'Leave';
      });
      
      if(activeRecruiters.length === 0) return alert("No active recruiters found for today.");
      
-     let recruiterIndex = 0;
+     // Shuffle recruiters for fair assignment
+     const shuffledRecruiters = [...activeRecruiters].sort(() => 0.5 - Math.random());
      
-     // Distribute
-     for(const chunk of chunks) {
-         const recruiter = activeRecruiters[recruiterIndex % activeRecruiters.length];
-         // Alternate between DAY and EVENING
-         const shift = Math.floor(recruiterIndex / activeRecruiters.length) % 2 === 0 ? 'DAY TIME' : 'EVENING TIME';
-         
-         const t = tasks.find(tsk => tsk.day === selectedDay && tsk.shift === shift && tsk.assignedTo === recruiter.name);
-         
-         if(t) {
-             const newLead = t.leadNum ? `${t.leadNum}, ${chunk}` : chunk;
-             await fetch(`${API_BASE}/api/tasks/${t._id}`, {
-               method: 'PUT',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ leadNum: newLead })
-             });
-         } else {
-             await fetch(`${API_BASE}/api/tasks`, {
-               method: 'POST',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({
-                 day: selectedDay,
-                 shift: shift,
-                 leadNum: chunk,
-                 assignedTo: recruiter.name,
-                 assignedBy: currentUser,
-                 status: 'working',
-                 taskType: 'Call',
-                 startDateAndTime: '',
-                 endTime: ''
-               })
-             });
+     // Split chunks into first half (Day - fresh) and second half (Evening - back)
+     const midpoint = Math.ceil(chunks.length / 2);
+     const dayChunks = chunks.slice(0, midpoint).sort(() => 0.5 - Math.random());
+     const eveningChunks = chunks.slice(midpoint).sort(() => 0.5 - Math.random());
+     
+     const processAssignment = async (chunkList, shift) => {
+         for(let i = 0; i < chunkList.length; i++) {
+             const chunk = chunkList[i];
+             const recruiter = shuffledRecruiters[i % shuffledRecruiters.length];
+             
+             const t = tasks.find(tsk => tsk.day === selectedDay && tsk.shift === shift && tsk.assignedTo === recruiter.name);
+             if(t) {
+                 const newLead = t.leadNum ? `${t.leadNum}, ${chunk}` : chunk;
+                 await fetch(`${API_BASE}/api/tasks/${t._id}`, {
+                   method: 'PUT',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({ leadNum: newLead })
+                 });
+             } else {
+                 await fetch(`${API_BASE}/api/tasks`, {
+                   method: 'POST',
+                   headers: { 'Content-Type': 'application/json' },
+                   body: JSON.stringify({
+                     day: selectedDay,
+                     shift: shift,
+                     leadNum: chunk,
+                     assignedTo: recruiter.name,
+                     assignedBy: currentUser,
+                     status: 'working',
+                     taskType: 'Call',
+                     startDateAndTime: '',
+                     endTime: ''
+                   })
+                 });
+             }
          }
-         recruiterIndex++;
-     }
+     };
+
+     await processAssignment(dayChunks, 'DAY TIME');
+     await processAssignment(eveningChunks, 'EVENING TIME');
      
      setDistPrefix('');
      setDistStart('');
      setDistEnd('');
      fetchTasks(); 
-     alert(`Successfully distributed ${chunks.length} chunks across ${activeRecruiters.length} active recruiters!`);
+     alert(`Successfully randomized and distributed ${dayChunks.length} Day chunks and ${eveningChunks.length} Evening chunks across ${shuffledRecruiters.length} active recruiters!`);
   };
 
   return (
@@ -202,6 +211,20 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
             >
               {days.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <select onChange={e => {
+                 if (e.target.value) {
+                   const u = users.find(user => user.name === e.target.value);
+                   if (u && !wlRecruiters.find(r => r.name === u.name)) {
+                     setWlRecruiters([...wlRecruiters, u]);
+                   }
+                   e.target.value = '';
+                 }
+              }} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                <option value="">+ Add Recruiter to Board</option>
+                {users.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
+              </select>
+            </div>
             <button 
               onClick={() => setShowLeave(!showLeave)}
               style={{ padding: '0.6rem 1rem', borderRadius: '8px', background: showLeave ? '#ef4444' : 'var(--bg-surface-hover)', color: showLeave ? 'white' : 'var(--text-primary)', border: '1px solid var(--border-color)', cursor: 'pointer' }}
@@ -261,8 +284,12 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
               const dayTask = tasks.find(t => t.day === selectedDay && t.shift === 'DAY TIME' && t.assignedTo === recruiter.name) || {};
               const eveningTask = tasks.find(t => t.day === selectedDay && t.shift === 'EVENING TIME' && t.assignedTo === recruiter.name) || {};
               
-              // Attendance is determined by the Day Task primarily
-              const status = dayTask.status || eveningTask.status || 'working';
+              // Attendance is determined by the Day Task primarily or global presence
+              let status = dayTask.status || eveningTask.status || 'working';
+              // If global presence is leave, it overrides WL display logic
+              if (recruiter.presence === 'leave' || status === 'Leave') {
+                  status = 'Leave';
+              }
               const isLeave = status === 'Leave';
               
               if (isLeave && !showLeave) return null; // Hide if on leave and toggle is off
@@ -270,7 +297,7 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
               return (
                 <tr key={recruiter._id} style={{ opacity: isLeave ? 0.6 : 1, background: isLeave ? 'var(--bg-surface-hover)' : 'transparent' }}>
                   <td style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: status === 'working' ? '#10b981' : status === 'break' ? '#f59e0b' : '#ef4444' }}></div>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: status === 'working' ? '#10b981' : status === 'break' ? '#f59e0b' : status === 'prep' ? '#8b5cf6' : '#ef4444' }}></div>
                     {recruiter.name}
                   </td>
                   <td>
@@ -283,6 +310,7 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
                     >
                       <option value="working">Working</option>
                       <option value="break">Break</option>
+                      <option value="prep">Prep</option>
                       <option value="Leave">Leave</option>
                       <option value="pending">Pending</option>
                       <option value="completed">Completed</option>

@@ -1,7 +1,37 @@
 import React from 'react';
 import './Topbar.css';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogout }) => {
+  const [presence, setPresence] = React.useState('working');
+
+  React.useEffect(() => {
+    if (currentUser) {
+      fetch(`${API_BASE}/api/users`)
+        .then(res => res.json())
+        .then(data => {
+          const me = data.find(u => u.name === currentUser);
+          if (me && me.presence) setPresence(me.presence);
+        })
+        .catch(err => console.error(err));
+    }
+  }, [currentUser]);
+
+  const handlePresenceChange = async (e) => {
+    const newPresence = e.target.value;
+    setPresence(newPresence);
+    try {
+      await fetch(`${API_BASE}/api/users/${currentUser}/presence`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ presence: newPresence })
+      });
+    } catch (err) {
+      console.error('Failed to update presence', err);
+    }
+  };
+
   const formatViewName = (viewId) => {
     return viewId.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
@@ -30,6 +60,16 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
               {currentUserRole ? currentUserRole.replace('_', ' ') : 'Standard'}
             </span>
           </div>
+          <select 
+            value={presence} 
+            onChange={handlePresenceChange}
+            style={{ marginLeft: '1rem', padding: '0.3rem', borderRadius: '4px', background: presence === 'working' ? '#10b981' : presence === 'leave' ? '#ef4444' : presence === 'break' ? '#f59e0b' : '#3b82f6', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+          >
+            <option value="working">Working</option>
+            <option value="break">Break</option>
+            <option value="prep">Prep</option>
+            <option value="leave">Leave</option>
+          </select>
           <button 
             onClick={onLogout} 
             style={{ 

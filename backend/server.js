@@ -74,7 +74,8 @@ const CellHistory = mongoose.model('CellHistory', cellHistorySchema);
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   password: { type: String }, // Plain text for simplicity, as per requirements
-  role: { type: String, default: 'standard' } // 'standard', 'special', 'admin'
+  role: { type: String, default: 'standard' }, // 'standard', 'special', 'admin'
+  presence: { type: String, default: 'working' } // 'working', 'break', 'leave', 'prep'
 });
 const User = mongoose.model('User', userSchema);
 
@@ -488,6 +489,21 @@ app.put('/api/users/:name/role', async (req, res) => {
     res.json({ success: true, user });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update role' });
+  }
+});
+
+// PUT: Change user presence
+app.put('/api/users/:name/presence', async (req, res) => {
+  try {
+    const { presence } = req.body;
+    const user = await User.findOneAndUpdate(
+      { name: req.params.name },
+      { presence },
+      { new: true }
+    );
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update presence' });
   }
 });
 

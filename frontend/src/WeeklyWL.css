@@ -146,6 +146,7 @@
 .status-badge.pending { background: #e2e8f0 !important; color: #475569 !important; }
 .status-badge.completed { background: #dbeafe !important; color: #1e40af !important; }
 .status-badge.break { background: #fef08a !important; color: #854d0e !important; }
+.status-badge.prep { background: #ede9fe !important; color: #5b21b6 !important; }
 .status-badge.Leave { background: #fee2e2 !important; color: #991b1b !important; }
 
 .del-btn {
