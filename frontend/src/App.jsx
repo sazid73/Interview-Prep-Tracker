@@ -1313,7 +1313,7 @@ function App() {
           {currentView === 'interviews' && <Interviews currentUser={currentUser} />}
           {currentView === 'course_campus' && <CourseAndCampus currentUserRole={currentUserRole} currentUser={currentUser} />}
           {currentView === 'weekly_wl' && <WeeklyWL currentUserRole={currentUserRole} currentUser={currentUser} />}
-          {currentView === 'taskboard' && <Taskboard currentUser={currentUser} />}
+          {currentView === 'taskboard' && <Taskboard currentUser={currentUser} currentUserRole={currentUserRole} />}
           
           {currentView !== 'dashboard' && currentView !== 'students' && currentView !== 'prep_interviews' && currentView !== 'interviews' && currentView !== 'course_campus' && currentView !== 'weekly_wl' && currentView !== 'taskboard' && (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
