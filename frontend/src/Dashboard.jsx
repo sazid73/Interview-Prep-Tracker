@@ -7,7 +7,9 @@ const Dashboard = ({ currentUserRole }) => {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showRecruiterModal, setShowRecruiterModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
-  const [showTaskDistributionModal, setShowTaskDistributionModal] = useState(false);
+  const [showAdminTaskModal, setShowAdminTaskModal] = useState(false);
+  const [adminTaskStatus, setAdminTaskStatus] = useState('Assigned'); // 'Assigned' or 'Completed'
+  const [adminTaskTimeframe, setAdminTaskTimeframe] = useState('All'); // 'All', 'This Week', 'Today'
   const [showLogs, setShowLogs] = useState(false);
   const [analyticsMonth, setAnalyticsMonth] = useState('All');
   const [recruiterMonth, setRecruiterMonth] = useState('All');
@@ -240,14 +242,14 @@ const Dashboard = ({ currentUserRole }) => {
             </button>
           )}
           <button 
-            onClick={() => setShowTaskDistributionModal(true)} 
+            onClick={() => setShowAdminTaskModal(true)} 
             style={{ 
               background: '#10b981', color: '#fff', border: 'none', padding: '0.8rem 1.5rem', 
               borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
               boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
             }}
           >
-            🎯 Live Task Distribution
+            🎯 Admin Task Distribution
           </button>
           <button 
             onClick={() => setShowRecruiterModal(true)} 
@@ -631,10 +633,8 @@ const Dashboard = ({ currentUserRole }) => {
         </div>
       )}
 
-      {showTaskDistributionModal && (() => {
+      {showAdminTaskModal && (() => {
         const distribution = {
-          recruitment: {},
-          chaser: {},
           adminCV: {},
           adminPS: {},
           adminQA: {},
@@ -647,10 +647,30 @@ const Dashboard = ({ currentUserRole }) => {
           distribution[dept][user].push(task);
         };
 
+        const isTaskMatchingFilters = (s) => {
+          // Status filter
+          const isCompleted = s.appStatus === 'Submitted';
+          if (adminTaskStatus === 'Assigned' && isCompleted) return false;
+          if (adminTaskStatus === 'Completed' && !isCompleted) return false;
+
+          // Timeframe filter
+          if (adminTaskTimeframe !== 'All') {
+            const taskDate = new Date(s.updatedAt || s.createdAt || Date.now());
+            const today = new Date();
+            if (adminTaskTimeframe === 'Today') {
+              if (taskDate.toDateString() !== today.toDateString()) return false;
+            } else if (adminTaskTimeframe === 'This Week') {
+              const diffTime = Math.abs(today - taskDate);
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays > 7) return false;
+            }
+          }
+          return true;
+        };
+
         students.forEach(s => {
+          if (!isTaskMatchingFilters(s)) return;
           const taskObj = { id: s.studentId, name: s.name, status: s.appStatus };
-          add('recruitment', s.recruiter, taskObj);
-          add('chaser', s.chaser, taskObj);
           if (s.chasers) {
             add('adminCV', s.chasers.cv, taskObj);
             add('adminPS', s.chasers.ps, taskObj);
@@ -662,7 +682,7 @@ const Dashboard = ({ currentUserRole }) => {
         const renderDeptBlock = (title, color, dataMap) => (
           <div style={{ background: 'var(--bg-surface-hover)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${color}40`, marginBottom: '1.5rem' }}>
             <h4 style={{ color, marginTop: 0, marginBottom: '1rem', borderBottom: `2px solid ${color}40`, paddingBottom: '0.5rem', fontSize: '1.1rem' }}>{title}</h4>
-            {Object.keys(dataMap).length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No active assignments.</p> : (
+            {Object.keys(dataMap).length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No {adminTaskStatus.toLowerCase()} tasks found.</p> : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
                 {Object.entries(dataMap).map(([user, tasks]) => (
                   <div key={user} style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${color}` }}>
@@ -685,9 +705,31 @@ const Dashboard = ({ currentUserRole }) => {
             <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1200px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
               <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
                 <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  🎯 Live Task Distribution (Department-wise)
+                  🎯 Admin Task Distribution
                 </h3>
-                <button onClick={() => setShowTaskDistributionModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+                
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <select 
+                    value={adminTaskStatus} 
+                    onChange={e => setAdminTaskStatus(e.target.value)}
+                    style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.4rem 0.8rem', borderRadius: '6px' }}
+                  >
+                    <option value="Assigned">Live / Assigned</option>
+                    <option value="Completed">Completed (Submitted)</option>
+                  </select>
+                  
+                  <select 
+                    value={adminTaskTimeframe} 
+                    onChange={e => setAdminTaskTimeframe(e.target.value)}
+                    style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.4rem 0.8rem', borderRadius: '6px' }}
+                  >
+                    <option value="All">All Time</option>
+                    <option value="This Week">Last 7 Days</option>
+                    <option value="Today">Today</option>
+                  </select>
+
+                  <button onClick={() => setShowAdminTaskModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem', marginLeft: '1rem' }}>✗</button>
+                </div>
               </div>
               
               <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
@@ -695,11 +737,6 @@ const Dashboard = ({ currentUserRole }) => {
                 {renderDeptBlock('Admin Tasks (PS Review)', '#8b5cf6', distribution.adminPS)}
                 {renderDeptBlock('Admin Tasks (Submission & QC)', '#f59e0b', distribution.adminSub)}
                 {renderDeptBlock('Admin Tasks (QA Check)', '#10b981', distribution.adminQA)}
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                  {renderDeptBlock('Recruitment Department', '#ec4899', distribution.recruitment)}
-                  {renderDeptBlock('Normal Chaser Calls', '#ef4444', distribution.chaser)}
-                </div>
               </div>
             </div>
           </div>

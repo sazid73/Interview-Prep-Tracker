@@ -5,9 +5,6 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 const Taskboard = ({ currentUser }) => {
   const [wlTasks, setWlTasks] = useState([]);
   const [historyTasks, setHistoryTasks] = useState([]);
-  const [normalChaserTasks, setNormalChaserTasks] = useState([]);
-  const [adminOfficerTasks, setAdminOfficerTasks] = useState([]);
-  const [recruiterTasks, setRecruiterTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,30 +22,8 @@ const Taskboard = ({ currentUser }) => {
       setWlTasks(myWl.filter(t => t.status !== 'completed'));
       setHistoryTasks(myWl.filter(t => t.status === 'completed'));
 
-      // Fetch Student Lead Chaser Tasks
-      const stdRes = await fetch(`${API_BASE}/api/students`);
-      const stdData = await stdRes.json();
-      
-      const myNormalChaser = [];
-      const myAdminOfficer = [];
-      const myRecruiter = [];
-
-      stdData.forEach(s => {
-        if (s.recruiter === currentUser) {
-           myRecruiter.push({ ...s, taskType: 'Recruitment Lead' });
-        }
-        if (s.chaser === currentUser) {
-           myNormalChaser.push({ ...s, taskType: 'Call & Book Prep' });
-        }
-        if (s.chasers?.cv === currentUser) myAdminOfficer.push({ ...s, taskType: 'CV Review' });
-        if (s.chasers?.ps === currentUser) myAdminOfficer.push({ ...s, taskType: 'PS Review' });
-        if (s.chasers?.qa === currentUser) myAdminOfficer.push({ ...s, taskType: 'QA Check' });
-        if (s.chasers?.sub === currentUser) myAdminOfficer.push({ ...s, taskType: 'Submission & QC' });
-      });
-      
-      setNormalChaserTasks(myNormalChaser);
-      setAdminOfficerTasks(myAdminOfficer);
-      setRecruiterTasks(myRecruiter);
+      setWlTasks(myWl.filter(t => t.status !== 'completed'));
+      setHistoryTasks(myWl.filter(t => t.status === 'completed'));
 
     } catch (err) {
       console.error(err);
@@ -133,80 +108,6 @@ const Taskboard = ({ currentUser }) => {
                 </div>
               ))}
               {historyTasks.length === 0 && <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>No completed history.</p>}
-            </div>
-          </div>
-
-        </div>
-
-        {/* Chaser & Admin Tasks Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
-          <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ borderBottom: '2px solid #8b5cf6', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
-              Normal Chaser Calls ({normalChaserTasks.length})
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {normalChaserTasks.map((t, idx) => (
-                <div key={`n-${t._id}-${idx}`} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #8b5cf6' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <strong>{t.name} ({t.studentId})</strong>
-                    <span style={{ background: '#8b5cf6', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                      {t.taskType}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                    <p style={{ margin: '0.2rem 0' }}>📱 {t.mobile || 'No Mobile'}</p>
-                    <p style={{ margin: '0.5rem 0 0 0', fontStyle: 'italic', color: '#10b981' }}>App Status: {t.appStatus}</p>
-                  </div>
-                </div>
-              ))}
-              {normalChaserTasks.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>No normal chaser calls assigned.</p>}
-            </div>
-          </div>
-
-          <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ borderBottom: '2px solid #ec4899', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
-              Admin Officer Tasks ({adminOfficerTasks.length})
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {adminOfficerTasks.map((t, idx) => (
-                <div key={`a-${t._id}-${idx}`} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #ec4899' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <strong>{t.name} ({t.studentId})</strong>
-                    <span style={{ background: '#ec4899', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                      {t.taskType}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                    <p style={{ margin: '0.2rem 0' }}>🏫 {t.courseAndCampus1}</p>
-                    <p style={{ margin: '0.5rem 0 0 0', fontStyle: 'italic', color: '#10b981' }}>App Status: {t.appStatus}</p>
-                  </div>
-                </div>
-              ))}
-              {adminOfficerTasks.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>No admin officer tasks assigned.</p>}
-            </div>
-          </div>
-
-          <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
-              Recruiter Tasks ({recruiterTasks.length})
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {recruiterTasks.map((t, idx) => (
-                <div key={`r-${t._id}-${idx}`} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #3b82f6' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <strong>{t.name} ({t.studentId})</strong>
-                    <span style={{ background: '#3b82f6', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                      {t.taskType}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                    <p style={{ margin: '0.2rem 0' }}>💬 Int Status: {t.intStatus || 'Interested'}</p>
-                    <p style={{ margin: '0.5rem 0 0 0', fontStyle: 'italic', color: '#10b981' }}>App Status: {t.appStatus}</p>
-                  </div>
-                </div>
-              ))}
-              {recruiterTasks.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>No recruitment tasks assigned.</p>}
             </div>
           </div>
 
