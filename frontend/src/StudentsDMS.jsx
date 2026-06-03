@@ -14,6 +14,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState('Details');
   const [editingCell, setEditingCell] = useState({ id: null, field: null });
+  const [routeModal, setRouteModal] = useState({ show: false, student: null });
   const [chaserModal, setChaserModal] = useState({ show: false, student: null, readOnly: false });
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ appStatus: '', recruiter: '', session: '', intStatus: '', agent: '', chaser: '', source: '', course: '', residential: '', location: '' });
@@ -59,13 +60,18 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
   };
   const initialStudentState = {
     name: '', email: '', mobile: '', source: 'manual entry', session: '', 
-    courseAndCampus1: '', courseAndCampus2: '', refCompany: '', intStatus: 'Interested and Responding',
-    recruiter: '', chaser: 'Click to assign', agent: '', residential: '', location: '', appId: '',
+    courseAndCampus1: '', courseAndCampus2: '', route: '', routeNotes: '', routeCompany: '', routeJobRole: '', routeQualification: '', routeCredits: '', routeProvider: '', routeWorkType: '', routeEduType: '', routeHistory: [], 
+    intStatus: 'Interested and Responding', intStatusHistory: [],
+    recruiter: '', recruiterHistory: [], 
+    chaser: 'Click to assign', chaserHistory: [], 
+    agent: '', residential: '', location: '', appId: '',
+    appStatus: 'Awaiting submission', appStatusHistory: [],
     clTime: '', submit: '', docs: '0'
   };
   const [newStudent, setNewStudent] = useState(initialStudentState);
   const [isViewMode, setIsViewMode] = useState(false);
   const [bookingModal, setBookingModal] = useState({ show: false, student: null, date: '', time: '10:00', campus: '', notes: '' });
+  const [notesModal, setNotesModal] = useState({ show: false, student: null, fieldType: null, note: '' });
 
   useEffect(() => {
     fetch(`${API_BASE}/api/students`)
@@ -100,6 +106,163 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
       body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: currentUser || 'Unknown', action, details })
     }).catch(e => console.error(e));
   };
+
+  const renderRouteCell = (student) => {
+    if (!student.route) return <span style={{ color: '#9ca3af' }}>Select Route</span>;
+    
+    const showWork = student.route === 'Work our' || student.route === 'Work own' || student.route === 'Work + Edu';
+    const showEdu = student.route === 'Edu our' || student.route === 'Edu Own' || student.route === 'Work + Edu';
+
+    return (
+      <div>
+        <strong style={{ color: 'var(--accent-color)' }}>{student.route}</strong>
+        {showWork && (
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            {student.routeCompany && <span>🏢 {student.routeCompany} </span>}
+            {student.routeJobRole && <span>💼 {student.routeJobRole}</span>}
+          </div>
+        )}
+        {showEdu && (
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            {student.routeQualification && <span>🎓 {student.routeQualification} </span>}
+            {student.routeCredits && <span>(Credits: {student.routeCredits})</span>}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const createRouteHistoryEntry = (s) => ({
+    route: s.route, routeNotes: s.routeNotes, routeCompany: s.routeCompany,
+    routeJobRole: s.routeJobRole, routeQualification: s.routeQualification,
+    routeCredits: s.routeCredits, routeProvider: s.routeProvider,
+    routeWorkType: s.routeWorkType, routeEduType: s.routeEduType,
+    timestamp: new Date().toLocaleString(),
+    user: currentUser || 'Unknown'
+  });
+
+  const createGenericHistoryEntry = (value, note, fieldType) => ({
+    [fieldType === 'recruiter' || fieldType === 'chaser' ? 'assignee' : 'status']: value,
+    note: note,
+    timestamp: new Date().toLocaleString(),
+    user: currentUser || 'Unknown'
+  });
+
+  const handleNotesModalSave = async () => {
+    let student = { ...notesModal.student };
+    const historyField = `${notesModal.fieldType}History`;
+    
+    // Determine the new value: for intStatus it comes from notesModal.newValue
+    const newValue = notesModal.newValue !== undefined ? notesModal.newValue : student[notesModal.fieldType];
+    const previousValue = student[notesModal.fieldType];
+    
+    // Update the field value if it changed (or for intStatus, always apply newValue)
+    student[notesModal.fieldType] = newValue;
+    
+    // Create history entry
+    const historyEntry = createGenericHistoryEntry(newValue, notesModal.note, notesModal.fieldType);
+    student[historyField] = [...(student[historyField] || []), historyEntry];
+    
+    setStudents(students.map(s => s._id === student._id ? student : s));
+    setNotesModal({ show: false, student: null, fieldType: null, note: '', newValue: undefined });
+    
+    try {
+      await fetch(`${API_BASE}/api/students/${student._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          [notesModal.fieldType]: student[notesModal.fieldType],
+          [historyField]: student[historyField] 
+        })
+      });
+      logActivity('Notes Add/Update', `Updated ${notesModal.fieldType} and added a note for ${student.name}`);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const renderRouteFields = (studentState, setStudentState) => (
+    <>
+      <div className="input-group">
+        <label>Route</label>
+        <select value={studentState.route || ''} onChange={(e) => setStudentState({ ...studentState, route: e.target.value })}>
+          <option value="">Select Route</option>
+          <option value="Work our">Work our</option>
+          <option value="Work own">Work own</option>
+          <option value="Edu our">Edu our</option>
+          <option value="Edu Own">Edu Own</option>
+          <option value="Work + Edu">Work + Edu</option>
+        </select>
+      </div>
+      
+      {(studentState.route === 'Work our' || studentState.route === 'Work own' || studentState.route === 'Work + Edu') && (
+        <>
+          {studentState.route === 'Work + Edu' && (
+            <div className="input-group">
+              <label>Work Type</label>
+              <select value={studentState.routeWorkType || ''} onChange={(e) => setStudentState({ ...studentState, routeWorkType: e.target.value })}>
+                <option value="">Select Work Type</option>
+                <option value="Work our">Work our</option>
+                <option value="Work own">Work own</option>
+              </select>
+            </div>
+          )}
+          {((studentState.route === 'Work + Edu' && studentState.routeWorkType === 'Work our') || studentState.route === 'Work our') && (
+            <div className="input-group">
+              <label>Company</label>
+              <select value={studentState.routeCompany || ''} onChange={(e) => setStudentState({ ...studentState, routeCompany: e.target.value })}>
+                <option value="">Select Company</option>
+                <option value="Green Grocery">Green Grocery</option>
+                <option value="Big Discount">Big Discount</option>
+              </select>
+            </div>
+          )}
+          {((studentState.route === 'Work + Edu' && studentState.routeWorkType === 'Work own') || studentState.route === 'Work own') && (
+            <div className="input-group">
+              <label>Company Name</label>
+              <input type="text" value={studentState.routeCompany || ''} onChange={(e) => setStudentState({ ...studentState, routeCompany: e.target.value })} />
+            </div>
+          )}
+          <div className="input-group">
+            <label>Job Role</label>
+            <input type="text" value={studentState.routeJobRole || ''} onChange={(e) => setStudentState({ ...studentState, routeJobRole: e.target.value })} />
+          </div>
+        </>
+      )}
+
+      {(studentState.route === 'Edu our' || studentState.route === 'Edu Own' || studentState.route === 'Work + Edu') && (
+        <>
+          {studentState.route === 'Work + Edu' && (
+            <div className="input-group">
+              <label>Edu Type</label>
+              <select value={studentState.routeEduType || ''} onChange={(e) => setStudentState({ ...studentState, routeEduType: e.target.value })}>
+                <option value="">Select Edu Type</option>
+                <option value="Edu our">Edu our</option>
+                <option value="Edu Own">Edu Own</option>
+              </select>
+            </div>
+          )}
+          <div className="input-group">
+            <label>Qualification</label>
+            <input type="text" value={studentState.routeQualification || ''} onChange={(e) => setStudentState({ ...studentState, routeQualification: e.target.value })} />
+          </div>
+          <div className="input-group">
+            <label>Credits</label>
+            <input type="text" value={studentState.routeCredits || ''} onChange={(e) => setStudentState({ ...studentState, routeCredits: e.target.value })} />
+          </div>
+          <div className="input-group">
+            <label>Provider Name</label>
+            <input type="text" value={studentState.routeProvider || ''} onChange={(e) => setStudentState({ ...studentState, routeProvider: e.target.value })} />
+          </div>
+        </>
+      )}
+
+      <div className="input-group" style={{ gridColumn: '1 / -1' }}>
+        <label>Notes (Start year, extra details)</label>
+        <textarea rows="3" value={studentState.routeNotes || ''} onChange={(e) => setStudentState({ ...studentState, routeNotes: e.target.value })} style={{ width: '100%', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', padding: '0.5rem' }} />
+      </div>
+    </>
+  );
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -137,6 +300,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         studentData.mobile = String(normalizedRow['mobile'] || normalizedRow['phone'] || normalizedRow['contact'] || '');
         studentData.session = normalizedRow['session'] || normalizedRow['intake'] || '';
         studentData.courseAndCampus1 = normalizedRow['course & campus 1'] || normalizedRow['course and campus 1'] || normalizedRow['course'] || '';
+        studentData.courseAndCampus2 = normalizedRow['course & campus 2'] || normalizedRow['course and campus 2'] || normalizedRow['course 2'] || '';
         studentData.appStatus = normalizedRow['app status'] || normalizedRow['application status'] || 'Awaiting submission';
         studentData.intStatus = normalizedRow['int status'] || normalizedRow['interview status'] || 'Interested and Responding';
         studentData.recruiter = normalizedRow['recruiter'] || '';
@@ -144,7 +308,9 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         studentData.agent = normalizedRow['agent'] || '';
         studentData.residential = normalizedRow['residential'] || normalizedRow['residential status'] || '';
         studentData.location = normalizedRow['location'] || '';
-        studentData.refCompany = normalizedRow['ref company'] || normalizedRow['company'] || normalizedRow['ref. company'] || '';
+        studentData.route = normalizedRow['route'] || '';
+        studentData.routeNotes = normalizedRow['route notes'] || normalizedRow['notes'] || '';
+        studentData.routeCompany = normalizedRow['route company'] || normalizedRow['company'] || '';
         studentData.source = 'manual entry';
 
         if (!studentData.name) {
@@ -187,6 +353,29 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
     }
   };
 
+  const handleDeleteHistory = async (entryToDelete, historyType = 'routeHistory') => {
+    if (!window.confirm(`Are you sure you want to delete this ${historyType.replace('History', '')} record?`)) return;
+    
+    const updatedHistory = (newStudent[historyType] || []).filter(entry => entry !== entryToDelete);
+    const updatedStudent = { ...newStudent, [historyType]: updatedHistory };
+    
+    setNewStudent(updatedStudent);
+    
+    if (updatedStudent._id) {
+      try {
+        await fetch(`${API_BASE}/api/students/${updatedStudent._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedStudent)
+        });
+        setStudents(students.map(s => s._id === updatedStudent._id ? updatedStudent : s));
+        logActivity('History Delete', `Deleted a ${historyType} record for ${updatedStudent.name}`);
+      } catch (err) {
+        console.error("Failed to delete history:", err);
+      }
+    }
+  };
+
   const handleAddSubmit = async (e) => {
     e.preventDefault();
 
@@ -207,26 +396,46 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
     }
 
     try {
-      if (newStudent._id) {
+      let studentToSave = { ...newStudent };
+
+      if (studentToSave._id) {
         // Edit existing student
-        const res = await fetch(`${API_BASE}/api/students/${newStudent._id}`, {
+        const oldStudent = students.find(s => s._id === studentToSave._id);
+        if (oldStudent && (
+          oldStudent.route !== studentToSave.route || 
+          oldStudent.routeNotes !== studentToSave.routeNotes || 
+          oldStudent.routeCompany !== studentToSave.routeCompany ||
+          oldStudent.routeJobRole !== studentToSave.routeJobRole ||
+          oldStudent.routeQualification !== studentToSave.routeQualification ||
+          oldStudent.routeCredits !== studentToSave.routeCredits ||
+          oldStudent.routeProvider !== studentToSave.routeProvider ||
+          oldStudent.routeWorkType !== studentToSave.routeWorkType ||
+          oldStudent.routeEduType !== studentToSave.routeEduType
+        )) {
+          studentToSave.routeHistory = [...(studentToSave.routeHistory || []), createRouteHistoryEntry(studentToSave)];
+        }
+
+        const res = await fetch(`${API_BASE}/api/students/${studentToSave._id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newStudent)
+          body: JSON.stringify(studentToSave)
         });
         const data = await res.json();
         if (data.success) {
-          setStudents(students.map(s => s._id === newStudent._id ? data.student : s));
+          setStudents(students.map(s => s._id === studentToSave._id ? data.student : s));
           setShowAddModal(false);
           setNewStudent(initialStudentState);
-          logActivity('Student Edit', `Updated student details for ${newStudent.name}`);
+          logActivity('Student Edit', `Updated student details for ${studentToSave.name}`);
         }
       } else {
         // Add new student
+        if (studentToSave.route) {
+          studentToSave.routeHistory = [createRouteHistoryEntry(studentToSave)];
+        }
         const res = await fetch(`${API_BASE}/api/students`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newStudent)
+          body: JSON.stringify(studentToSave)
         });
         const data = await res.json();
         if (data.success) {
@@ -355,7 +564,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
     const targetStudent = students.find(s => s._id === studentId);
     if (!targetStudent || targetStudent[field] === newValue) return;
 
-    if (field === 'courseAndCampus1') {
+    if (field === 'courseAndCampus1' || field === 'courseAndCampus2') {
       const allValidCourses = Object.entries(collegeCourses).flatMap(([c, courses]) => courses.map(course => `${c} - ${course}`));
       if (newValue && !allValidCourses.includes(newValue)) {
         alert("Please select a valid Course & Campus from the dropdown.");
@@ -421,33 +630,18 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
   };
 
   const renderAppStatusCell = (student) => {
-    const isEditing = editingCell.id === student._id && editingCell.field === 'appStatus';
     const status = student.appStatus || 'Awaiting submission';
     
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minHeight: '1.5rem' }}>
-        {isEditing ? (
-          <select 
-            autoFocus 
-            defaultValue={status} 
-            onChange={(e) => handleCellEdit(student._id, 'appStatus', e.target.value)}
-            onBlur={() => setEditingCell({ id: null, field: null })}
-            style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
-          >
-            <option value="Awaiting submission">Awaiting submission</option>
-            <option value="Submission ongoing">Submission ongoing</option>
-            <option value="Submitted">Submitted</option>
-          </select>
-        ) : (
-          <span 
-            className="app-status-text"
-            onClick={() => setEditingCell({ id: student._id, field: 'appStatus' })} 
-            style={{ cursor: 'pointer', color: status === 'Submitted' ? '#34d399' : status === 'Submission ongoing' ? '#60a5fa' : '#fbbf24', fontWeight: 'bold' }}
-          >
-            {status}
-          </span>
-        )}
-        {status === 'Awaiting submission' && !isEditing && (
+        <span 
+          className="app-status-text"
+          onClick={() => setNotesModal({ show: true, student, fieldType: 'appStatus', note: '', newValue: status })} 
+          style={{ cursor: 'pointer', color: status === 'Submitted' ? '#34d399' : status === 'Submission ongoing' ? '#60a5fa' : '#fbbf24', fontWeight: 'bold' }}
+        >
+          {status}
+        </span>
+        {status === 'Awaiting submission' && (
           <button 
             title="Assign Chasers" 
             onClick={() => setChaserModal({ show: true, student, readOnly: false })} 
@@ -456,7 +650,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
             🧑‍💼
           </button>
         )}
-        {status === 'Submission ongoing' && !isEditing && (
+        {status === 'Submission ongoing' && (
           <button 
             title="View Chasers" 
             onClick={() => setChaserModal({ show: true, student, readOnly: true })} 
@@ -465,7 +659,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
             👁️
           </button>
         )}
-        {status === 'Submitted' && !isEditing && (
+        {status === 'Submitted' && (
           <button 
             title="View Chasers" 
             onClick={() => setChaserModal({ show: true, student, readOnly: true })} 
@@ -494,7 +688,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
           </select>
         );
       }
-      if (field === 'courseAndCampus1') {
+      if (field === 'courseAndCampus1' || field === 'courseAndCampus2') {
         const allOptions = Object.entries(collegeCourses).flatMap(([c, courses]) => courses.map(course => `${c} - ${course}`));
 
         return (
@@ -502,13 +696,13 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
             <input 
               autoFocus
               defaultValue={student[field]}
-              list={`course-options-${student._id}`}
+              list={`course-options-${student._id}-${field}`}
               onBlur={(e) => handleCellEdit(student._id, field, e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
               placeholder="Search..."
               style={{ width: '100%', padding: '0.4rem', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
             />
-            <datalist id={`course-options-${student._id}`}>
+            <datalist id={`course-options-${student._id}-${field}`}>
                {allOptions.map(opt => <option key={opt} value={opt} />)}
             </datalist>
           </div>
@@ -525,6 +719,30 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         />
       );
     }
+    
+    if (field === 'recruiter' || field === 'chaser') {
+      const isAssigned = student[field] && student[field] !== 'Click to assign';
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minHeight: '1.5rem' }}>
+          <span 
+            onClick={() => setEditingCell({ id: student._id, field })} 
+            style={{ cursor: 'pointer', flex: 1, color: field==='chaser' && (!student[field] || student[field]==='Click to assign') ? '#9ca3af' : 'inherit' }}
+          >
+            {student[field] || placeholder}
+          </span>
+          {isAssigned && (
+            <button 
+              title="Notes History" 
+              onClick={(e) => { e.stopPropagation(); setNotesModal({ show: true, student, fieldType: field, note: '' }); }} 
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0' }}
+            >
+              📝
+            </button>
+          )}
+        </div>
+      );
+    }
+
     return <span onClick={() => setEditingCell({ id: student._id, field })} style={{ cursor: 'text', display: 'block', minHeight: '1.5rem' }}>{student[field] || placeholder}</span>;
   };
 
@@ -697,6 +915,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
               <th>EMAIL</th>
               <th>MOBILE</th>
               <th>COURSE & CAMPUS 1</th>
+              <th>COURSE & CAMPUS 2</th>
               <th>APP STATUS</th>
               <th>INT STATUS</th>
               <th>CHASER</th>
@@ -705,7 +924,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
               <th>LOCATION</th>
               <th>APPL ID</th>
               <th>CL TIME</th>
-              <th>REF. COMPANY</th>
+              <th>ROUTE</th>
               <th>DOCS</th>
               <th>ACTIONS</th>
             </tr>
@@ -733,36 +952,25 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                 <td>{renderCell(student, 'email')}</td>
                 <td>{renderCell(student, 'mobile')}</td>
                 <td>{renderCell(student, 'courseAndCampus1')}</td>
+                <td>{renderCell(student, 'courseAndCampus2')}</td>
                 <td>{renderAppStatusCell(student)}</td>
                 <td>
-                  {editingCell.id === student._id && editingCell.field === 'intStatus' ? (
-                    <select 
-                      autoFocus 
-                      defaultValue={student.intStatus} 
-                      onBlur={(e) => handleCellEdit(student._id, 'intStatus', e.target.value)}
-                      style={{ background: 'var(--bg-color)', color: 'var(--text-primary)' }}
-                    >
-                      <option value="Interested and Responding">Interested and Responding</option>
-                      <option value="Interested - Awaiting Docs">Interested - Awaiting Docs</option>
-                      <option value="Interested - Further Info Required">Interested - Further Info Required</option>
-                      <option value="Fully Enrolled">Fully Enrolled</option>
-                      <option value="Not eligible - Check Later">Not eligible - Check Later</option>
-                      <option value="Awaiting SFE">Awaiting SFE</option>
-                      <option value="Awaiting Prep">Awaiting Prep</option>
-                    </select>
-                  ) : (
-                    <span className="int-badge" onClick={() => setEditingCell({ id: student._id, field: 'intStatus' })} style={{ cursor: 'pointer' }}>
-                      {student.intStatus || 'Interested'}
-                    </span>
-                  )}
+                  <span className="int-badge" onClick={() => setNotesModal({ show: true, student, fieldType: 'intStatus', note: '', newValue: student.intStatus || 'Interested and Responding' })} style={{ cursor: 'pointer' }}>
+                    {student.intStatus || 'Interested'}
+                  </span>
                 </td>
-                <td style={{ color: '#9ca3af' }}>{renderCell(student, 'chaser', 'Click to assign')}</td>
+                <td>{renderCell(student, 'chaser', 'Click to assign')}</td>
                 <td>{renderCell(student, 'agent')}</td>
                 <td>{renderCell(student, 'residential')}</td>
                 <td>{renderCell(student, 'location')}</td>
                 <td style={{ color: '#818cf8' }}>{student.appId || '—'}</td>
                 <td>{student.clTime || '—'}</td>
-                <td>{student.refCompany || '—'}</td>
+                <td 
+                  onClick={() => setRouteModal({ show: true, student })} 
+                  style={{ cursor: 'pointer', background: 'var(--bg-surface-hover)', minWidth: '150px' }}
+                >
+                  {renderRouteCell(student)}
+                </td>
                 <td>
                   <span className="docs-badge">📄 {student.docs || '0'}</span>
                 </td>
@@ -818,14 +1026,14 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
               <button onClick={() => setShowAddModal(false)}>✗</button>
             </div>
             <div className="dms-modal-tabs">
-              {['Details', 'Address', 'Others', 'Documents'].map(tab => (
+              {['Details', 'Address', 'Others', 'Documents', 'Route History'].map(tab => (
                 <button 
                   key={tab} 
                   type="button" 
                   className={`dms-tab-btn ${activeModalTab === tab ? 'active' : ''}`}
                   onClick={() => setActiveModalTab(tab)}
                 >
-                  {tab === 'Details' ? '👤 Details' : tab === 'Address' ? '📍 Address' : tab === 'Others' ? '⚙️ Others' : '📄 Documents'}
+                  {tab === 'Details' ? '👤 Details' : tab === 'Address' ? '📍 Address' : tab === 'Others' ? '⚙️ Others' : tab === 'Documents' ? '📄 Documents' : '📜 Route History'}
                 </button>
               ))}
             </div>
@@ -884,13 +1092,6 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                     <select value={newStudent.agent} onChange={e => setNewStudent({...newStudent, agent: e.target.value})}>
                       <option value="">Select</option>
                       <option value="Direct">Direct</option>
-                    </select>
-                  </div>
-                  <div className="input-group">
-                    <label>Company</label>
-                    <select value={newStudent.refCompany} onChange={e => setNewStudent({...newStudent, refCompany: e.target.value})}>
-                      <option value="">Select</option>
-                      <option value="Company A">Company A</option>
                     </select>
                   </div>
                 </div>
@@ -986,6 +1187,9 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                     <label>Request Status</label>
                     <input type="text" defaultValue="Working" />
                   </div>
+                  
+                  {renderRouteFields(newStudent, setNewStudent)}
+
                   <div className="input-group" style={{ gridColumn: 'span 2' }}>
                     <label>Message</label>
                     <textarea rows="2" style={{ width: '100%', background: 'transparent', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-primary)', padding: '0.5rem' }}></textarea>
@@ -1009,6 +1213,44 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
               )}
               </fieldset>
 
+              {activeModalTab === 'Route History' && (
+                <div style={{ padding: '1rem', background: 'var(--bg-surface-hover)', borderRadius: '8px' }}>
+                  {(!newStudent.routeHistory || newStudent.routeHistory.length === 0) ? (
+                    <p style={{ color: 'var(--text-secondary)' }}>No route history found for this student.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {newStudent.routeHistory.slice().reverse().map((entry, idx) => (
+                        <div key={idx} style={{ background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            <span><strong>{entry.user}</strong> updated route</span>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                              <span>{entry.timestamp}</span>
+                              <button 
+                                type="button"
+                                onClick={() => handleDeleteHistory(entry)}
+                                style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, fontSize: '1rem' }}
+                                title="Delete this record"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '0.3rem', color: 'var(--text-primary)' }}>
+                            <div><strong>Route:</strong> {entry.route}</div>
+                            {entry.routeCompany && <div><strong>Company:</strong> {entry.routeCompany}</div>}
+                            {entry.routeJobRole && <div><strong>Job Role:</strong> {entry.routeJobRole}</div>}
+                            {entry.routeQualification && <div><strong>Qualification:</strong> {entry.routeQualification}</div>}
+                            {entry.routeCredits && <div><strong>Credits:</strong> {entry.routeCredits}</div>}
+                            {entry.routeProvider && <div><strong>Provider:</strong> {entry.routeProvider}</div>}
+                            {entry.routeNotes && <div><strong>Notes:</strong> {entry.routeNotes}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {isViewMode ? (
                 <div className="dms-modal-footer">
                   <button type="button" className="dms-btn-cancel" onClick={() => setShowAddModal(false)}>Close</button>
@@ -1020,6 +1262,167 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                 </div>
               )}
             </form>
+          </div>
+        </div>
+      )}
+
+      {notesModal.show && (
+        <div className="dms-modal-overlay">
+          <div className="dms-modal" style={{ maxWidth: '600px', width: '100%', background: 'var(--bg-surface)' }}>
+            <div className="dms-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-primary)' }}>
+                <span style={{ color: 'var(--accent-color)' }}>✓</span> 
+                {notesModal.fieldType === 'intStatus' ? 'Interview Status & Notes' : notesModal.fieldType === 'appStatus' ? 'Application Status Notes' : notesModal.fieldType === 'recruiter' ? 'Recruiter Notes' : 'Chaser Notes'}
+              </h3>
+              <button onClick={() => setNotesModal({ show: false, student: null, fieldType: null, note: '', newValue: undefined })} style={{ border: 'none', background: 'transparent', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>✕</button>
+            </div>
+            <div className="dms-modal-body" style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+              
+              <div style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 'bold' }}>STUDENT</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{notesModal.student.name}</div>
+                  <div style={{ color: 'var(--accent-color)', fontSize: '0.85rem' }}>{notesModal.student.email || 'null'}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 'bold' }}>CURRENT {notesModal.fieldType === 'recruiter' || notesModal.fieldType === 'chaser' ? 'ASSIGNEE' : 'STATUS'}</div>
+                  <div style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem', border: '1px solid var(--border-color)' }}>
+                     <span style={{ height: '10px', width: '10px', background: 'var(--text-secondary)', borderRadius: '50%', display: 'inline-block' }}></span>
+                     {notesModal.student[notesModal.fieldType] || 'None'}
+                  </div>
+                </div>
+              </div>
+
+              {notesModal.fieldType === 'intStatus' ? (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Update Interview Status</label>
+                  <select 
+                    value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student.intStatus || 'Interested and Responding')}
+                    onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
+                  >
+                     <option value="Interested and Responding">Interested and Responding</option>
+                     <option value="Interested - Awaiting Docs">Interested - Awaiting Docs</option>
+                     <option value="Interested - Further Info Required">Interested - Further Info Required</option>
+                     <option value="Fully Enrolled">Fully Enrolled</option>
+                     <option value="Not eligible - Check Later">Not eligible - Check Later</option>
+                     <option value="Awaiting SFE">Awaiting SFE</option>
+                     <option value="Awaiting Prep">Awaiting Prep</option>
+                  </select>
+                </div>
+              ) : notesModal.fieldType === 'appStatus' ? (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Update Application Status</label>
+                  <select 
+                    value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student.appStatus || 'Awaiting submission')}
+                    onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
+                  >
+                     <option value="Awaiting submission">Awaiting submission</option>
+                     <option value="Submission ongoing">Submission ongoing</option>
+                     <option value="Submitted">Submitted</option>
+                  </select>
+                </div>
+              ) : (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Update Assignee</label>
+                  <select 
+                    value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student[notesModal.fieldType] || '')}
+                    onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
+                  >
+                     <option value="">Select Assignee</option>
+                     {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                  <span>💭</span> Add Note (Optional)
+                </label>
+                <textarea 
+                  rows="3"
+                  value={notesModal.note}
+                  onChange={e => setNotesModal({...notesModal, note: e.target.value})}
+                  placeholder={notesModal.fieldType === 'intStatus' ? "Add a note about this status change..." : "Type an important note here..."}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                <button 
+                  onClick={handleNotesModalSave}
+                  style={{ flex: 1, background: 'var(--accent-color)', color: '#fff', border: 'none', padding: '0.75rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  💾 Save Changes
+                </button>
+                <button 
+                  onClick={() => setNotesModal({ show: false, student: null, fieldType: null, note: '', newValue: undefined })}
+                  style={{ background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.75rem 1.5rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '1.5rem 0' }} />
+              
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', margin: '0 0 1rem 0' }}>
+                <span>⏱️</span> Notes History <span style={{ background: 'var(--bg-surface-hover)', color: 'var(--text-secondary)', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', border: '1px solid var(--border-color)' }}>{notesModal.student[`${notesModal.fieldType}History`]?.length || 0}</span>
+              </h4>
+
+              {(!notesModal.student[`${notesModal.fieldType}History`] || notesModal.student[`${notesModal.fieldType}History`].length === 0) ? (
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
+                  <div>No notes yet</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {notesModal.student[`${notesModal.fieldType}History`].slice().reverse().map((entry, idx) => (
+                    <div key={idx} style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--accent-color)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                            {entry.user ? entry.user.substring(0, 2).toUpperCase() : 'U'}
+                          </div>
+                          <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: '500' }}>{entry.user}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{entry.timestamp}</span>
+                          <button 
+                            type="button"
+                            onClick={async () => {
+                              if (!window.confirm("Are you sure you want to delete this note?")) return;
+                              const hField = `${notesModal.fieldType}History`;
+                              const newHistory = notesModal.student[hField].filter(e => e !== entry);
+                              const updatedStudent = { ...notesModal.student, [hField]: newHistory };
+                              
+                              setNotesModal({ ...notesModal, student: updatedStudent });
+                              setStudents(students.map(s => s._id === updatedStudent._id ? updatedStudent : s));
+                              
+                              try {
+                                await fetch(`${API_BASE}/api/students/${updatedStudent._id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ [hField]: newHistory })
+                                });
+                              } catch (e) { console.error(e); }
+                            }}
+                            style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, fontSize: '1rem' }}
+                            title="Delete this record"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                        {entry.note || `Value updated to: ${entry.status || entry.assignee}`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1039,7 +1442,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                   {[
                     { role: 'CV Chaser', name: chaserModal.student.chasers?.cv, icon: '📄', color: '#3b82f6' },
                     { role: 'PS Chaser', name: chaserModal.student.chasers?.ps, icon: '📝', color: '#8b5cf6' },
-                    { role: 'Submission Chaser', name: chaserModal.student.chasers?.sub, icon: '📤', color: '#f59e0b' },
+                    { role: 'Submission & QC', name: chaserModal.student.chasers?.sub, icon: '📤', color: '#f59e0b' },
                     { role: 'QA Chaser', name: chaserModal.student.chasers?.qa, icon: '✅', color: '#10b981' }
                   ].map((item, idx) => (
                     <div key={idx} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${item.color}40`, borderRadius: '8px', padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -1076,7 +1479,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                   </select>
                 </div>
                 <div className="input-group">
-                  <label>Submission Chaser</label>
+                  <label>Submission & QC</label>
                   <select value={chaserModal.student.chasers?.sub || ''} onChange={(e) => handleChaserChange('sub', e.target.value)}>
                     <option value="">Select Person</option>
                     {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
@@ -1096,6 +1499,48 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {routeModal.show && (
+        <div className="dms-modal-overlay">
+          <div className="dms-modal" style={{ maxWidth: '400px' }}>
+            <div className="dms-modal-header">
+              <h3>Edit Route</h3>
+              <button onClick={() => setRouteModal({ show: false, student: null })}>✗</button>
+            </div>
+            <div className="dms-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              
+              {renderRouteFields(routeModal.student, (newState) => setRouteModal({ ...routeModal, student: newState }))}
+
+              <div className="dms-modal-footer" style={{ marginTop: '1rem' }}>
+                <button 
+                  type="button" 
+                  className="dms-btn-save" 
+                  onClick={async () => {
+                    let student = routeModal.student;
+                    student.routeHistory = [...(student.routeHistory || []), createRouteHistoryEntry(student)];
+                    
+                    setStudents(students.map(s => s._id === student._id ? student : s));
+                    setRouteModal({ show: false, student: null });
+                    try {
+                      await fetch(`${API_BASE}/api/students/${student._id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(student)
+                      });
+                      logActivity('Student Edit', `Updated route to ${student.route} for ${student.name}`);
+                    } catch (err) {
+                      console.error(err);
+                    }
+                  }} 
+                  style={{ width: '100%' }}
+                >
+                  Save Route
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

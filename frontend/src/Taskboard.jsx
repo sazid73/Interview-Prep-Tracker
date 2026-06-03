@@ -7,6 +7,7 @@ const Taskboard = ({ currentUser }) => {
   const [historyTasks, setHistoryTasks] = useState([]);
   const [normalChaserTasks, setNormalChaserTasks] = useState([]);
   const [adminOfficerTasks, setAdminOfficerTasks] = useState([]);
+  const [recruiterTasks, setRecruiterTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,19 +31,24 @@ const Taskboard = ({ currentUser }) => {
       
       const myNormalChaser = [];
       const myAdminOfficer = [];
+      const myRecruiter = [];
 
       stdData.forEach(s => {
+        if (s.recruiter === currentUser) {
+           myRecruiter.push({ ...s, taskType: 'Recruitment Lead' });
+        }
         if (s.chaser === currentUser) {
            myNormalChaser.push({ ...s, taskType: 'Call & Book Prep' });
         }
         if (s.chasers?.cv === currentUser) myAdminOfficer.push({ ...s, taskType: 'CV Review' });
         if (s.chasers?.ps === currentUser) myAdminOfficer.push({ ...s, taskType: 'PS Review' });
         if (s.chasers?.qa === currentUser) myAdminOfficer.push({ ...s, taskType: 'QA Check' });
-        if (s.chasers?.sub === currentUser) myAdminOfficer.push({ ...s, taskType: 'Submission' });
+        if (s.chasers?.sub === currentUser) myAdminOfficer.push({ ...s, taskType: 'Submission & QC' });
       });
       
       setNormalChaserTasks(myNormalChaser);
       setAdminOfficerTasks(myAdminOfficer);
+      setRecruiterTasks(myRecruiter);
 
     } catch (err) {
       console.error(err);
@@ -178,6 +184,29 @@ const Taskboard = ({ currentUser }) => {
                 </div>
               ))}
               {adminOfficerTasks.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>No admin officer tasks assigned.</p>}
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+            <h3 style={{ borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', marginBottom: '1.5rem' }}>
+              Recruiter Tasks ({recruiterTasks.length})
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {recruiterTasks.map((t, idx) => (
+                <div key={`r-${t._id}-${idx}`} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #3b82f6' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <strong>{t.name} ({t.studentId})</strong>
+                    <span style={{ background: '#3b82f6', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                      {t.taskType}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                    <p style={{ margin: '0.2rem 0' }}>💬 Int Status: {t.intStatus || 'Interested'}</p>
+                    <p style={{ margin: '0.5rem 0 0 0', fontStyle: 'italic', color: '#10b981' }}>App Status: {t.appStatus}</p>
+                  </div>
+                </div>
+              ))}
+              {recruiterTasks.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>No recruitment tasks assigned.</p>}
             </div>
           </div>
 

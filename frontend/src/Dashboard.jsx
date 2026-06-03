@@ -7,6 +7,7 @@ const Dashboard = ({ currentUserRole }) => {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showRecruiterModal, setShowRecruiterModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showTaskDistributionModal, setShowTaskDistributionModal] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [analyticsMonth, setAnalyticsMonth] = useState('All');
   const [recruiterMonth, setRecruiterMonth] = useState('All');
@@ -238,6 +239,16 @@ const Dashboard = ({ currentUserRole }) => {
               👥 Manage Access
             </button>
           )}
+          <button 
+            onClick={() => setShowTaskDistributionModal(true)} 
+            style={{ 
+              background: '#10b981', color: '#fff', border: 'none', padding: '0.8rem 1.5rem', 
+              borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            }}
+          >
+            🎯 Live Task Distribution
+          </button>
           <button 
             onClick={() => setShowRecruiterModal(true)} 
             style={{ 
@@ -619,6 +630,82 @@ const Dashboard = ({ currentUserRole }) => {
           </div>
         </div>
       )}
+
+      {showTaskDistributionModal && (() => {
+        const distribution = {
+          recruitment: {},
+          chaser: {},
+          adminCV: {},
+          adminPS: {},
+          adminQA: {},
+          adminSub: {}
+        };
+
+        const add = (dept, user, task) => {
+          if (!user || user === 'Click to assign') return;
+          if (!distribution[dept][user]) distribution[dept][user] = [];
+          distribution[dept][user].push(task);
+        };
+
+        students.forEach(s => {
+          const taskObj = { id: s.studentId, name: s.name, status: s.appStatus };
+          add('recruitment', s.recruiter, taskObj);
+          add('chaser', s.chaser, taskObj);
+          if (s.chasers) {
+            add('adminCV', s.chasers.cv, taskObj);
+            add('adminPS', s.chasers.ps, taskObj);
+            add('adminQA', s.chasers.qa, taskObj);
+            add('adminSub', s.chasers.sub, taskObj);
+          }
+        });
+
+        const renderDeptBlock = (title, color, dataMap) => (
+          <div style={{ background: 'var(--bg-surface-hover)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${color}40`, marginBottom: '1.5rem' }}>
+            <h4 style={{ color, marginTop: 0, marginBottom: '1rem', borderBottom: `2px solid ${color}40`, paddingBottom: '0.5rem', fontSize: '1.1rem' }}>{title}</h4>
+            {Object.keys(dataMap).length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>No active assignments.</p> : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
+                {Object.entries(dataMap).map(([user, tasks]) => (
+                  <div key={user} style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${color}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>{user}</strong>
+                      <span style={{ background: color, color: '#fff', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>{tasks.length}</span>
+                    </div>
+                    <div style={{ maxHeight: '100px', overflowY: 'auto', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      {tasks.map((t, idx) => <div key={idx} style={{ marginBottom: '0.2rem' }}>• {t.name} ({t.id})</div>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+        return (
+          <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1200px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+              <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🎯 Live Task Distribution (Department-wise)
+                </h3>
+                <button onClick={() => setShowTaskDistributionModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+              </div>
+              
+              <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+                {renderDeptBlock('Admin Tasks (CV Review)', '#3b82f6', distribution.adminCV)}
+                {renderDeptBlock('Admin Tasks (PS Review)', '#8b5cf6', distribution.adminPS)}
+                {renderDeptBlock('Admin Tasks (Submission & QC)', '#f59e0b', distribution.adminSub)}
+                {renderDeptBlock('Admin Tasks (QA Check)', '#10b981', distribution.adminQA)}
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                  {renderDeptBlock('Recruitment Department', '#ec4899', distribution.recruitment)}
+                  {renderDeptBlock('Normal Chaser Calls', '#ef4444', distribution.chaser)}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 };
