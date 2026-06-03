@@ -95,6 +95,28 @@ const studentLeadSchema = new mongoose.Schema({
   courseAndCampus1: { type: String },
   courseAndCampus2: { type: String },
   refCompany: { type: String },
+  route: { type: String },
+  routeNotes: { type: String },
+  routeCompany: { type: String },
+  routeJobRole: { type: String },
+  routeQualification: { type: String },
+  routeCredits: { type: String },
+  routeProvider: { type: String },
+  routeWorkType: { type: String },
+  routeEduType: { type: String },
+  routeHistory: [{
+    route: String,
+    routeNotes: String,
+    routeCompany: String,
+    routeJobRole: String,
+    routeQualification: String,
+    routeCredits: String,
+    routeProvider: String,
+    routeWorkType: String,
+    routeEduType: String,
+    timestamp: String,
+    user: String
+  }],
   intStatus: { type: String },
   recruiter: { type: String },
   chaser: { type: String },
@@ -107,6 +129,30 @@ const studentLeadSchema = new mongoose.Schema({
   docs: { type: String },
   statusType: { type: String, default: 'white' },
   appStatus: { type: String, default: 'Awaiting submission' },
+  intStatusHistory: [{
+    status: String,
+    note: String,
+    timestamp: String,
+    user: String
+  }],
+  appStatusHistory: [{
+    status: String,
+    note: String,
+    timestamp: String,
+    user: String
+  }],
+  recruiterHistory: [{
+    assignee: String,
+    note: String,
+    timestamp: String,
+    user: String
+  }],
+  chaserHistory: [{
+    assignee: String,
+    note: String,
+    timestamp: String,
+    user: String
+  }],
   chasers: {
     cv: { type: String, default: '' },
     ps: { type: String, default: '' },
