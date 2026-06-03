@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './StudentsDMS.css';
 import './StudentsDMS_colors.css';
 
@@ -18,6 +18,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ appStatus: '', recruiter: '', session: '', intStatus: '', agent: '', chaser: '', source: '', course: '', residential: '', location: '' });
   const [activeCollegeTab, setActiveCollegeTab] = useState('All Students');
+  const fileInputRef = useRef(null);
   
   const defaultCollegeCourses = {
     "Arden": ["BA (Hons) Business Management", "BA (Hons) Business Management with Foundation Year", "BA (Hons) Business Management (Top-Up)", "BSc (Hons) Accounting and Finance", "BSc (Hons) Accounting and Finance with Foundation Year", "BSc (Hons) Computing", "BSc (Hons) Computing with Foundation Year", "BSc (Hons) Computing (Top-Up)", "BSc (Hons) Health and Care Management", "BSc (Hons) Health and Care Management with Foundation Year", "BSc (Hons) Health and Care Management (Top-Up)", "BSc (Hons) Project Management", "BSc (Hons) Project Management with Foundation Year", "BSc (Hons) Digital Marketing", "BSc (Hons) Digital Marketing with Foundation Year", "BSc (Hons) International Hospitality and Tourism Management", "BSc (Hons) International Hospitality and Tourism Management with Foundation Year", "BSc (Hons) Psychology", "BSc (Hons) Psychology with Foundation Year", "BSc (Hons) Psychology with Counselling", "BSc (Hons) Psychology with Counselling with Foundation Year", "BA (Hons) Criminology and Psychology", "BA (Hons) Criminology and Psychology with Foundation Year", "BSc (Hons) Criminology", "LLB (Hons) Law", "LLB (Hons) Law with Foundation Year", "FdA Business and Innovation", "FdSc Computing and Digital Futures", "FdSc Health and Care Management", "Master of Public Health (MPH)", "MSc International Business Management", "MSc Project Management", "MSc Data Science", "MSc Cyber Security", "MBA"],
@@ -98,6 +99,92 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: currentUser || 'Unknown', action, details })
     }).catch(e => console.error(e));
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const { read, utils } = await import('xlsx');
+      const data = await file.arrayBuffer();
+      const workbook = read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const json = utils.sheet_to_json(worksheet);
+
+      if (json.length === 0) {
+        alert("The uploaded file is empty.");
+        return;
+      }
+
+      const rowsToProcess = json.slice(0, 20); // Limit to 20 students
+      let successCount = 0;
+      let errorCount = 0;
+      
+      const newStudentsList = [];
+
+      for (const row of rowsToProcess) {
+        const normalizedRow = {};
+        for (const key in row) {
+          normalizedRow[key.toLowerCase().trim()] = row[key];
+        }
+
+        const studentData = { ...initialStudentState };
+
+        studentData.name = normalizedRow['name'] || normalizedRow['student name'] || normalizedRow['full name'] || '';
+        studentData.email = normalizedRow['email'] || normalizedRow['email address'] || '';
+        studentData.mobile = String(normalizedRow['mobile'] || normalizedRow['phone'] || normalizedRow['contact'] || '');
+        studentData.session = normalizedRow['session'] || normalizedRow['intake'] || '';
+        studentData.courseAndCampus1 = normalizedRow['course & campus 1'] || normalizedRow['course and campus 1'] || normalizedRow['course'] || '';
+        studentData.appStatus = normalizedRow['app status'] || normalizedRow['application status'] || 'Awaiting submission';
+        studentData.intStatus = normalizedRow['int status'] || normalizedRow['interview status'] || 'Interested and Responding';
+        studentData.recruiter = normalizedRow['recruiter'] || '';
+        studentData.chaser = normalizedRow['chaser'] || 'Click to assign';
+        studentData.agent = normalizedRow['agent'] || '';
+        studentData.residential = normalizedRow['residential'] || normalizedRow['residential status'] || '';
+        studentData.location = normalizedRow['location'] || '';
+        studentData.refCompany = normalizedRow['ref company'] || normalizedRow['company'] || normalizedRow['ref. company'] || '';
+        studentData.source = 'manual entry';
+
+        if (!studentData.name) {
+          errorCount++;
+          continue; 
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/api/students`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(studentData)
+          });
+          const resData = await res.json();
+          if (resData.success) {
+            newStudentsList.push(resData.student);
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (err) {
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        setStudents(prev => [...newStudentsList, ...prev]);
+        logActivity('Bulk Upload', `Successfully uploaded ${successCount} students via file.`);
+      }
+      
+      alert(`Upload complete! Successfully added ${successCount} students. ${errorCount > 0 ? `Failed to add ${errorCount} students.` : ''}`);
+      
+    } catch (err) {
+      console.error(err);
+      alert("Error processing file. Please ensure it is a valid Excel or CSV file.");
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleAddSubmit = async (e) => {
@@ -467,6 +554,14 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         </div>
         <div className="dms-toolbar-right" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button className="dms-btn-filter" onClick={() => setShowFilters(!showFilters)}>⧨ Filters</button>
+          <input 
+            type="file" 
+            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+            style={{ display: 'none' }} 
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+          />
+          <button className="dms-btn-add" onClick={() => fileInputRef.current.click()}>Upload File</button>
           <button className="dms-btn-add" onClick={handleOpenAddModal}>+ Add Student</button>
         </div>
       </div>
