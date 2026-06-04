@@ -17,7 +17,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
   const [routeModal, setRouteModal] = useState({ show: false, student: null });
   const [chaserModal, setChaserModal] = useState({ show: false, student: null, readOnly: false });
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({ appStatus: '', recruiter: '', session: '', intStatus: '', agent: '', chaser: '', source: '', course: '', residential: '', location: '' });
+  const [filters, setFilters] = useState({ appStatus: '', recruiter: '', session: '', intStatus: '', sfeStatus: '', agent: '', chaser: '', source: '', course: '', residential: '', location: '' });
   const [activeCollegeTab, setActiveCollegeTab] = useState('All Students');
   const fileInputRef = useRef(null);
   
@@ -37,6 +37,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
   const [collegeResponsible, setCollegeResponsible] = useState({});
   const [appStatuses, setAppStatuses] = useState(["Awaiting submission", "Submission ongoing", "Submitted"]);
   const [intStatuses, setIntStatuses] = useState(["Interested and Responding", "Interested - Awaiting Docs", "Interested - Further Info Required", "Fully Enrolled", "Not eligible - Check Later", "Awaiting SFE", "Awaiting Prep"]);
+  const [sfeStatuses, setSfeStatuses] = useState(["Awaiting Trial SFE Approval", "Trial SFE submitted", "Trial SFE Approved", "SFE Submitted - Docs Pending", "SFE Submitted - Awaiting Approval", "SFE Approved - Awaiting enrollment", "Awaiting SFE Approval -", "Enrollment Done", "SFE Approved - Deferred", "Ineligible for SFE"]);
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [newCourseInput, setNewCourseInput] = useState('');
   const [selectedConfigCollege, setSelectedConfigCollege] = useState('GBS');
@@ -68,6 +69,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
     chaser: 'Click to assign', chaserHistory: [], 
     agent: '', residential: '', location: '', appId: '',
     appStatus: 'Awaiting submission', appStatusHistory: [],
+    sfeStatus: 'Awaiting Trial SFE Approval', sfeStatusHistory: [],
     clTime: '', submit: '', docs: '0'
   };
   const [newStudent, setNewStudent] = useState(initialStudentState);
@@ -104,6 +106,10 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
          const intConfig = data['INT_STATUSES'];
          if (intConfig && intConfig.slots && intConfig.slots[0] && intConfig.slots[0].text) {
            setIntStatuses(JSON.parse(intConfig.slots[0].text));
+         }
+         const sfeConfig = data['SFE_STATUSES'];
+         if (sfeConfig && sfeConfig.slots && sfeConfig.slots[0] && sfeConfig.slots[0].text) {
+           setSfeStatuses(JSON.parse(sfeConfig.slots[0].text));
          }
       })
       .catch(e => console.error(e));
@@ -517,6 +523,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
     const matchesRecruiter = !filters.recruiter || (s.recruiter && s.recruiter.includes(filters.recruiter));
     const matchesSession = !filters.session || s.session === filters.session;
     const matchesIntStatus = !filters.intStatus || s.intStatus === filters.intStatus;
+    const matchesSfeStatus = !filters.sfeStatus || s.sfeStatus === filters.sfeStatus;
     const matchesAgent = !filters.agent || (s.agent && s.agent.toLowerCase().includes(filters.agent.toLowerCase()));
     const matchesChaser = !filters.chaser || (s.chaser && s.chaser.toLowerCase().includes(filters.chaser.toLowerCase()));
     const matchesSource = !filters.source || (s.source && s.source.toLowerCase().includes(filters.source.toLowerCase()));
@@ -537,7 +544,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
       }
     }
 
-    return matchesSearch && matchesApp && matchesRecruiter && matchesSession && matchesCollege && matchesIntStatus && matchesAgent && matchesChaser && matchesSource && matchesCourse && matchesResidential && matchesLocation;
+    return matchesSearch && matchesApp && matchesRecruiter && matchesSession && matchesCollege && matchesIntStatus && matchesSfeStatus && matchesAgent && matchesChaser && matchesSource && matchesCourse && matchesResidential && matchesLocation;
   });
 
   const uniqueRecruiters = [...new Set(students.map(s => s.recruiter).filter(Boolean))];
@@ -825,6 +832,13 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>SFE Status</label>
+            <select value={filters.sfeStatus} onChange={e => setFilters({...filters, sfeStatus: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+              <option value="">All</option>
+              {sfeStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Agent</label>
             <select value={filters.agent} onChange={e => setFilters({...filters, agent: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               <option value="">All</option>
@@ -861,7 +875,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
             <input type="text" value={filters.location} onChange={e => setFilters({...filters, location: e.target.value})} placeholder="Filter location..." style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '120px' }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <button onClick={() => setFilters({ appStatus: '', recruiter: '', session: '', intStatus: '', agent: '', chaser: '', source: '', course: '', residential: '', location: '' })} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
+            <button onClick={() => setFilters({ appStatus: '', recruiter: '', session: '', intStatus: '', sfeStatus: '', agent: '', chaser: '', source: '', course: '', residential: '', location: '' })} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
           </div>
         </div>
       )}
@@ -926,6 +940,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
               <th>COURSE & CAMPUS 2</th>
               <th>APP STATUS</th>
               <th>INT STATUS</th>
+              <th>SFE STATUS</th>
               <th>CHASER</th>
               <th>AGENT</th>
               <th>RESIDENTIAL</th>
@@ -965,6 +980,11 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                 <td>
                   <span className="int-badge" onClick={() => setNotesModal({ show: true, student, fieldType: 'intStatus', note: '', newValue: student.intStatus || 'Interested and Responding' })} style={{ cursor: 'pointer' }}>
                     {student.intStatus || 'Interested'}
+                  </span>
+                </td>
+                <td>
+                  <span className="int-badge" onClick={() => setNotesModal({ show: true, student, fieldType: 'sfeStatus', note: '', newValue: student.sfeStatus || 'Awaiting Trial SFE Approval' })} style={{ cursor: 'pointer', background: '#8b5cf6', color: '#fff' }}>
+                    {student.sfeStatus || 'Awaiting'}
                   </span>
                 </td>
                 <td>{renderCell(student, 'chaser', 'Click to assign')}</td>
@@ -1170,6 +1190,12 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                     </select>
                   </div>
                   <div className="input-group">
+                    <label>SFE Status</label>
+                    <select value={newStudent.sfeStatus || ''} onChange={e => setNewStudent({...newStudent, sfeStatus: e.target.value})}>
+                      {sfeStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div className="input-group">
                     <label>Branch Email</label>
                     <input type="email" />
                   </div>
@@ -1278,7 +1304,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
             <div className="dms-modal-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1rem' }}>
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0, color: 'var(--text-primary)' }}>
                 <span style={{ color: 'var(--accent-color)' }}>✓</span> 
-                {notesModal.fieldType === 'intStatus' ? 'Interview Status & Notes' : notesModal.fieldType === 'appStatus' ? 'Application Status Notes' : notesModal.fieldType === 'recruiter' ? 'Recruiter Notes' : 'Chaser Notes'}
+                {notesModal.fieldType === 'intStatus' ? 'Interview Status & Notes' : notesModal.fieldType === 'sfeStatus' ? 'SFE Status & Notes' : notesModal.fieldType === 'appStatus' ? 'Application Status Notes' : notesModal.fieldType === 'recruiter' ? 'Recruiter Notes' : 'Chaser Notes'}
               </h3>
               <button onClick={() => setNotesModal({ show: false, student: null, fieldType: null, note: '', newValue: undefined })} style={{ border: 'none', background: 'transparent', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>✕</button>
             </div>
@@ -1308,6 +1334,17 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
                   >
                      {intStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              ) : notesModal.fieldType === 'sfeStatus' ? (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Update SFE Status</label>
+                  <select 
+                    value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student.sfeStatus || 'Awaiting Trial SFE Approval')}
+                    onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
+                  >
+                     {sfeStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               ) : notesModal.fieldType === 'appStatus' ? (
@@ -1343,7 +1380,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                   rows="3"
                   value={notesModal.note}
                   onChange={e => setNotesModal({...notesModal, note: e.target.value})}
-                  placeholder={notesModal.fieldType === 'intStatus' ? "Add a note about this status change..." : "Type an important note here..."}
+                  placeholder={notesModal.fieldType === 'intStatus' || notesModal.fieldType === 'sfeStatus' ? "Add a note about this status change..." : "Type an important note here..."}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)', resize: 'vertical' }}
                 />
               </div>

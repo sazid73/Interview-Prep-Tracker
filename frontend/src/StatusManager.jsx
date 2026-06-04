@@ -18,12 +18,27 @@ const defaultIntStatuses = [
   "Awaiting Prep"
 ];
 
+const defaultSfeStatuses = [
+  "Awaiting Trial SFE Approval",
+  "Trial SFE submitted",
+  "Trial SFE Approved",
+  "SFE Submitted - Docs Pending",
+  "SFE Submitted - Awaiting Approval",
+  "SFE Approved - Awaiting enrollment",
+  "Awaiting SFE Approval -",
+  "Enrollment Done",
+  "SFE Approved - Deferred",
+  "Ineligible for SFE"
+];
+
 const StatusManager = ({ currentUserRole, currentUser }) => {
   const [appStatuses, setAppStatuses] = useState(defaultAppStatuses);
   const [intStatuses, setIntStatuses] = useState(defaultIntStatuses);
+  const [sfeStatuses, setSfeStatuses] = useState(defaultSfeStatuses);
   
   const [newAppStatus, setNewAppStatus] = useState('');
   const [newIntStatus, setNewIntStatus] = useState('');
+  const [newSfeStatus, setNewSfeStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
@@ -40,6 +55,11 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
          const intConfig = data['INT_STATUSES'];
          if (intConfig && intConfig.slots && intConfig.slots[0] && intConfig.slots[0].text) {
            setIntStatuses(JSON.parse(intConfig.slots[0].text));
+         }
+         
+         const sfeConfig = data['SFE_STATUSES'];
+         if (sfeConfig && sfeConfig.slots && sfeConfig.slots[0] && sfeConfig.slots[0].text) {
+           setSfeStatuses(JSON.parse(sfeConfig.slots[0].text));
          }
       })
       .catch(e => console.error("Failed to load status config", e));
@@ -98,6 +118,19 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
     setIsSaving(false);
   };
 
+  const handleAddSfeStatus = async (e) => {
+    e.preventDefault();
+    if (!newSfeStatus.trim() || !isAdmin) return;
+    
+    setIsSaving(true);
+    const updated = [...sfeStatuses, newSfeStatus.trim()];
+    setSfeStatuses(updated);
+    setNewSfeStatus('');
+    
+    await saveToGrid('SFE_STATUSES', updated, `Added SFE Status: ${newSfeStatus.trim()}`);
+    setIsSaving(false);
+  };
+
   const handleRemoveAppStatus = async (statusToRemove) => {
     if (!isAdmin) return;
     if (!window.confirm(`Are you sure you want to remove "${statusToRemove}"?`)) return;
@@ -119,6 +152,18 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
     setIntStatuses(updated);
     
     await saveToGrid('INT_STATUSES', updated, `Removed Int Status: ${statusToRemove}`);
+    setIsSaving(false);
+  };
+
+  const handleRemoveSfeStatus = async (statusToRemove) => {
+    if (!isAdmin) return;
+    if (!window.confirm(`Are you sure you want to remove "${statusToRemove}"?`)) return;
+    
+    setIsSaving(true);
+    const updated = sfeStatuses.filter(s => s !== statusToRemove);
+    setSfeStatuses(updated);
+    
+    await saveToGrid('SFE_STATUSES', updated, `Removed SFE Status: ${statusToRemove}`);
     setIsSaving(false);
   };
 
@@ -223,6 +268,51 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
             ))}
             {intStatuses.length === 0 && (
               <li style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-secondary)' }}>No interview statuses defined.</li>
+            )}
+          </ul>
+        </div>
+
+        {/* SFE Statuses Section */}
+        <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+          <h3 style={{ color: 'var(--text-primary)', marginTop: 0, marginBottom: '1rem' }}>🎓 SFE Statuses</h3>
+          
+          {isAdmin && (
+            <form onSubmit={handleAddSfeStatus} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <input 
+                type="text" 
+                value={newSfeStatus}
+                onChange={e => setNewSfeStatus(e.target.value)}
+                placeholder="New SFE Status"
+                required
+                style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
+              />
+              <button 
+                type="submit"
+                disabled={isSaving}
+                style={{ background: '#8b5cf6', color: '#fff', border: 'none', padding: '0 1rem', borderRadius: '6px', cursor: isSaving ? 'not-allowed' : 'pointer' }}
+              >
+                Add
+              </button>
+            </form>
+          )}
+
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {sfeStatuses.map((status, idx) => (
+              <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '0.8rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                <span>{status}</span>
+                {isAdmin && (
+                  <button 
+                    onClick={() => handleRemoveSfeStatus(status)}
+                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem' }}
+                    title="Remove"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </li>
+            ))}
+            {sfeStatuses.length === 0 && (
+              <li style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-secondary)' }}>No SFE statuses defined.</li>
             )}
           </ul>
         </div>

@@ -129,6 +129,13 @@ const studentLeadSchema = new mongoose.Schema({
   docs: { type: String },
   statusType: { type: String, default: 'white' },
   appStatus: { type: String, default: 'Awaiting submission' },
+  sfeStatus: { type: String, default: 'Awaiting Trial SFE Approval' },
+  sfeStatusHistory: [{
+    status: String,
+    note: String,
+    timestamp: String,
+    user: String
+  }],
   intStatusHistory: [{
     status: String,
     note: String,
