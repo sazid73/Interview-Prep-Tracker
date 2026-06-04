@@ -655,37 +655,17 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         <span 
           className="app-status-text"
           onClick={() => setNotesModal({ show: true, student, fieldType: 'appStatus', note: '', newValue: status })} 
-          style={{ cursor: 'pointer', color: status === 'Submitted' ? '#34d399' : status === 'Submission ongoing' ? '#60a5fa' : '#fbbf24', fontWeight: 'bold' }}
+          style={{ cursor: 'pointer', color: (status === 'Submitted' || status === 'Completed') ? '#34d399' : (status === 'Submission ongoing' || status === 'Awaiting submission and QC') ? '#60a5fa' : '#fbbf24', fontWeight: 'bold' }}
         >
           {status}
         </span>
-        {status === 'Awaiting submission' && (
-          <button 
-            title="Assign Chasers" 
-            onClick={() => setChaserModal({ show: true, student, readOnly: false })} 
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 4px' }}
-          >
-            🧑‍💼
-          </button>
-        )}
-        {status === 'Submission ongoing' && (
-          <button 
-            title="View Chasers" 
-            onClick={() => setChaserModal({ show: true, student, readOnly: true })} 
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 4px' }}
-          >
-            👁️
-          </button>
-        )}
-        {status === 'Submitted' && (
-          <button 
-            title="View Chasers" 
-            onClick={() => setChaserModal({ show: true, student, readOnly: true })} 
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 4px' }}
-          >
-            ✅
-          </button>
-        )}
+        <button 
+          title="View Assignments" 
+          onClick={() => setChaserModal({ show: true, student, readOnly: true })} 
+          style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 4px' }}
+        >
+          👁️
+        </button>
       </div>
     );
   };

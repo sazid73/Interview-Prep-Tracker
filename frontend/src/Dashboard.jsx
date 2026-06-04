@@ -8,6 +8,7 @@ const Dashboard = ({ currentUserRole }) => {
   const [showRecruiterModal, setShowRecruiterModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showAdminTaskModal, setShowAdminTaskModal] = useState(false);
+  const [assignModal, setAssignModal] = useState({ show: false, student: null });
   const [adminTaskStatus, setAdminTaskStatus] = useState('Assigned'); // 'Assigned' or 'Completed'
   const [adminTaskTimeframe, setAdminTaskTimeframe] = useState('All'); // 'All', 'This Week', 'Today'
   const [showLogs, setShowLogs] = useState(false);
@@ -17,6 +18,9 @@ const Dashboard = ({ currentUserRole }) => {
   const [logsTab, setLogsTab] = useState('Prep Tracker');
   const [logSearchTerm, setLogSearchTerm] = useState('');
   const [logUserFilter, setLogUserFilter] = useState('');
+  
+  // Users List for Assignment
+  const [allUsers, setAllUsers] = useState([]);
   
   // Admin Management State
   const [adminUsersList, setAdminUsersList] = useState([]);
@@ -30,6 +34,14 @@ const Dashboard = ({ currentUserRole }) => {
       .then(res => res.json())
       .then(data => setStudents(data))
       .catch(err => console.error(err));
+
+    fetch(`${API_BASE}/api/users`)
+      .then(res => res.json())
+      .then(data => {
+        setAdminUsersList(data);
+        setAllUsers(data);
+      })
+      .catch(err => console.error(err));
   }, []);
 
   useEffect(() => {
@@ -42,13 +54,48 @@ const Dashboard = ({ currentUserRole }) => {
   }, [showLogs]);
 
   useEffect(() => {
-    if (showAdminModal && (currentUserRole === 'admin' || currentUserRole === 'super_admin')) {
-      fetch(`${API_BASE}/api/users`)
-        .then(res => res.json())
-        .then(data => setAdminUsersList(data))
-        .catch(err => console.error(err));
-    }
+    // Legacy refresh logic if needed
   }, [showAdminModal, currentUserRole]);
+
+  const handleDashboardChaserChange = async (type, val) => {
+    const student = assignModal.student;
+    const currentChasers = student.chasers || { cv: '', ps: '', sub: '', qa: '' };
+    const newChasers = { ...currentChasers, [type]: val };
+    
+    setAssignModal({ show: true, student: { ...student, chasers: newChasers } });
+    setStudents(students.map(s => s._id === student._id ? { ...s, chasers: newChasers } : s));
+    
+    try {
+      await fetch(`${API_BASE}/api/students/${student._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chasers: newChasers })
+      });
+      fetch(`${API_BASE}/api/logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: 'Admin', action: 'Student Edit', details: `Assigned ${type} to ${val} for ${student.name}` })
+      }).catch(e => console.error(e));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAppStatusChange = async (newStatus) => {
+    const student = assignModal.student;
+    setStudents(students.map(s => s._id === student._id ? { ...s, appStatus: newStatus } : s));
+    
+    try {
+      await fetch(`${API_BASE}/api/students/${student._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appStatus: newStatus })
+      });
+    } catch (err) {
+      console.error(err);
+    }
+    setAssignModal({ show: false, student: null });
+  };
 
   // Admin Management Functions
   const handleCreateUser = async (e) => {
@@ -224,6 +271,31 @@ const Dashboard = ({ currentUserRole }) => {
 
   const uniqueLogUsers = [...new Set(serverLogs.map(l => l.user).filter(Boolean))].sort();
 
+  const colAwaitingDocs = students.filter(s => s.appStatus?.toLowerCase() === 'awaiting admin docs');
+  const colAwaitingSub = students.filter(s => s.appStatus?.toLowerCase() === 'awaiting submission and qc' || s.appStatus?.toLowerCase() === 'awaiting submission');
+  const colUrgent = students.filter(s => s.appStatus?.toLowerCase() === 'urgent submission');
+  const colCompleted = students.filter(s => s.appStatus?.toLowerCase() === 'submitted' || s.appStatus?.toLowerCase() === 'completed');
+
+  const renderStudentCard = (student, colColor) => (
+    <div key={student._id} onClick={() => setAssignModal({ show: true, student })} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${colColor}`, cursor: 'pointer', marginBottom: '0.8rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+        <strong style={{ color: 'var(--text-primary)' }}>{student.name}</strong>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{student.studentId}</span>
+      </div>
+      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+        {student.courseAndCampus1 && <div style={{ marginBottom: '4px' }}>🎓 {student.courseAndCampus1}</div>}
+        {student.chasers && Object.keys(student.chasers).some(k => student.chasers[k]) && (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+            {student.chasers.cv && <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>CV: {student.chasers.cv.split(' ')[0]}</span>}
+            {student.chasers.ps && <span style={{ background: '#8b5cf6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>PS: {student.chasers.ps.split(' ')[0]}</span>}
+            {student.chasers.qa && <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>QA: {student.chasers.qa.split(' ')[0]}</span>}
+            {student.chasers.sub && <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>SUB: {student.chasers.sub.split(' ')[0]}</span>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ padding: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
@@ -249,7 +321,7 @@ const Dashboard = ({ currentUserRole }) => {
               boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
             }}
           >
-            🎯 Admin Task Distribution
+            🎯 Admin Legacy Dist.
           </button>
           <button 
             onClick={() => setShowRecruiterModal(true)} 
@@ -284,9 +356,61 @@ const Dashboard = ({ currentUserRole }) => {
         </div>
       </div>
 
-      <div style={{ background: 'var(--bg-surface)', padding: '2rem', borderRadius: '12px', border: '1px solid var(--border-color)', textAlign: 'center', color: 'var(--text-secondary)' }}>
-        <p>Welcome to the central Dashboard.</p>
-        <p>Click the buttons above to view detailed performance reports and user activity.</p>
+      {/* Admin Task Workflow Section */}
+      <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', marginTop: '2rem' }}>
+        <h3 style={{ marginTop: 0, color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          👨‍💼 Admin Submission Workflow
+        </h3>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+          Real-time tracking of application submissions. Click on a student card to assign tasks (CV, PS, QA, Sub) or change their status.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', overflowX: 'auto' }}>
+          
+          {/* Column 1: Awaiting Admin Docs */}
+          <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 1rem 0', color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Awaiting Admin Docs</span>
+              <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAwaitingDocs.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {colAwaitingDocs.map(s => renderStudentCard(s, '#6b7280'))}
+            </div>
+          </div>
+
+          {/* Column 2: Awaiting Submission & QC */}
+          <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Awaiting Sub & QC</span>
+              <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAwaitingSub.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {colAwaitingSub.map(s => renderStudentCard(s, '#3b82f6'))}
+            </div>
+          </div>
+
+          {/* Column 3: Urgent Submission */}
+          <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Urgent Submission</span>
+              <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colUrgent.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {colUrgent.map(s => renderStudentCard(s, '#ef4444'))}
+            </div>
+          </div>
+
+          {/* Column 4: Completed */}
+          <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+            <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Completed</span>
+              <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colCompleted.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {colCompleted.map(s => renderStudentCard(s, '#10b981'))}
+            </div>
+          </div>
+        </div>
       </div>
 
       {showLogs && (
@@ -649,7 +773,7 @@ const Dashboard = ({ currentUserRole }) => {
 
         const isTaskMatchingFilters = (s) => {
           // Status filter
-          const isCompleted = s.appStatus === 'Submitted';
+          const isCompleted = s.appStatus === 'Submitted' || s.appStatus === 'Completed';
           if (adminTaskStatus === 'Assigned' && isCompleted) return false;
           if (adminTaskStatus === 'Completed' && !isCompleted) return false;
 
@@ -705,7 +829,7 @@ const Dashboard = ({ currentUserRole }) => {
             <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1200px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
               <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
                 <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  🎯 Admin Task Distribution
+                  🎯 Admin Task Distribution (Legacy View)
                 </h3>
                 
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -742,6 +866,66 @@ const Dashboard = ({ currentUserRole }) => {
           </div>
         );
       })()}
+
+      {assignModal.show && (
+        <div className="dms-modal-overlay" style={{ zIndex: 3000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '500px', width: '90%', padding: '2rem', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Assign Admin Tasks</h3>
+              <button onClick={() => setAssignModal({ show: false, student: null })} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+            </div>
+            
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              Assign tasks for <strong style={{ color: 'var(--text-primary)' }}>{assignModal.student.name}</strong>.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+              {[
+                { type: 'cv', label: '📝 CV Writer' },
+                { type: 'ps', label: '📄 PS Writer' },
+                { type: 'qa', label: '✅ QA Officer' },
+                { type: 'sub', label: '📤 Submission Officer' }
+              ].map(({ type, label }) => (
+                <div key={type} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                  <label style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{label}</label>
+                  <select 
+                    value={(assignModal.student.chasers && assignModal.student.chasers[type]) || ''}
+                    onChange={(e) => handleDashboardChaserChange(type, e.target.value)}
+                    style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '200px' }}
+                  >
+                    <option value="">Unassigned</option>
+                    {allUsers.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>Change Application Status</h4>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {['Awaiting Admin Docs', 'Awaiting Submission and QC', 'Urgent Submission', 'Completed'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => handleAppStatusChange(status)}
+                    style={{ 
+                      padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold',
+                      background: assignModal.student.appStatus?.toLowerCase() === status.toLowerCase() ? '#3b82f6' : 'var(--bg-surface)',
+                      color: assignModal.student.appStatus?.toLowerCase() === status.toLowerCase() ? '#fff' : 'var(--text-primary)',
+                      border: '1px solid var(--border-color)'
+                    }}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setAssignModal({ show: false, student: null })} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '0.6rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
