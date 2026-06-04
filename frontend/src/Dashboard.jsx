@@ -21,6 +21,8 @@ const Dashboard = ({ currentUserRole }) => {
   const [analyticsWeek, setAnalyticsWeek] = useState('All');
   const [completedMonthFilter, setCompletedMonthFilter] = useState('All');
   const [completedWeekFilter, setCompletedWeekFilter] = useState('All');
+  const [sfeApprovedMonth, setSfeApprovedMonth] = useState('All');
+  const [sfeApprovedWeek, setSfeApprovedWeek] = useState('All');
   const [recruiterMonth, setRecruiterMonth] = useState('All');
   const [serverLogs, setServerLogs] = useState([]);
   const [logsTab, setLogsTab] = useState('Prep Tracker');
@@ -63,10 +65,18 @@ const Dashboard = ({ currentUserRole }) => {
     fetch(`${API_BASE}/api/grid`)
       .then(res => res.json())
       .then(data => {
-         const prepConfig = data['PREP_INTERVIEWS'];
-         if (prepConfig && prepConfig.slots) {
-           setPrepGrid(prepConfig.slots);
-         }
+         let allPreps = [];
+         Object.keys(data).forEach(key => {
+            if (key.match(/^\d{4}-\d{1,2}-\d{1,2}-/)) {
+               const slots = data[key].slots || [];
+               slots.forEach(slot => {
+                  if (slot && slot.text && slot.text.trim() !== '') {
+                     allPreps.push({ ...slot, keyStr: key });
+                  }
+               });
+            }
+         });
+         setPrepGrid(allPreps);
       })
       .catch(err => console.error(err));
   }, []);
@@ -352,6 +362,27 @@ const Dashboard = ({ currentUserRole }) => {
   const prepsMissed = prepGrid.filter(p => (p.status || '').toLowerCase() === 'missed');
   const prepsRescheduled = prepGrid.filter(p => (p.status || '').toLowerCase() === 'rescheduled');
 
+  const sfeTotal = colSfeAwaiting.length + colSfeOngoing.length + colSfeSubmitted.length + colSfeApproved.length;
+  const sfeCompletionRate = sfeTotal > 0 ? Math.round((colSfeApproved.length / sfeTotal) * 100) : 0;
+
+  const intTotal = colIntPassed.length + colIntFailed.length + colIntMissed.length;
+  const intCompletionRate = intTotal > 0 ? Math.round((colIntPassed.length / intTotal) * 100) : 0;
+
+  const filteredSfeApproved = colSfeApproved.filter(s => {
+    if (sfeApprovedMonth === 'All') return true;
+    const sDate = s.updatedAt || s.createdAt;
+    if (!sDate) return false;
+    const dateObj = new Date(sDate);
+    if (dateObj.toLocaleString('default', { month: 'short' }) !== sfeApprovedMonth) return false;
+    
+    if (sfeApprovedWeek !== 'All') {
+       const d = dateObj.getDate();
+       const w = Math.ceil(d / 7);
+       return w.toString() === sfeApprovedWeek.replace('Week ', '');
+    }
+    return true;
+  });
+
   const colAlertRecruiter = students.filter(s => s.recruiter && (Date.now() - new Date(s.updatedAt || s.createdAt).getTime()) > 15 * 86400000 && s.appStatus !== 'Submitted');
   const colAlertChaser = students.filter(s => s.chaser && (Date.now() - new Date(s.updatedAt || s.createdAt).getTime()) > 3 * 86400000 && s.appStatus !== 'Submitted');
 
@@ -543,15 +574,24 @@ const Dashboard = ({ currentUserRole }) => {
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>SFE Approved</div>
             </div>
           </div>
+          
+          <div style={{ marginTop: '1rem' }}>
+            <div style={{ background: 'var(--bg-color)', borderRadius: '999px', height: '8px', width: '100%', overflow: 'hidden' }}>
+              <div style={{ background: '#10b981', height: '100%', width: `${sfeCompletionRate}%`, transition: 'width 0.3s' }}></div>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>{sfeCompletionRate}% completion rate</div>
+          </div>
         </div>
 
         {/* Interviews Workflow Widget */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
-              🎤 Interview Tracking
-            </h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click metrics to view ➔</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+                🎤 Interview Tracking
+              </h3>
+            </div>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Click metrics to view ➔</span>
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
@@ -571,6 +611,13 @@ const Dashboard = ({ currentUserRole }) => {
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{colIntMissed.length}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Missed</div>
             </div>
+          </div>
+          
+          <div style={{ marginTop: '1rem' }}>
+            <div style={{ background: 'var(--bg-color)', borderRadius: '999px', height: '8px', width: '100%', overflow: 'hidden' }}>
+              <div style={{ background: '#10b981', height: '100%', width: `${intCompletionRate}%`, transition: 'width 0.3s' }}></div>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>{intCompletionRate}% pass rate</div>
           </div>
         </div>
 
@@ -756,14 +803,42 @@ const Dashboard = ({ currentUserRole }) => {
                     </div>
                   </div>
                 )}
+                {/* Column 4: SFE Approved */}
                 {showSfeWorkflowModal === 'approved' && (
                   <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>SFE Approved</span>
-                      <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colSfeApproved.length}</span>
-                    </h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem' }}>
+                      <h4 style={{ margin: 0, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span>SFE Approved</span>
+                        <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeApproved.length}</span>
+                      </h4>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <select 
+                          value={sfeApprovedMonth}
+                          onChange={e => setSfeApprovedMonth(e.target.value)}
+                          style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                        >
+                          <option value="All">All Months</option>
+                          {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <select 
+                          value={sfeApprovedWeek}
+                          onChange={e => setSfeApprovedWeek(e.target.value)}
+                          style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                        >
+                          <option value="All">All Weeks</option>
+                          <option value="Week 1">Week 1</option>
+                          <option value="Week 2">Week 2</option>
+                          <option value="Week 3">Week 3</option>
+                          <option value="Week 4">Week 4</option>
+                          <option value="Week 5">Week 5</option>
+                        </select>
+                      </div>
+                    </div>
+                    
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colSfeApproved.map(s => renderStudentCard(s, '#10b981'))}
+                      {filteredSfeApproved.map(s => renderStudentCard(s, '#10b981'))}
                     </div>
                   </div>
                 )}
@@ -933,13 +1008,13 @@ const Dashboard = ({ currentUserRole }) => {
             <div className="dms-modal-body" style={{ padding: '1.5rem' }}>
               <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Assign SFE task for <strong>{sfeAssignModal.student?.name}</strong>:</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                {['Dina', 'Saad', 'Apsara'].map(officer => (
+                {allUsers.filter(u => ['Dina', 'Saad', 'Apsara'].includes(u.name) || u.role?.toLowerCase().includes('sfe')).map(officer => (
                   <button 
-                    key={officer} 
-                    onClick={() => handleSfeAssign(officer)} 
+                    key={officer._id} 
+                    onClick={() => handleSfeAssign(officer.name)} 
                     style={{ padding: '0.8rem', fontSize: '1rem', background: 'var(--bg-surface-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px', cursor: 'pointer', textAlign: 'center' }}
                   >
-                    Assign to {officer}
+                    Assign to {officer.name}
                   </button>
                 ))}
               </div>
