@@ -10,12 +10,53 @@ const defaultAppStatuses = [
 
 const defaultIntStatuses = [
   "Interested and Responding",
+  "Declined",
+  "Prep Done",
+  "Offer Sent",
+  "SFE Not Approved",
+  "On Hold - Check Later (AN)",
+  "SFE Approved - Process Next Steps",
+  "On Holiday (AN)",
+  "Awaiting Further Entry Criteria Docs/Info (AN)",
+  "Awaiting Necessary Pretask For Act Int",
+  "DNC (AN)",
+  "File Withdrawn (AN)",
+  "File Declined (AN)",
+  "Fully Enrolled 3rd Year",
+  "Fully Enrolled 2nd Year",
+  "Awaiting Interview Result",
+  "Awaiting Prep",
+  "Interview Passed - Proceed Next Steps",
   "Interested - Awaiting Docs",
+  "Interested - Call Back Later",
+  "Failed - Try Within Time-frame/Process Elsewhere",
+  "SFE Submitted - Awaiting Approval",
+  "Awaiting Submission",
+  "At Risk Of Cancelation",
+  "No Longer Interested",
+  "Interested - Not Responding",
   "Interested - Further Info Required",
+  "New Application",
+  "Direct",
   "Fully Enrolled",
-  "Not eligible - Check Later",
+  "Awaiting Induction",
+  "Awaiting Transfer",
   "Awaiting SFE",
-  "Awaiting Prep"
+  "Awaiting QC",
+  "Awaiting Offer Letter",
+  "Awaiting Actual Interview",
+  "Not eligible - Check Later",
+  "Received 3rd Payment",
+  "Received 2nd Payment",
+  "Received 1st payment",
+  "Not Progressed To 3rd Year",
+  "Not Progressed to 2nd Year",
+  "Did not received 3rd Payment",
+  "Did not received 2nd payment",
+  "Did Not Received First Payment",
+  "Deferred",
+  "On holiday - Please follow up later",
+  "QC done"
 ];
 
 const defaultSfeStatuses = [
@@ -40,6 +81,7 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
   const [newIntStatus, setNewIntStatus] = useState('');
   const [newSfeStatus, setNewSfeStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [editState, setEditState] = useState({ type: null, index: null, value: '' });
 
   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
 
@@ -167,6 +209,51 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
     setIsSaving(false);
   };
 
+  const handleEditStatus = async (type, index, newValue) => {
+    if (!isAdmin || !newValue.trim()) {
+      setEditState({ type: null, index: null, value: '' });
+      return;
+    }
+    setIsSaving(true);
+    let updated = [];
+    if (type === 'APP') {
+       updated = [...appStatuses];
+       updated[index] = newValue.trim();
+       setAppStatuses(updated);
+       await saveToGrid('APP_STATUSES', updated, `Edited App Status to: ${newValue}`);
+    } else if (type === 'INT') {
+       updated = [...intStatuses];
+       updated[index] = newValue.trim();
+       setIntStatuses(updated);
+       await saveToGrid('INT_STATUSES', updated, `Edited Int Status to: ${newValue}`);
+    } else if (type === 'SFE') {
+       updated = [...sfeStatuses];
+       updated[index] = newValue.trim();
+       setSfeStatuses(updated);
+       await saveToGrid('SFE_STATUSES', updated, `Edited SFE Status to: ${newValue}`);
+    }
+    setEditState({ type: null, index: null, value: '' });
+    setIsSaving(false);
+  };
+
+  const handleResetToDefault = async (type) => {
+    if (!isAdmin) return;
+    if (!window.confirm(`Are you sure you want to reset this list to the default statuses? Custom additions will be lost.`)) return;
+    
+    setIsSaving(true);
+    if (type === 'APP') {
+       setAppStatuses(defaultAppStatuses);
+       await saveToGrid('APP_STATUSES', defaultAppStatuses, `Reset App Statuses to default`);
+    } else if (type === 'INT') {
+       setIntStatuses(defaultIntStatuses);
+       await saveToGrid('INT_STATUSES', defaultIntStatuses, `Reset Int Statuses to default`);
+    } else if (type === 'SFE') {
+       setSfeStatuses(defaultSfeStatuses);
+       await saveToGrid('SFE_STATUSES', defaultSfeStatuses, `Reset SFE Statuses to default`);
+    }
+    setIsSaving(false);
+  };
+
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ marginBottom: '2rem' }}>
@@ -184,7 +271,10 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
         
         {/* App Statuses Section */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <h3 style={{ color: 'var(--text-primary)', marginTop: 0, marginBottom: '1rem' }}>📱 Application Statuses</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>📱 Application Statuses</h3>
+            {isAdmin && <button onClick={() => handleResetToDefault('APP')} style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Reset Defaults</button>}
+          </div>
           
           {isAdmin && (
             <form onSubmit={handleAddAppStatus} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
@@ -209,15 +299,35 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {appStatuses.map((status, idx) => (
               <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '0.8rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-                <span>{status}</span>
-                {isAdmin && (
-                  <button 
-                    onClick={() => handleRemoveAppStatus(status)}
-                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem' }}
-                    title="Remove"
-                  >
-                    🗑️
-                  </button>
+                {editState.type === 'APP' && editState.index === idx ? (
+                  <input 
+                    autoFocus
+                    value={editState.value}
+                    onChange={(e) => setEditState({ ...editState, value: e.target.value })}
+                    onBlur={() => handleEditStatus('APP', idx, editState.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleEditStatus('APP', idx, editState.value)}
+                    style={{ flex: 1, marginRight: '1rem', padding: '0.4rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
+                  />
+                ) : (
+                  <span>{status}</span>
+                )}
+                {isAdmin && editState.type !== 'APP' && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      onClick={() => setEditState({ type: 'APP', index: idx, value: status })}
+                      style={{ background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '0.2rem' }}
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      onClick={() => handleRemoveAppStatus(status)}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem' }}
+                      title="Remove"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 )}
               </li>
             ))}
@@ -229,7 +339,10 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
 
         {/* Int Statuses Section */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <h3 style={{ color: 'var(--text-primary)', marginTop: 0, marginBottom: '1rem' }}>💬 Interview Statuses</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>💬 Interview Statuses</h3>
+            {isAdmin && <button onClick={() => handleResetToDefault('INT')} style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Reset Defaults</button>}
+          </div>
           
           {isAdmin && (
             <form onSubmit={handleAddIntStatus} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
@@ -254,15 +367,35 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {intStatuses.map((status, idx) => (
               <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '0.8rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-                <span>{status}</span>
-                {isAdmin && (
-                  <button 
-                    onClick={() => handleRemoveIntStatus(status)}
-                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem' }}
-                    title="Remove"
-                  >
-                    🗑️
-                  </button>
+                {editState.type === 'INT' && editState.index === idx ? (
+                  <input 
+                    autoFocus
+                    value={editState.value}
+                    onChange={(e) => setEditState({ ...editState, value: e.target.value })}
+                    onBlur={() => handleEditStatus('INT', idx, editState.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleEditStatus('INT', idx, editState.value)}
+                    style={{ flex: 1, marginRight: '1rem', padding: '0.4rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
+                  />
+                ) : (
+                  <span>{status}</span>
+                )}
+                {isAdmin && editState.type !== 'INT' && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      onClick={() => setEditState({ type: 'INT', index: idx, value: status })}
+                      style={{ background: 'transparent', border: 'none', color: '#10b981', cursor: 'pointer', padding: '0.2rem' }}
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      onClick={() => handleRemoveIntStatus(status)}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem' }}
+                      title="Remove"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 )}
               </li>
             ))}
@@ -274,7 +407,10 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
 
         {/* SFE Statuses Section */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <h3 style={{ color: 'var(--text-primary)', marginTop: 0, marginBottom: '1rem' }}>🎓 SFE Statuses</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ color: 'var(--text-primary)', margin: 0 }}>🎓 SFE Statuses</h3>
+            {isAdmin && <button onClick={() => handleResetToDefault('SFE')} style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', padding: '0.3rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Reset Defaults</button>}
+          </div>
           
           {isAdmin && (
             <form onSubmit={handleAddSfeStatus} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
@@ -299,15 +435,35 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {sfeStatuses.map((status, idx) => (
               <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '0.8rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-                <span>{status}</span>
-                {isAdmin && (
-                  <button 
-                    onClick={() => handleRemoveSfeStatus(status)}
-                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem' }}
-                    title="Remove"
-                  >
-                    🗑️
-                  </button>
+                {editState.type === 'SFE' && editState.index === idx ? (
+                  <input 
+                    autoFocus
+                    value={editState.value}
+                    onChange={(e) => setEditState({ ...editState, value: e.target.value })}
+                    onBlur={() => handleEditStatus('SFE', idx, editState.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleEditStatus('SFE', idx, editState.value)}
+                    style={{ flex: 1, marginRight: '1rem', padding: '0.4rem', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
+                  />
+                ) : (
+                  <span>{status}</span>
+                )}
+                {isAdmin && editState.type !== 'SFE' && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      onClick={() => setEditState({ type: 'SFE', index: idx, value: status })}
+                      style={{ background: 'transparent', border: 'none', color: '#8b5cf6', cursor: 'pointer', padding: '0.2rem' }}
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      onClick={() => handleRemoveSfeStatus(status)}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.2rem' }}
+                      title="Remove"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 )}
               </li>
             ))}

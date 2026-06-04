@@ -34,6 +34,9 @@ const ColumnManager = ({ currentUserRole, currentUser }) => {
   const [newColLabel, setNewColLabel] = useState('');
   const [newColFilterable, setNewColFilterable] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  const [editingColId, setEditingColId] = useState(null);
+  const [editingColValue, setEditingColValue] = useState('');
 
   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
 
@@ -110,6 +113,16 @@ const ColumnManager = ({ currentUserRole, currentUser }) => {
     // Update order values
     updated.forEach((c, idx) => c.order = idx);
     saveConfig(updated, `Moved column ${temp.label} down`);
+  };
+
+  const handleEditColumnName = (id, newName) => {
+    if (!isAdmin || !newName.trim()) {
+      setEditingColId(null);
+      return;
+    }
+    const updated = columns.map(c => c.id === id ? { ...c, label: newName.trim().toUpperCase() } : c);
+    saveConfig(updated, `Renamed column ${id} to ${newName}`);
+    setEditingColId(null);
   };
 
   const handleAddColumn = (e) => {
@@ -229,8 +242,24 @@ const ColumnManager = ({ currentUserRole, currentUser }) => {
                   {index + 1}
                 </td>
                 <td style={{ padding: '1rem', color: 'var(--text-primary)', fontWeight: 'bold' }}>
-                  {col.label || '(No Label)'}
-                  {col.isCustom && <span style={{ marginLeft: '0.5rem', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem' }}>Custom</span>}
+                  {editingColId === col.id ? (
+                    <input
+                      autoFocus
+                      value={editingColValue}
+                      onChange={e => setEditingColValue(e.target.value)}
+                      onBlur={() => handleEditColumnName(col.id, editingColValue)}
+                      onKeyDown={e => e.key === 'Enter' && handleEditColumnName(col.id, editingColValue)}
+                      style={{ padding: '0.4rem', width: '100%', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
+                    />
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>{col.label || '(No Label)'}</span>
+                      {isAdmin && (
+                        <button onClick={() => { setEditingColId(col.id); setEditingColValue(col.label); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }} title="Edit Name">✏️</button>
+                      )}
+                      {col.isCustom && <span style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '0.2rem 0.5rem', borderRadius: '12px', fontSize: '0.7rem' }}>Custom</span>}
+                    </div>
+                  )}
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <button 
