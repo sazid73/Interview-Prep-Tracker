@@ -648,7 +648,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
   };
 
   const renderAppStatusCell = (student) => {
-    const status = student.appStatus || 'Awaiting submission';
+    const status = student.appStatus || 'Assign for submission';
     
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minHeight: '1.5rem' }}>
@@ -1270,7 +1270,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Update Application Status</label>
                   <select 
-                    value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student.appStatus || 'Awaiting submission')}
+                    value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student.appStatus || 'Assign for submission')}
                     onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
                   >
@@ -1314,6 +1314,10 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                 {notesModal.fieldType === 'appStatus' && (
                   <button 
                     onClick={async () => {
+                      if (!notesModal.note || !notesModal.note.trim()) {
+                        alert("Please add a note explaining why this is urgent.");
+                        return;
+                      }
                       const newStatus = 'Urgent Submission';
                       const hField = 'appStatusHistory';
                       const newHistory = [...(notesModal.student[hField] || []), { status: newStatus, note: notesModal.note, timestamp: new Date().toLocaleString(), user: currentUser }];

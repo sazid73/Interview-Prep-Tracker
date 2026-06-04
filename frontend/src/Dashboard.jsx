@@ -284,8 +284,8 @@ const Dashboard = ({ currentUserRole }) => {
 
   const uniqueLogUsers = [...new Set(serverLogs.map(l => l.user).filter(Boolean))].sort();
 
-  const colAwaitingDocs = students.filter(s => s.appStatus?.toLowerCase() === 'awaiting admin docs');
-  const colAwaitingSub = students.filter(s => s.appStatus?.toLowerCase() === 'awaiting submission and qc' || s.appStatus?.toLowerCase() === 'awaiting submission');
+  const colAwaitingAssignments = students.filter(s => s.appStatus?.toLowerCase() === 'assign for submission');
+  const colSubmissionOngoing = students.filter(s => s.appStatus?.toLowerCase() === 'submission ongoing');
   const colUrgent = students.filter(s => s.appStatus?.toLowerCase() === 'urgent submission');
   const colCompleted = students.filter(s => s.appStatus?.toLowerCase() === 'submitted' || s.appStatus?.toLowerCase() === 'completed');
 
@@ -375,12 +375,12 @@ const Dashboard = ({ currentUserRole }) => {
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
             <div onClick={() => setShowAdminWorkflowModal('docs')} style={{ background: 'rgba(107, 114, 128, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #6b7280', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#6b7280' }}>{colAwaitingDocs.length}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Awaiting Docs</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#6b7280' }}>{colAwaitingAssignments.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Awaiting Assign</div>
             </div>
             <div onClick={() => setShowAdminWorkflowModal('sub')} style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #3b82f6', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{colAwaitingSub.length}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Awaiting Sub</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{colSubmissionOngoing.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Sub Ongoing</div>
             </div>
             <div onClick={() => setShowAdminWorkflowModal('urgent')} style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #ef4444', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{colUrgent.length}</div>
@@ -417,28 +417,28 @@ const Dashboard = ({ currentUserRole }) => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
                 
-                {/* Column 1: Awaiting Admin Docs */}
+                {/* Column 1: Awaiting App Assignments */}
                 {showAdminWorkflowModal === 'docs' && (
                   <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
                     <h4 style={{ margin: '0 0 1rem 0', color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Awaiting Admin Docs</span>
-                      <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAwaitingDocs.length}</span>
+                      <span>Awaiting App Assignments</span>
+                      <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAwaitingAssignments.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colAwaitingDocs.map(s => renderStudentCard(s, '#6b7280'))}
+                      {colAwaitingAssignments.map(s => renderStudentCard(s, '#6b7280'))}
                     </div>
                   </div>
                 )}
 
-                {/* Column 2: Awaiting Submission & QC */}
+                {/* Column 2: Submission Ongoing */}
                 {showAdminWorkflowModal === 'sub' && (
                   <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
                     <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Awaiting Sub & QC</span>
-                      <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAwaitingSub.length}</span>
+                      <span>Submission Ongoing</span>
+                      <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colSubmissionOngoing.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colAwaitingSub.map(s => renderStudentCard(s, '#3b82f6'))}
+                      {colSubmissionOngoing.map(s => renderStudentCard(s, '#3b82f6'))}
                     </div>
                   </div>
                 )}
@@ -991,7 +991,7 @@ const Dashboard = ({ currentUserRole }) => {
               <div style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>Change Application Status</h4>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {['Awaiting Admin Docs', 'Awaiting Submission and QC', 'Urgent Submission', 'Submitted'].map(status => (
+                  {['Assign for submission', 'Submission ongoing', 'Urgent Submission', 'Submitted'].map(status => (
                     <button
                       key={status}
                       onClick={() => handleAppStatusChange(status)}
