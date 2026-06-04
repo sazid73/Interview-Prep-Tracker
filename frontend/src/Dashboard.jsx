@@ -8,6 +8,7 @@ const Dashboard = ({ currentUserRole }) => {
   const [showRecruiterModal, setShowRecruiterModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showAdminTaskModal, setShowAdminTaskModal] = useState(false);
+  const [showAdminWorkflowModal, setShowAdminWorkflowModal] = useState(false);
   const [assignModal, setAssignModal] = useState({ show: false, student: null });
   const [adminTaskStatus, setAdminTaskStatus] = useState('Assigned'); // 'Assigned' or 'Completed'
   const [adminTaskTimeframe, setAdminTaskTimeframe] = useState('All'); // 'All', 'This Week', 'Today'
@@ -356,62 +357,115 @@ const Dashboard = ({ currentUserRole }) => {
         </div>
       </div>
 
-      {/* Admin Task Workflow Section */}
-      <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', marginTop: '2rem' }}>
-        <h3 style={{ marginTop: 0, color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          👨‍💼 Admin Submission Workflow
-        </h3>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-          Real-time tracking of application submissions. Click on a student card to assign tasks (CV, PS, QA, Sub) or change their status.
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', overflowX: 'auto' }}>
+      {/* Admin Task Workflow Widget Section */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', marginTop: '2rem' }}>
+        
+        {/* Admin Submission Workflow Widget */}
+        <div 
+          onClick={() => setShowAdminWorkflowModal(true)}
+          style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.1)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.05)'; }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+              👨‍💼 Admin Submissions
+            </h3>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click to view ➔</span>
+          </div>
           
-          {/* Column 1: Awaiting Admin Docs */}
-          <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Awaiting Admin Docs</span>
-              <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAwaitingDocs.length}</span>
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {colAwaitingDocs.map(s => renderStudentCard(s, '#6b7280'))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+            <div style={{ background: 'rgba(107, 114, 128, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #6b7280', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#6b7280' }}>{colAwaitingDocs.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Awaiting Docs</div>
+            </div>
+            <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #3b82f6', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{colAwaitingSub.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Awaiting Sub</div>
+            </div>
+            <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #ef4444', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{colUrgent.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Urgent</div>
+            </div>
+            <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{colCompleted.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Completed</div>
             </div>
           </div>
-
-          {/* Column 2: Awaiting Submission & QC */}
-          <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Awaiting Sub & QC</span>
-              <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAwaitingSub.length}</span>
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {colAwaitingSub.map(s => renderStudentCard(s, '#3b82f6'))}
-            </div>
+          <div style={{ marginTop: '1rem', height: '6px', background: 'var(--bg-color)', borderRadius: '3px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', background: '#10b981', width: `${students.length ? (colCompleted.length / students.length) * 100 : 0}%` }} />
           </div>
-
-          {/* Column 3: Urgent Submission */}
-          <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Urgent Submission</span>
-              <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colUrgent.length}</span>
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {colUrgent.map(s => renderStudentCard(s, '#ef4444'))}
-            </div>
-          </div>
-
-          {/* Column 4: Completed */}
-          <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Completed</span>
-              <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colCompleted.length}</span>
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {colCompleted.map(s => renderStudentCard(s, '#10b981'))}
-            </div>
+          <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+            {students.length ? Math.round((colCompleted.length / students.length) * 100) : 0}% completion rate
           </div>
         </div>
       </div>
+
+      {showAdminWorkflowModal && (
+        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1400px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                👨‍💼 Admin Submission Workflow
+              </h3>
+              <button onClick={() => setShowAdminWorkflowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+            </div>
+            
+            <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                Real-time tracking of application submissions. Click on a student card to assign tasks (CV, PS, QA, Sub) or change their status.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', overflowX: 'auto', minWidth: '1000px' }}>
+                
+                {/* Column 1: Awaiting Admin Docs */}
+                <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ margin: '0 0 1rem 0', color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Awaiting Admin Docs</span>
+                    <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAwaitingDocs.length}</span>
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {colAwaitingDocs.map(s => renderStudentCard(s, '#6b7280'))}
+                  </div>
+                </div>
+
+                {/* Column 2: Awaiting Submission & QC */}
+                <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Awaiting Sub & QC</span>
+                    <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAwaitingSub.length}</span>
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {colAwaitingSub.map(s => renderStudentCard(s, '#3b82f6'))}
+                  </div>
+                </div>
+
+                {/* Column 3: Urgent Submission */}
+                <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Urgent Submission</span>
+                    <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colUrgent.length}</span>
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {colUrgent.map(s => renderStudentCard(s, '#ef4444'))}
+                  </div>
+                </div>
+
+                {/* Column 4: Completed */}
+                <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Completed</span>
+                    <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colCompleted.length}</span>
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {colCompleted.map(s => renderStudentCard(s, '#10b981'))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showLogs && (
         <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
