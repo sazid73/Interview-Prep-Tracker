@@ -655,10 +655,30 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         <span 
           className="app-status-text"
           onClick={() => setNotesModal({ show: true, student, fieldType: 'appStatus', note: '', newValue: status })} 
-          style={{ cursor: 'pointer', color: (status === 'Submitted' || status === 'Completed') ? '#34d399' : (status === 'Submission ongoing' || status === 'Awaiting submission and QC') ? '#60a5fa' : '#fbbf24', fontWeight: 'bold' }}
+          style={{ cursor: 'pointer', color: (status === 'Submitted' || status === 'Completed') ? '#34d399' : (status === 'Submission ongoing' || status === 'Awaiting submission and QC') ? '#60a5fa' : (status === 'Urgent Submission') ? '#ef4444' : '#fbbf24', fontWeight: 'bold' }}
         >
           {status}
         </span>
+        <button 
+          title="Mark as Urgent" 
+          onClick={async (e) => {
+            e.stopPropagation();
+            if (window.confirm('Mark this application as Urgent Submission?')) {
+              const newStatus = 'Urgent Submission';
+              setStudents(students.map(s => s._id === student._id ? { ...s, appStatus: newStatus } : s));
+              try {
+                await fetch(`${API_BASE}/api/students/${student._id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ appStatus: newStatus })
+                });
+              } catch(e) { console.error(e); }
+            }
+          }}
+          style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 4px', opacity: status === 'Urgent Submission' ? 0.3 : 1 }}
+        >
+          🚨
+        </button>
         <button 
           title="View Assignments" 
           onClick={() => setChaserModal({ show: true, student, readOnly: true })} 
