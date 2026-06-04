@@ -655,19 +655,16 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         <span 
           className="app-status-text"
           onClick={() => setNotesModal({ show: true, student, fieldType: 'appStatus', note: '', newValue: status })} 
+          onContextMenu={(e) => {
+            e.preventDefault();
+            if (status === 'Submission ongoing' || status === 'Submitted') {
+              setChaserModal({ show: true, student, readOnly: true });
+            }
+          }}
           style={{ cursor: 'pointer', color: (status === 'Submitted' || status === 'Completed') ? '#34d399' : (status === 'Submission ongoing' || status === 'Awaiting submission and QC') ? '#60a5fa' : (status === 'Urgent Submission') ? '#ef4444' : '#fbbf24', fontWeight: 'bold' }}
         >
           {status}
         </span>
-        {(status === 'Submission ongoing' || status === 'Submitted') && (
-          <button 
-            title="View Assignments" 
-            onClick={() => setChaserModal({ show: true, student, readOnly: true })} 
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 4px' }}
-          >
-            👁️
-          </button>
-        )}
       </div>
     );
   };
