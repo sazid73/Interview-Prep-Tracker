@@ -120,13 +120,17 @@ const Dashboard = ({ currentUserRole }) => {
     }
   };
 
-  const handleSfeAssign = async (val) => {
+  const handleSfeAssignDropdown = async (val) => {
     const student = sfeAssignModal.student;
-    const newStatus = 'SFE Submitted - Docs Pending';
+    if (!student) return;
+    
+    // Only automatically change status to 'ongoing' if it was in 'Assign for SFE' or blank.
+    const newStatus = (!student.sfeStatus || student.sfeStatus === 'Assign for SFE') ? 'SFE Submitted - Docs Pending' : student.sfeStatus;
+    
     const currentChasers = student.chasers || { cv: '', ps: '', sub: '', qa: '', sfe: '' };
     const newChasers = { ...currentChasers, sfe: val };
     
-    setSfeAssignModal({ show: false, student: null });
+    setSfeAssignModal({ show: true, student: { ...student, chasers: newChasers, sfeStatus: newStatus } });
     setStudents(students.map(s => s._id === student._id ? { ...s, chasers: newChasers, sfeStatus: newStatus } : s));
     
     try {
@@ -138,7 +142,7 @@ const Dashboard = ({ currentUserRole }) => {
       fetch(`${API_BASE}/api/logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: 'Admin', action: 'Student Edit', details: `Assigned SFE to ${val} for ${student.name}` })
+        body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: 'Admin', action: 'Student Edit', details: `Assigned SFE to ${val || 'Unassigned'} for ${student.name}` })
       }).catch(e => console.error(e));
     } catch (err) {
       console.error(err);
@@ -223,11 +227,11 @@ const Dashboard = ({ currentUserRole }) => {
     } catch { return ''; }
   };
 
-  const getWeekNumber = (dateString) => {
+  const getWeekNumber = (dateVal) => {
     let day = 1; let month = 0; let year = 2026;
-    if (!dateString) return 1;
+    if (!dateVal) return 1;
     try {
-      const d = new Date(dateString);
+      const d = dateVal instanceof Date ? dateVal : new Date(dateVal);
       if (isNaN(d)) return 1;
       year = d.getFullYear(); month = d.getMonth(); day = d.getDate();
     } catch { return 1; }
@@ -358,13 +362,7 @@ const Dashboard = ({ currentUserRole }) => {
   const colIntPending = miInterviews.filter(i => ((i.status || '').toLowerCase() === 'pending' || (i.status || '').toLowerCase() === 'rescheduled') && !isDateMissed(i.date));
   const colIntMissed = miInterviews.filter(i => ((i.status || '').toLowerCase() === 'missed') || (((i.status || '').toLowerCase() === 'pending' || (i.status || '').toLowerCase() === 'rescheduled') && isDateMissed(i.date)));
 
-  const getWeekNumber = (dObj) => {
-    const day = dObj.getDay();
-    const date = dObj.getDate();
-    const firstDayOfMonth = new Date(dObj.getFullYear(), dObj.getMonth(), 1).getDay();
-    const offset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
-    return Math.ceil((date + offset) / 7);
-  };
+
 
   const isCurrentWeek = (dStr) => {
     if (!dStr) return false;
@@ -853,7 +851,7 @@ const Dashboard = ({ currentUserRole }) => {
                           <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeOngoing.length}</span>
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredSfeOngoing.map(s => renderStudentCard(s, '#3b82f6'))}
+                          {filteredSfeOngoing.map(s => renderStudentCard(s, '#3b82f6', (st) => setSfeAssignModal({ show: true, student: st })))}
                         </div>
                       </div>
                     )}
@@ -864,7 +862,7 @@ const Dashboard = ({ currentUserRole }) => {
                           <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeSubmitted.length}</span>
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredSfeSubmitted.map(s => renderStudentCard(s, '#f59e0b'))}
+                          {filteredSfeSubmitted.map(s => renderStudentCard(s, '#f59e0b', (st) => setSfeAssignModal({ show: true, student: st })))}
                         </div>
                       </div>
                     )}
@@ -877,13 +875,14 @@ const Dashboard = ({ currentUserRole }) => {
                           </h4>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredSfeApproved.map(s => renderStudentCard(s, '#10b981'))}
+                          {filteredSfeApproved.map(s => renderStudentCard(s, '#10b981', (st) => setSfeAssignModal({ show: true, student: st })))}
                         </div>
                       </div>
                     )}
                   </div>
                 );
               })()}
+            </div>
           </div>
         </div>
       )}
@@ -1109,25 +1108,36 @@ const Dashboard = ({ currentUserRole }) => {
       )}
 
       {sfeAssignModal.show && (
-        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '400px', width: '95%', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
-            <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+        <div className="dms-modal-overlay" style={{ zIndex: 3000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '500px', width: '90%', padding: '2rem', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Assign SFE Officer</h3>
               <button onClick={() => setSfeAssignModal({ show: false, student: null })} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
-            <div className="dms-modal-body" style={{ padding: '1.5rem' }}>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Assign SFE task for <strong>{sfeAssignModal.student?.name}</strong>:</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                {allUsers.filter(u => ['Dina', 'Saad', 'Apsara'].includes(u.name) || u.role?.toLowerCase().includes('sfe')).map(officer => (
-                  <button 
-                    key={officer._id} 
-                    onClick={() => handleSfeAssign(officer.name)} 
-                    style={{ padding: '0.8rem', fontSize: '1rem', background: 'var(--bg-surface-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px', cursor: 'pointer', textAlign: 'center' }}
-                  >
-                    Assign to {officer.name}
-                  </button>
-                ))}
+            
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              Assign SFE task for <strong style={{ color: 'var(--text-primary)' }}>{sfeAssignModal.student?.name}</strong>.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <label style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>💸 SFE Officer</label>
+                <select 
+                  value={(sfeAssignModal.student?.chasers && sfeAssignModal.student.chasers.sfe) || ''}
+                  onChange={(e) => handleSfeAssignDropdown(e.target.value)}
+                  disabled={['SFE Approved - Awaiting enrollment', 'Enrollment Done', 'SFE Approved - Deferred'].includes(sfeAssignModal.student?.sfeStatus)}
+                  style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '200px', opacity: ['SFE Approved - Awaiting enrollment', 'Enrollment Done', 'SFE Approved - Deferred'].includes(sfeAssignModal.student?.sfeStatus) ? 0.6 : 1 }}
+                >
+                  <option value="">Unassigned</option>
+                  {allUsers.filter(u => ['Dina', 'Saad', 'Apsara'].includes(u.name)).map(u => (
+                    <option key={u._id} value={u.name}>{u.name}</option>
+                  ))}
+                </select>
               </div>
+            </div>
+
+            <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setSfeAssignModal({ show: false, student: null })} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '0.6rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Done</button>
             </div>
           </div>
         </div>
