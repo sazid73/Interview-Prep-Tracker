@@ -35,6 +35,8 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
 
   const [collegeCourses, setCollegeCourses] = useState(defaultCollegeCourses);
   const [collegeResponsible, setCollegeResponsible] = useState({});
+  const [appStatuses, setAppStatuses] = useState(["Awaiting submission", "Submission ongoing", "Submitted"]);
+  const [intStatuses, setIntStatuses] = useState(["Interested and Responding", "Interested - Awaiting Docs", "Interested - Further Info Required", "Fully Enrolled", "Not eligible - Check Later", "Awaiting SFE", "Awaiting Prep"]);
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [newCourseInput, setNewCourseInput] = useState('');
   const [selectedConfigCollege, setSelectedConfigCollege] = useState('GBS');
@@ -94,6 +96,14 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
          const respConfig = data['COLLEGE_RESPONSIBLE'];
          if (respConfig && respConfig.slots && respConfig.slots[0] && respConfig.slots[0].text) {
            setCollegeResponsible(JSON.parse(respConfig.slots[0].text));
+         }
+         const appConfig = data['APP_STATUSES'];
+         if (appConfig && appConfig.slots && appConfig.slots[0] && appConfig.slots[0].text) {
+           setAppStatuses(JSON.parse(appConfig.slots[0].text));
+         }
+         const intConfig = data['INT_STATUSES'];
+         if (intConfig && intConfig.slots && intConfig.slots[0] && intConfig.slots[0].text) {
+           setIntStatuses(JSON.parse(intConfig.slots[0].text));
          }
       })
       .catch(e => console.error(e));
@@ -790,9 +800,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>App Status</label>
             <select value={filters.appStatus} onChange={e => setFilters({...filters, appStatus: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               <option value="">All</option>
-              <option value="Awaiting submission">Awaiting submission</option>
-              <option value="Submission ongoing">Submission ongoing</option>
-              <option value="Submitted">Submitted</option>
+              {appStatuses.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -813,7 +821,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Int Status</label>
             <select value={filters.intStatus} onChange={e => setFilters({...filters, intStatus: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               <option value="">All</option>
-              {uniqueIntStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+              {intStatuses.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -1158,9 +1166,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                   <div className="input-group">
                     <label>Application Status</label>
                     <select value={newStudent.appStatus || ''} onChange={e => setNewStudent({...newStudent, appStatus: e.target.value})}>
-                      <option value="Awaiting submission">Awaiting submission</option>
-                      <option value="Submission ongoing">Submission ongoing</option>
-                      <option value="Submitted">Submitted</option>
+                      {appStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                   <div className="input-group">
@@ -1301,13 +1307,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                     onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
                   >
-                     <option value="Interested and Responding">Interested and Responding</option>
-                     <option value="Interested - Awaiting Docs">Interested - Awaiting Docs</option>
-                     <option value="Interested - Further Info Required">Interested - Further Info Required</option>
-                     <option value="Fully Enrolled">Fully Enrolled</option>
-                     <option value="Not eligible - Check Later">Not eligible - Check Later</option>
-                     <option value="Awaiting SFE">Awaiting SFE</option>
-                     <option value="Awaiting Prep">Awaiting Prep</option>
+                     {intStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               ) : notesModal.fieldType === 'appStatus' ? (
@@ -1318,9 +1318,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                     onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
                   >
-                     <option value="Awaiting submission">Awaiting submission</option>
-                     <option value="Submission ongoing">Submission ongoing</option>
-                     <option value="Submitted">Submitted</option>
+                     {appStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
               ) : (
