@@ -20,7 +20,8 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setSidebarOpen }) => {
     { section: 'MANAGEMENT', items: [
       { id: 'weekly_wl', label: 'Weekly WL', icon: '📝' },
       { id: 'taskboard', label: 'Taskboard', icon: '📋' },
-      { id: 'status_manager', label: 'Status Manager', icon: '⚙️' }
+      { id: 'status_manager', label: 'Status Manager', icon: '⚙️' },
+      { id: 'column_manager', label: 'Column Manager', icon: '📊' }
     ]}
   ];
 

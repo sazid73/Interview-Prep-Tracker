@@ -10,6 +10,7 @@ import Dashboard from './Dashboard';
 import WeeklyWL from './WeeklyWL';
 import Taskboard from './Taskboard';
 import StatusManager from './StatusManager';
+import ColumnManager from './ColumnManager';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -1314,10 +1315,11 @@ function App() {
           {currentView === 'interviews' && <Interviews currentUser={currentUser} />}
           {currentView === 'course_campus' && <CourseAndCampus currentUserRole={currentUserRole} currentUser={currentUser} />}
           {currentView === 'status_manager' && <StatusManager currentUserRole={currentUserRole} currentUser={currentUser} />}
+          {currentView === 'column_manager' && <ColumnManager currentUserRole={currentUserRole} currentUser={currentUser} />}
           {currentView === 'weekly_wl' && <WeeklyWL currentUserRole={currentUserRole} currentUser={currentUser} />}
           {currentView === 'taskboard' && <Taskboard currentUser={currentUser} currentUserRole={currentUserRole} />}
           
-          {currentView !== 'dashboard' && currentView !== 'students' && currentView !== 'prep_interviews' && currentView !== 'interviews' && currentView !== 'course_campus' && currentView !== 'weekly_wl' && currentView !== 'taskboard' && currentView !== 'status_manager' && (
+          {currentView !== 'dashboard' && currentView !== 'students' && currentView !== 'prep_interviews' && currentView !== 'interviews' && currentView !== 'course_campus' && currentView !== 'weekly_wl' && currentView !== 'taskboard' && currentView !== 'status_manager' && currentView !== 'column_manager' && (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
               <h2>{currentView.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</h2>
               <p style={{ fontSize: '1.2rem', marginTop: '1rem' }}>This module is currently under construction.</p>

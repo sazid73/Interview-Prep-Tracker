@@ -166,7 +166,7 @@ const studentLeadSchema = new mongoose.Schema({
     qa: { type: String, default: '' },
     sub: { type: String, default: '' }
   }
-});
+}, { strict: false });
 const StudentLead = mongoose.model('StudentLead', studentLeadSchema);
 
 // 5. Tasks and Weekly WL

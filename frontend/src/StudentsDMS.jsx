@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './StudentsDMS.css';
 import './StudentsDMS_colors.css';
+import { defaultColumnsConfig } from './ColumnManager';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -17,8 +18,9 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
   const [routeModal, setRouteModal] = useState({ show: false, student: null });
   const [chaserModal, setChaserModal] = useState({ show: false, student: null, readOnly: false });
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({ appStatus: '', recruiter: '', session: '', intStatus: '', sfeStatus: '', agent: '', chaser: '', source: '', course: '', residential: '', location: '' });
+  const [filters, setFilters] = useState({});
   const [activeCollegeTab, setActiveCollegeTab] = useState('All Students');
+  const [tableColumns, setTableColumns] = useState(defaultColumnsConfig);
   const fileInputRef = useRef(null);
   
   const defaultCollegeCourses = {
@@ -110,6 +112,10 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
          const sfeConfig = data['SFE_STATUSES'];
          if (sfeConfig && sfeConfig.slots && sfeConfig.slots[0] && sfeConfig.slots[0].text) {
            setSfeStatuses(JSON.parse(sfeConfig.slots[0].text));
+         }
+         const colConfig = data['DMS_COLUMNS_CONFIG'];
+         if (colConfig && colConfig.slots && colConfig.slots[0] && colConfig.slots[0].text) {
+           setTableColumns(JSON.parse(colConfig.slots[0].text));
          }
       })
       .catch(e => console.error(e));
@@ -518,33 +524,24 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
       (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.studentId && s.studentId.includes(searchTerm));
     
-    // Dropdown Filters
-    const matchesApp = !filters.appStatus || s.appStatus === filters.appStatus;
-    const matchesRecruiter = !filters.recruiter || (s.recruiter && s.recruiter.includes(filters.recruiter));
-    const matchesSession = !filters.session || s.session === filters.session;
-    const matchesIntStatus = !filters.intStatus || s.intStatus === filters.intStatus;
-    const matchesSfeStatus = !filters.sfeStatus || s.sfeStatus === filters.sfeStatus;
-    const matchesAgent = !filters.agent || (s.agent && s.agent.toLowerCase().includes(filters.agent.toLowerCase()));
-    const matchesChaser = !filters.chaser || (s.chaser && s.chaser.toLowerCase().includes(filters.chaser.toLowerCase()));
-    const matchesSource = !filters.source || (s.source && s.source.toLowerCase().includes(filters.source.toLowerCase()));
-    const matchesCourse = !filters.course || (s.courseAndCampus1 && s.courseAndCampus1.toLowerCase().includes(filters.course.toLowerCase()));
-    const matchesResidential = !filters.residential || (s.residential && s.residential.toLowerCase() === filters.residential.toLowerCase());
-    const matchesLocation = !filters.location || (s.location && s.location.toLowerCase().includes(filters.location.toLowerCase()));
-
-    // College Tab Filter
-    let matchesCollege = true;
-    if (activeCollegeTab !== 'All Students') {
-      const course = (s.courseAndCampus1 || '').toLowerCase();
+    // Dynamic Filters
+    const visibleFilters = tableColumns.filter(c => c.filterable);
+    const matchesFilters = visibleFilters.every(col => {
+      if (!filters[col.id]) return true; // if filter is empty, it passes
       
-      // Handle special grouped Arden matches
-      if (activeCollegeTab === 'Arden') {
-        matchesCollege = course.includes('arden sky') || course.includes('arden bbsl') || course.includes('arden gva') || course.includes('arden');
-      } else {
-        matchesCollege = course.includes(activeCollegeTab.toLowerCase());
+      const filterVal = filters[col.id].toLowerCase();
+      const studentVal = (s[col.id] || '').toLowerCase();
+      
+      if (col.filterType === 'select') {
+        if (col.id === 'session' || col.id === 'appStatus' || col.id === 'intStatus' || col.id === 'sfeStatus' || col.id === 'residential') {
+           return studentVal === filterVal;
+        }
+        return studentVal.includes(filterVal);
       }
-    }
+      return studentVal.includes(filterVal);
+    });
 
-    return matchesSearch && matchesApp && matchesRecruiter && matchesSession && matchesCollege && matchesIntStatus && matchesSfeStatus && matchesAgent && matchesChaser && matchesSource && matchesCourse && matchesResidential && matchesLocation;
+    return matchesSearch && matchesCollege && matchesFilters;
   });
 
   const uniqueRecruiters = [...new Set(students.map(s => s.recruiter).filter(Boolean))];
@@ -763,6 +760,48 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
     return <span onClick={() => setEditingCell({ id: student._id, field })} style={{ cursor: 'text', display: 'block', minHeight: '1.5rem' }}>{student[field] || placeholder}</span>;
   };
 
+  const renderTableCell = (student, col) => {
+    switch (col.id) {
+      case 'checkbox': return <input type="checkbox" />;
+      case 'studentId': return <span className="id-col">{student.studentId}</span>;
+      case 'createdAt': return student.createdAt;
+      case 'modifiedAt': return student.modifiedAt;
+      case 'session': return <span className={student.session ? "session-badge" : ""}>{student.session}</span>;
+      case 'name': return <span className="name-col">{student.name}</span>;
+      case 'appStatus': return renderAppStatusCell(student);
+      case 'intStatus': return (
+        <span className="int-badge" onClick={() => setNotesModal({ show: true, student, fieldType: 'intStatus', note: '', newValue: student.intStatus || 'Interested and Responding' })} style={{ cursor: 'pointer' }}>
+          {student.intStatus || 'Interested'}
+        </span>
+      );
+      case 'sfeStatus': return (
+        <span className="int-badge" onClick={() => setNotesModal({ show: true, student, fieldType: 'sfeStatus', note: '', newValue: student.sfeStatus || 'Awaiting Trial SFE Approval' })} style={{ cursor: 'pointer', background: '#8b5cf6', color: '#fff' }}>
+          {student.sfeStatus || 'Awaiting'}
+        </span>
+      );
+      case 'appId': return <span style={{ color: '#818cf8' }}>{student.appId || '—'}</span>;
+      case 'clTime': return student.clTime || '—';
+      case 'route': return (
+        <div onClick={() => setRouteModal({ show: true, student })} style={{ cursor: 'pointer', background: 'var(--bg-surface-hover)', minWidth: '150px' }}>
+          {renderRouteCell(student)}
+        </div>
+      );
+      case 'docs': return <span className="docs-badge">📄 {student.docs || '0'}</span>;
+      case 'actions': return (
+        <div className="actions-cell">
+          <button className="action-btn view-btn" title="View" onClick={() => handleEditStudent(student, true)}>👁️</button>
+          <button className="action-btn edit-btn" title="Edit" onClick={() => handleEditStudent(student, false)}>✏️</button>
+          <button className="action-btn book-btn" title="Book Interview" onClick={() => setBookingModal({ show: true, student, date: '', time: '10:00', campus: '', notes: '' })}>💼</button>
+        </div>
+      );
+      default:
+        if (col.id === 'chaser') return renderCell(student, 'chaser', 'Click to assign');
+        return renderCell(student, col.id);
+    }
+  };
+
+  const visibleSortedColumns = tableColumns.filter(c => c.visible).sort((a,b) => a.order - b.order);
+
   return (
     <div className="dms-container">
       <div className="dms-accordion">
@@ -803,79 +842,190 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
 
       {showFilters && (
         <div style={{ padding: '1rem 1.5rem', background: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>App Status</label>
-            <select value={filters.appStatus} onChange={e => setFilters({...filters, appStatus: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-              <option value="">All</option>
-              {appStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Recruiter</label>
-            <select value={filters.recruiter} onChange={e => setFilters({...filters, recruiter: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-              <option value="">All</option>
-              {uniqueRecruiters.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Session</label>
-            <select value={filters.session} onChange={e => setFilters({...filters, session: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-              <option value="">All</option>
-              {uniqueSessions.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Int Status</label>
-            <select value={filters.intStatus} onChange={e => setFilters({...filters, intStatus: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-              <option value="">All</option>
-              {intStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>SFE Status</label>
-            <select value={filters.sfeStatus} onChange={e => setFilters({...filters, sfeStatus: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-              <option value="">All</option>
-              {sfeStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Agent</label>
-            <select value={filters.agent} onChange={e => setFilters({...filters, agent: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-              <option value="">All</option>
-              {uniqueAgents.map(a => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Chaser</label>
-            <select value={filters.chaser} onChange={e => setFilters({...filters, chaser: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-              <option value="">All</option>
-              {uniqueChasers.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Source</label>
-            <select value={filters.source} onChange={e => setFilters({...filters, source: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-              <option value="">All</option>
-              {uniqueSources.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Residential</label>
-            <select value={filters.residential} onChange={e => setFilters({...filters, residential: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-              <option value="">All</option>
-              {uniqueResidential.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Course</label>
-            <input type="text" value={filters.course} onChange={e => setFilters({...filters, course: e.target.value})} placeholder="Filter course..." style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '120px' }} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Location</label>
-            <input type="text" value={filters.location} onChange={e => setFilters({...filters, location: e.target.value})} placeholder="Filter location..." style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '120px' }} />
-          </div>
+          {tableColumns.filter(c => c.filterable).sort((a,b) => a.order - b.order).map(col => {
+            if (col.filterType === 'select') {
+              let options = [];
+              if (col.id === 'appStatus') options = appStatuses;
+              else if (col.id === 'intStatus') options = intStatuses;
+              else if (col.id === 'sfeStatus') options = sfeStatuses;
+              else if (col.id === 'recruiter') options = uniqueRecruiters;
+              else if (col.id === 'session') options = uniqueSessions;
+              else if (col.id === 'agent') options = uniqueAgents;
+              else if (col.id === 'chaser') options = uniqueChasers;
+              else if (col.id === 'source') options = uniqueSources;
+              else if (col.id === 'residential') options = uniqueResidential;
+              else options = [...new Set(students.map(s => s[col.id]).filter(Boolean))];
+
+              return (
+                <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{col.label}</label>
+                  <select value={filters[col.id] || ''} onChange={e => setFilters({...filters, [col.id]: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+                    <option value="">All</option>
+                    {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+              );
+            }
+            return (
+              <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{col.label}</label>
+                <input type="text" value={filters[col.id] || ''} onChange={e => setFilters({...filters, [col.id]: e.target.value})} placeholder={`Filter ${col.label.toLowerCase()}...`} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '120px' }} />
+              </div>
+            );
+          })}
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <button onClick={() => setFilters({ appStatus: '', recruiter: '', session: '', intStatus: '', sfeStatus: '', agent: '', chaser: '', source: '', course: '', residential: '', location: '' })} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
+            <button onClick={() => setFilters({})} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
+          </div>
+        </div>
+      )}
+
+      {/* Excel-style College Tabs */}
+      {activeCollegeTab !== 'All Students' && collegeResponsible[activeCollegeTab] && (
+        <div style={{ padding: '0.5rem 1.5rem', marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          👤 Responsible Person for {activeCollegeTab}: <strong style={{ color: 'var(--text-primary)' }}>{collegeResponsible[activeCollegeTab]}</strong>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: '0.2rem', overflowX: 'auto', padding: '0 1.5rem', marginTop: '0.5rem', borderBottom: `2px solid ${getTabStyle(activeCollegeTab).bg}`, scrollbarWidth: 'thin' }} className="college-tabs">
+        {collegeTabs.map(tab => {
+          const style = getTabStyle(tab);
+          const isActive = activeCollegeTab === tab;
+          return (
+            <button 
+              key={tab}
+              onClick={() => { setActiveCollegeTab(tab); setCurrentPage(1); }}
+              style={{ 
+                padding: '0.6rem 1.2rem', 
+                background: isActive ? style.bg : 'var(--bg-surface-hover)', 
+                color: isActive ? style.tabText : 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                borderBottom: 'none',
+                borderRadius: '8px 8px 0 0',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: isActive ? 'bold' : 'normal',
+                transition: 'background 0.2s',
+                minWidth: 'max-content',
+                ...(isActive && activeCollegeTab !== 'All Students' && { boxShadow: `0 -2px 10px rgba(0,0,0,0.1)` })
+              }}
+            >
+              {tab}
+            </button>
+          )
+        })}
+      </div>
+
+      <div 
+        className={`dms-table-wrapper ${activeCollegeTab !== 'All Students' ? 'colored-sheet-wrapper' : ''}`} 
+        style={{ 
+          marginTop: '0', 
+          borderTopLeftRadius: '0',
+          background: activeCollegeTab === 'All Students' ? 'var(--bg-surface)' : getTabStyle(activeCollegeTab).bg
+        }}
+      >
+  const renderTableCell = (student, col) => {
+    switch (col.id) {
+      case 'checkbox': return <input type="checkbox" />;
+      case 'studentId': return <span className="id-col">{student.studentId}</span>;
+      case 'createdAt': return student.createdAt;
+      case 'modifiedAt': return student.modifiedAt;
+      case 'session': return <span className={student.session ? "session-badge" : ""}>{student.session}</span>;
+      case 'name': return <span className="name-col">{student.name}</span>;
+      case 'appStatus': return renderAppStatusCell(student);
+      case 'intStatus': return (
+        <span className="int-badge" onClick={() => setNotesModal({ show: true, student, fieldType: 'intStatus', note: '', newValue: student.intStatus || 'Interested and Responding' })} style={{ cursor: 'pointer' }}>
+          {student.intStatus || 'Interested'}
+        </span>
+      );
+      case 'sfeStatus': return (
+        <span className="int-badge" onClick={() => setNotesModal({ show: true, student, fieldType: 'sfeStatus', note: '', newValue: student.sfeStatus || 'Awaiting Trial SFE Approval' })} style={{ cursor: 'pointer', background: '#8b5cf6', color: '#fff' }}>
+          {student.sfeStatus || 'Awaiting'}
+        </span>
+      );
+      case 'appId': return <span style={{ color: '#818cf8' }}>{student.appId || '—'}</span>;
+      case 'clTime': return student.clTime || '—';
+      case 'route': return (
+        <div onClick={() => setRouteModal({ show: true, student })} style={{ cursor: 'pointer', background: 'var(--bg-surface-hover)', minWidth: '150px' }}>
+          {renderRouteCell(student)}
+        </div>
+      );
+      case 'docs': return <span className="docs-badge">📄 {student.docs || '0'}</span>;
+      case 'actions': return (
+        <div className="actions-cell">
+          <button className="action-btn view-btn" title="View" onClick={() => handleEditStudent(student, true)}>👁️</button>
+          <button className="action-btn edit-btn" title="Edit" onClick={() => handleEditStudent(student, false)}>✏️</button>
+          <button className="action-btn book-btn" title="Book Interview" onClick={() => setBookingModal({ show: true, student, date: '', time: '10:00', campus: '', notes: '' })}>💼</button>
+        </div>
+      );
+      default:
+        if (col.id === 'chaser') return renderCell(student, 'chaser', 'Click to assign');
+        return renderCell(student, col.id);
+    }
+  };
+
+  const visibleSortedColumns = tableColumns.filter(c => c.visible).sort((a,b) => a.order - b.order);
+
+  return (
+    <div className="students-dms">
+      {/* Topbar / Header omitted here for brevity since it uses `currentView` in `App.jsx` Topbar */}
+
+      <div className="dms-toolbar">
+        <div className="toolbar-left">
+          <button className="btn-add" onClick={() => {
+            setNewStudent(initialStudentState);
+            setIsViewMode(false);
+            setActiveModalTab('Details');
+            setShowAddModal(true);
+          }}>+ Add New Student</button>
+          <button className="btn-filter" onClick={() => setShowFilters(!showFilters)}>
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
+        </div>
+        <div className="toolbar-right">
+          <input 
+            type="text" 
+            placeholder="Search by Name, Email, or ID..." 
+            className="dms-search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {showFilters && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', padding: '1rem 1.5rem', background: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-color)' }}>
+          {tableColumns.filter(c => c.filterable).sort((a,b) => a.order - b.order).map(col => {
+            if (col.filterType === 'select') {
+              let options = [];
+              if (col.id === 'appStatus') options = appStatuses;
+              else if (col.id === 'intStatus') options = intStatuses;
+              else if (col.id === 'sfeStatus') options = sfeStatuses;
+              else if (col.id === 'recruiter') options = uniqueRecruiters;
+              else if (col.id === 'session') options = uniqueSessions;
+              else if (col.id === 'agent') options = uniqueAgents;
+              else if (col.id === 'chaser') options = uniqueChasers;
+              else if (col.id === 'source') options = uniqueSources;
+              else if (col.id === 'residential') options = uniqueResidential;
+              else options = [...new Set(students.map(s => s[col.id]).filter(Boolean))];
+
+              return (
+                <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{col.label}</label>
+                  <select value={filters[col.id] || ''} onChange={e => setFilters({...filters, [col.id]: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+                    <option value="">All</option>
+                    {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+              );
+            }
+            return (
+              <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{col.label}</label>
+                <input type="text" value={filters[col.id] || ''} onChange={e => setFilters({...filters, [col.id]: e.target.value})} placeholder={`Filter ${col.label.toLowerCase()}...`} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', width: '120px' }} />
+              </div>
+            );
+          })}
+          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+            <button onClick={() => setFilters({})} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
           </div>
         </div>
       )}
@@ -926,87 +1076,20 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         <table className={`dms-table ${activeCollegeTab !== 'All Students' ? 'colored-sheet' : ''}`}>
           <thead>
             <tr>
-              <th><input type="checkbox" /></th>
-              <th>#</th>
-              <th>SOURCES</th>
-              <th>RECRUITER</th>
-              <th>CREATED</th>
-              <th>MODIFIED</th>
-              <th>SESSION</th>
-              <th>NAME</th>
-              <th>EMAIL</th>
-              <th>MOBILE</th>
-              <th>COURSE & CAMPUS 1</th>
-              <th>COURSE & CAMPUS 2</th>
-              <th>APP STATUS</th>
-              <th>INT STATUS</th>
-              <th>SFE STATUS</th>
-              <th>CHASER</th>
-              <th>AGENT</th>
-              <th>RESIDENTIAL</th>
-              <th>LOCATION</th>
-              <th>APPL ID</th>
-              <th>CL TIME</th>
-              <th>ROUTE</th>
-              <th>DOCS</th>
-              <th>ACTIONS</th>
+              {visibleSortedColumns.map(col => <th key={col.id}>{col.label}</th>)}
             </tr>
           </thead>
           <tbody>
             {filteredStudents.length === 0 && (
               <tr>
-                <td colSpan="23" style={{ textAlign: 'center', padding: '2rem' }}>No records found.</td>
+                <td colSpan={visibleSortedColumns.length} style={{ textAlign: 'center', padding: '2rem' }}>No records found.</td>
               </tr>
             )}
             {currentData.map((student, idx) => (
               <tr key={student._id || idx} className={student.statusType === 'red' ? 'row-red' : ''}>
-                <td><input type="checkbox" /></td>
-                <td className="id-col">{student.studentId}</td>
-                <td>{student.source || '—'}</td>
-                <td>{renderCell(student, 'recruiter')}</td>
-                <td>{student.createdAt}</td>
-                <td>{student.modifiedAt}</td>
-                <td>
-                  <span className={student.session ? "session-badge" : ""}>
-                    {student.session}
-                  </span>
-                </td>
-                <td className="name-col">{student.name}</td>
-                <td>{renderCell(student, 'email')}</td>
-                <td>{renderCell(student, 'mobile')}</td>
-                <td>{renderCell(student, 'courseAndCampus1')}</td>
-                <td>{renderCell(student, 'courseAndCampus2')}</td>
-                <td>{renderAppStatusCell(student)}</td>
-                <td>
-                  <span className="int-badge" onClick={() => setNotesModal({ show: true, student, fieldType: 'intStatus', note: '', newValue: student.intStatus || 'Interested and Responding' })} style={{ cursor: 'pointer' }}>
-                    {student.intStatus || 'Interested'}
-                  </span>
-                </td>
-                <td>
-                  <span className="int-badge" onClick={() => setNotesModal({ show: true, student, fieldType: 'sfeStatus', note: '', newValue: student.sfeStatus || 'Awaiting Trial SFE Approval' })} style={{ cursor: 'pointer', background: '#8b5cf6', color: '#fff' }}>
-                    {student.sfeStatus || 'Awaiting'}
-                  </span>
-                </td>
-                <td>{renderCell(student, 'chaser', 'Click to assign')}</td>
-                <td>{renderCell(student, 'agent')}</td>
-                <td>{renderCell(student, 'residential')}</td>
-                <td>{renderCell(student, 'location')}</td>
-                <td style={{ color: '#818cf8' }}>{student.appId || '—'}</td>
-                <td>{student.clTime || '—'}</td>
-                <td 
-                  onClick={() => setRouteModal({ show: true, student })} 
-                  style={{ cursor: 'pointer', background: 'var(--bg-surface-hover)', minWidth: '150px' }}
-                >
-                  {renderRouteCell(student)}
-                </td>
-                <td>
-                  <span className="docs-badge">📄 {student.docs || '0'}</span>
-                </td>
-                <td className="actions-cell">
-                  <button className="action-btn view-btn" title="View" onClick={() => handleEditStudent(student, true)}>👁️</button>
-                  <button className="action-btn edit-btn" title="Edit" onClick={() => handleEditStudent(student, false)}>✏️</button>
-                  <button className="action-btn book-btn" title="Book Interview" onClick={() => setBookingModal({ show: true, student, date: '', time: '10:00', campus: '', notes: '' })}>💼</button>
-                </td>
+                {visibleSortedColumns.map(col => (
+                  <td key={col.id}>{renderTableCell(student, col)}</td>
+                ))}
               </tr>
             ))}
           </tbody>
