@@ -524,6 +524,10 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
       (s.email && s.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.studentId && s.studentId.includes(searchTerm));
     
+    // College Tab Filter
+    const matchesCollege = activeCollegeTab === 'All Students' || 
+                           (s.courseAndCampus1 && s.courseAndCampus1.startsWith(activeCollegeTab));
+    
     // Dynamic Filters
     const visibleFilters = tableColumns.filter(c => c.filterable);
     const matchesFilters = visibleFilters.every(col => {
