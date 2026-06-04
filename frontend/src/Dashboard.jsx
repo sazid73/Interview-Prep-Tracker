@@ -366,11 +366,22 @@ const Dashboard = ({ currentUserRole }) => {
 
   const isCurrentWeek = (dStr) => {
     if (!dStr) return false;
-    const dObj = new Date(dStr);
-    if (isNaN(dObj.getTime())) return false;
+    const parts = dStr.split('-');
+    if (parts.length < 3) return false;
+    
+    const dObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
     const now = new Date();
-    if (dObj.getMonth() !== now.getMonth() || dObj.getFullYear() !== now.getFullYear()) return false;
-    return getWeekNumber(dObj) === getWeekNumber(now);
+    now.setHours(0,0,0,0);
+    
+    const currentDay = now.getDay();
+    const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - distanceToMonday);
+    
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    
+    return dObj >= monday && dObj <= sunday;
   };
 
   const prepGridCurrentWeek = prepGrid.filter(p => {
@@ -409,7 +420,7 @@ const Dashboard = ({ currentUserRole }) => {
   const colAlertRecruiter = students.filter(s => s.recruiter && (Date.now() - new Date(s.updatedAt || s.createdAt).getTime()) > 15 * 86400000 && s.appStatus !== 'Submitted');
   const colAlertChaser = students.filter(s => s.chaser && (Date.now() - new Date(s.updatedAt || s.createdAt).getTime()) > 3 * 86400000 && s.appStatus !== 'Submitted');
 
-  const renderStudentCard = (student, colColor, onClickOverride) => {
+  const renderStudentCard = (student, colColor, onClickOverride, mode = 'admin') => {
     const isUrgent = student.appStatus?.toLowerCase() === 'urgent submission';
     let urgentNote = '';
     if (isUrgent && student.appStatusHistory && student.appStatusHistory.length > 0) {
@@ -429,10 +440,16 @@ const Dashboard = ({ currentUserRole }) => {
           {student.courseAndCampus1 && <div style={{ marginBottom: '4px' }}>🎓 {student.courseAndCampus1}</div>}
           {student.chasers && Object.keys(student.chasers).some(k => student.chasers[k]) && (
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-              {student.chasers.cv && <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>CV: {student.chasers.cv.split(' ')[0]}</span>}
-              {student.chasers.ps && <span style={{ background: '#8b5cf6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>PS: {student.chasers.ps.split(' ')[0]}</span>}
-              {student.chasers.qa && <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>QA: {student.chasers.qa.split(' ')[0]}</span>}
-              {student.chasers.sub && <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>SUB: {student.chasers.sub.split(' ')[0]}</span>}
+              {mode === 'sfe' ? (
+                student.chasers.sfe && <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>SFE: {student.chasers.sfe.split(' ')[0]}</span>
+              ) : (
+                <>
+                  {student.chasers.cv && <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>CV: {student.chasers.cv.split(' ')[0]}</span>}
+                  {student.chasers.ps && <span style={{ background: '#8b5cf6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>PS: {student.chasers.ps.split(' ')[0]}</span>}
+                  {student.chasers.qa && <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>QA: {student.chasers.qa.split(' ')[0]}</span>}
+                  {student.chasers.sub && <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>SUB: {student.chasers.sub.split(' ')[0]}</span>}
+                </>
+              )}
             </div>
           )}
           {isUrgent && urgentNote && (
@@ -840,7 +857,7 @@ const Dashboard = ({ currentUserRole }) => {
                           <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeAwaiting.length}</span>
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredSfeAwaiting.map(s => renderStudentCard(s, '#6b7280', (st) => setSfeAssignModal({ show: true, student: st })))}
+                          {filteredSfeAwaiting.map(s => renderStudentCard(s, '#6b7280', (st) => setSfeAssignModal({ show: true, student: st }), 'sfe'))}
                         </div>
                       </div>
                     )}
@@ -851,7 +868,7 @@ const Dashboard = ({ currentUserRole }) => {
                           <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeOngoing.length}</span>
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredSfeOngoing.map(s => renderStudentCard(s, '#3b82f6', (st) => setSfeAssignModal({ show: true, student: st })))}
+                          {filteredSfeOngoing.map(s => renderStudentCard(s, '#3b82f6', (st) => setSfeAssignModal({ show: true, student: st }), 'sfe'))}
                         </div>
                       </div>
                     )}
@@ -862,7 +879,7 @@ const Dashboard = ({ currentUserRole }) => {
                           <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeSubmitted.length}</span>
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredSfeSubmitted.map(s => renderStudentCard(s, '#f59e0b', (st) => setSfeAssignModal({ show: true, student: st })))}
+                          {filteredSfeSubmitted.map(s => renderStudentCard(s, '#f59e0b', (st) => setSfeAssignModal({ show: true, student: st }), 'sfe'))}
                         </div>
                       </div>
                     )}
@@ -875,7 +892,7 @@ const Dashboard = ({ currentUserRole }) => {
                           </h4>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredSfeApproved.map(s => renderStudentCard(s, '#10b981', (st) => setSfeAssignModal({ show: true, student: st })))}
+                          {filteredSfeApproved.map(s => renderStudentCard(s, '#10b981', (st) => setSfeAssignModal({ show: true, student: st }), 'sfe'))}
                         </div>
                       </div>
                     )}
@@ -1129,7 +1146,7 @@ const Dashboard = ({ currentUserRole }) => {
                   style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '200px', opacity: ['SFE Approved - Awaiting enrollment', 'Enrollment Done', 'SFE Approved - Deferred'].includes(sfeAssignModal.student?.sfeStatus) ? 0.6 : 1 }}
                 >
                   <option value="">Unassigned</option>
-                  {allUsers.filter(u => ['Dina', 'Saad', 'Apsara'].includes(u.name)).map(u => (
+                  {allUsers.filter(u => ['dina', 'saad', 'apsara'].includes(u.name.toLowerCase())).map(u => (
                     <option key={u._id} value={u.name}>{u.name}</option>
                   ))}
                 </select>

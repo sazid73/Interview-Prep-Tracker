@@ -80,17 +80,17 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
   const [notesModal, setNotesModal] = useState({ show: false, student: null, fieldType: null, note: '' });
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/students`)
+    fetch(`${API_BASE}/api/students`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setStudents(data))
       .catch(err => console.error(err));
 
-    fetch(`${API_BASE}/api/users`)
+    fetch(`${API_BASE}/api/users`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setUsers(data))
       .catch(err => console.error(err));
 
-    fetch(`${API_BASE}/api/grid`)
+    fetch(`${API_BASE}/api/grid`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
          const courseConfig = data['COLLEGE_COURSES'];

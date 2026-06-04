@@ -88,7 +88,7 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
   const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/grid`)
+    fetch(`${API_BASE}/api/grid`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
          const appConfig = data['APP_STATUSES'];
