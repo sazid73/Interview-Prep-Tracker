@@ -13,6 +13,7 @@ const Dashboard = ({ currentUserRole }) => {
   const [showIntWorkflowModal, setShowIntWorkflowModal] = useState(false);
   const [showAlertsModal, setShowAlertsModal] = useState(false);
   const [assignModal, setAssignModal] = useState({ show: false, student: null });
+  const [sfeAssignModal, setSfeAssignModal] = useState({ show: false, student: null });
   const [adminTaskStatus, setAdminTaskStatus] = useState('Assigned'); // 'Assigned' or 'Completed'
   const [adminTaskTimeframe, setAdminTaskTimeframe] = useState('All'); // 'All', 'This Week', 'Today'
   const [showLogs, setShowLogs] = useState(false);
@@ -36,6 +37,10 @@ const Dashboard = ({ currentUserRole }) => {
   const [newUserRole, setNewUserRole] = useState('recruiter');
   const [newUserError, setNewUserError] = useState('');
 
+  const [miInterviews, setMiInterviews] = useState([]);
+  const [prepGrid, setPrepGrid] = useState([]);
+  const [showPrepModal, setShowPrepModal] = useState(false);
+
   useEffect(() => {
     fetch(`${API_BASE}/api/students`)
       .then(res => res.json())
@@ -47,6 +52,21 @@ const Dashboard = ({ currentUserRole }) => {
       .then(data => {
         setAdminUsersList(data);
         setAllUsers(data);
+      })
+      .catch(err => console.error(err));
+
+    fetch(`${API_BASE}/api/interviews`)
+      .then(res => res.json())
+      .then(data => setMiInterviews(data))
+      .catch(err => console.error(err));
+
+    fetch(`${API_BASE}/api/grid`)
+      .then(res => res.json())
+      .then(data => {
+         const prepConfig = data['PREP_INTERVIEWS'];
+         if (prepConfig && prepConfig.slots) {
+           setPrepGrid(prepConfig.slots);
+         }
       })
       .catch(err => console.error(err));
   }, []);
@@ -84,6 +104,31 @@ const Dashboard = ({ currentUserRole }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: 'Admin', action: 'Student Edit', details: `Assigned ${type} to ${val} for ${student.name}` })
+      }).catch(e => console.error(e));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSfeAssign = async (val) => {
+    const student = sfeAssignModal.student;
+    const newStatus = 'SFE Submitted - Docs Pending';
+    const currentChasers = student.chasers || { cv: '', ps: '', sub: '', qa: '', sfe: '' };
+    const newChasers = { ...currentChasers, sfe: val };
+    
+    setSfeAssignModal({ show: false, student: null });
+    setStudents(students.map(s => s._id === student._id ? { ...s, chasers: newChasers, sfeStatus: newStatus } : s));
+    
+    try {
+      await fetch(`${API_BASE}/api/students/${student._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chasers: newChasers, sfeStatus: newStatus })
+      });
+      fetch(`${API_BASE}/api/logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: 'Admin', action: 'Student Edit', details: `Assigned SFE to ${val} for ${student.name}` })
       }).catch(e => console.error(e));
     } catch (err) {
       console.error(err);
@@ -292,21 +337,25 @@ const Dashboard = ({ currentUserRole }) => {
   const colUrgent = students.filter(s => s.isUrgent === true && s.appStatus !== 'Submitted' && s.appStatus !== 'Completed');
   const colCompleted = students.filter(s => s.appStatus?.toLowerCase() === 'submitted' || s.appStatus?.toLowerCase() === 'completed');
 
-  const colSfeAwaiting = students.filter(s => s.sfeStatus === 'Awaiting Trial SFE Approval');
+  const colSfeAwaiting = students.filter(s => s.sfeStatus === 'Assign for SFE' || s.sfeStatus === 'Awaiting Trial SFE Approval');
   const colSfeOngoing = students.filter(s => s.sfeStatus === 'Trial SFE submitted' || s.sfeStatus === 'Trial SFE Approved' || s.sfeStatus === 'SFE Submitted - Docs Pending');
   const colSfeSubmitted = students.filter(s => s.sfeStatus === 'SFE Submitted - Awaiting Approval');
   const colSfeApproved = students.filter(s => s.sfeStatus === 'SFE Approved - Awaiting enrollment' || s.sfeStatus === 'Enrollment Done' || s.sfeStatus === 'SFE Approved - Deferred');
 
   const isDateMissed = (dateStr) => dateStr && new Date(dateStr) < new Date(new Date().setHours(0,0,0,0));
-  const colIntPassed = students.filter(s => s.intStatus?.toLowerCase().includes('passed') || s.intStatus?.toLowerCase().includes('fully enrolled'));
-  const colIntFailed = students.filter(s => s.intStatus?.toLowerCase().includes('fail') || s.intStatus?.toLowerCase().includes('decline'));
-  const colIntPending = students.filter(s => (s.intStatus?.toLowerCase().includes('awaiting actual interview') || s.intStatus?.toLowerCase().includes('awaiting interview result')) && !isDateMissed(s.interviewDate || s.actualInterviewDate));
-  const colIntMissed = students.filter(s => (s.intStatus?.toLowerCase().includes('awaiting actual interview') || s.intStatus?.toLowerCase().includes('awaiting interview result')) && isDateMissed(s.interviewDate || s.actualInterviewDate));
+  const colIntPassed = miInterviews.filter(i => (i.status || '').toLowerCase() === 'pass');
+  const colIntFailed = miInterviews.filter(i => (i.status || '').toLowerCase() === 'failed');
+  const colIntPending = miInterviews.filter(i => ((i.status || '').toLowerCase() === 'pending' || (i.status || '').toLowerCase() === 'rescheduled') && !isDateMissed(i.date));
+  const colIntMissed = miInterviews.filter(i => ((i.status || '').toLowerCase() === 'missed') || (((i.status || '').toLowerCase() === 'pending' || (i.status || '').toLowerCase() === 'rescheduled') && isDateMissed(i.date)));
+
+  const prepsDone = prepGrid.filter(p => (p.status || '').toLowerCase() === 'done' || (p.status || '').toLowerCase() === 'pass');
+  const prepsMissed = prepGrid.filter(p => (p.status || '').toLowerCase() === 'missed');
+  const prepsRescheduled = prepGrid.filter(p => (p.status || '').toLowerCase() === 'rescheduled');
 
   const colAlertRecruiter = students.filter(s => s.recruiter && (Date.now() - new Date(s.updatedAt || s.createdAt).getTime()) > 15 * 86400000 && s.appStatus !== 'Submitted');
   const colAlertChaser = students.filter(s => s.chaser && (Date.now() - new Date(s.updatedAt || s.createdAt).getTime()) > 3 * 86400000 && s.appStatus !== 'Submitted');
 
-  const renderStudentCard = (student, colColor) => {
+  const renderStudentCard = (student, colColor, onClickOverride) => {
     const isUrgent = student.appStatus?.toLowerCase() === 'urgent submission';
     let urgentNote = '';
     if (isUrgent && student.appStatusHistory && student.appStatusHistory.length > 0) {
@@ -317,7 +366,7 @@ const Dashboard = ({ currentUserRole }) => {
     }
 
     return (
-      <div key={student._id} onClick={() => setAssignModal({ show: true, student })} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${colColor}`, cursor: 'pointer', marginBottom: '0.8rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+      <div key={student._id} onClick={() => onClickOverride ? onClickOverride(student) : setAssignModal({ show: true, student })} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${colColor}`, cursor: 'pointer', marginBottom: '0.8rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
           <strong style={{ color: 'var(--text-primary)' }}>{student.name}</strong>
           <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{student.studentId}</span>
@@ -337,6 +386,41 @@ const Dashboard = ({ currentUserRole }) => {
               🚨 {urgentNote}
             </div>
           )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderInterviewCard = (interview, colColor) => {
+    return (
+      <div key={interview._id} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${colColor}`, marginBottom: '0.8rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+          <strong style={{ color: 'var(--text-primary)' }}>{interview.studentName}</strong>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{interview.date ? new Date(interview.date).toLocaleDateString() : 'No Date'}</span>
+        </div>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          <div style={{ marginBottom: '4px' }}>🎓 {interview.college} {interview.subject ? `- ${interview.subject}` : ''}</div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+            {interview.recruiter && <span style={{ background: '#8b5cf6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>Recruiter: {interview.recruiter.split(' ')[0]}</span>}
+          </div>
+          {interview.comments && (
+            <div style={{ marginTop: '0.8rem', padding: '0.5rem', background: 'rgba(245, 158, 11, 0.1)', borderLeft: '3px solid #f59e0b', borderRadius: '4px', fontSize: '0.75rem', color: '#f59e0b', fontStyle: 'italic', fontWeight: '500' }}>
+              💬 {interview.comments}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderPrepCard = (prep, colColor) => {
+    return (
+      <div key={prep.rowId + '-' + prep.colId} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${colColor}`, marginBottom: '0.8rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+          <strong style={{ color: 'var(--text-primary)' }}>{prep.text || 'Unnamed Student'}</strong>
+        </div>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          {prep.employeeDoneBy && <div style={{ marginBottom: '4px' }}>👨‍💼 Done By: {prep.employeeDoneBy}</div>}
         </div>
       </div>
     );
@@ -490,6 +574,31 @@ const Dashboard = ({ currentUserRole }) => {
           </div>
         </div>
 
+        {/* Prep Tracking Widget */}
+        <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+              🎯 Prep Tracking
+            </h3>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click metrics to view ➔</span>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+            <div onClick={() => setShowPrepModal('done')} style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{prepsDone.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Done</div>
+            </div>
+            <div onClick={() => setShowPrepModal('missed')} style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #ef4444', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{prepsMissed.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Missed</div>
+            </div>
+            <div onClick={() => setShowPrepModal('rescheduled')} style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #3b82f6', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{prepsRescheduled.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Rescheduled</div>
+            </div>
+          </div>
+        </div>
+
         {/* SLA Alerts Widget */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -621,7 +730,7 @@ const Dashboard = ({ currentUserRole }) => {
                       <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colSfeAwaiting.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colSfeAwaiting.map(s => renderStudentCard(s, '#6b7280'))}
+                      {colSfeAwaiting.map(s => renderStudentCard(s, '#6b7280', (st) => setSfeAssignModal({ show: true, student: st })))}
                     </div>
                   </div>
                 )}
@@ -682,7 +791,7 @@ const Dashboard = ({ currentUserRole }) => {
                       <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colIntPending.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colIntPending.map(s => renderStudentCard(s, '#3b82f6'))}
+                      {colIntPending.map(s => renderInterviewCard(s, '#3b82f6'))}
                     </div>
                   </div>
                 )}
@@ -693,7 +802,7 @@ const Dashboard = ({ currentUserRole }) => {
                       <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colIntPassed.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colIntPassed.map(s => renderStudentCard(s, '#10b981'))}
+                      {colIntPassed.map(s => renderInterviewCard(s, '#10b981'))}
                     </div>
                   </div>
                 )}
@@ -704,7 +813,7 @@ const Dashboard = ({ currentUserRole }) => {
                       <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colIntFailed.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colIntFailed.map(s => renderStudentCard(s, '#f59e0b'))}
+                      {colIntFailed.map(s => renderInterviewCard(s, '#f59e0b'))}
                     </div>
                   </div>
                 )}
@@ -715,7 +824,7 @@ const Dashboard = ({ currentUserRole }) => {
                       <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colIntMissed.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colIntMissed.map(s => renderStudentCard(s, '#ef4444'))}
+                      {colIntMissed.map(s => renderInterviewCard(s, '#ef4444'))}
                     </div>
                   </div>
                 )}
@@ -758,6 +867,81 @@ const Dashboard = ({ currentUserRole }) => {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPrepModal && (
+        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1400px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🎯 Prep Tracking
+              </h3>
+              <button onClick={() => setShowPrepModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+            </div>
+            <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
+                {showPrepModal === 'done' && (
+                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Preps Done</span>
+                      <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{prepsDone.length}</span>
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                      {prepsDone.map(p => renderPrepCard(p, '#10b981'))}
+                    </div>
+                  </div>
+                )}
+                {showPrepModal === 'missed' && (
+                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Preps Missed</span>
+                      <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{prepsMissed.length}</span>
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                      {prepsMissed.map(p => renderPrepCard(p, '#ef4444'))}
+                    </div>
+                  </div>
+                )}
+                {showPrepModal === 'rescheduled' && (
+                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Preps Rescheduled</span>
+                      <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{prepsRescheduled.length}</span>
+                    </h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                      {prepsRescheduled.map(p => renderPrepCard(p, '#3b82f6'))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sfeAssignModal.show && (
+        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '400px', width: '95%', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Assign SFE Officer</h3>
+              <button onClick={() => setSfeAssignModal({ show: false, student: null })} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+            </div>
+            <div className="dms-modal-body" style={{ padding: '1.5rem' }}>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Assign SFE task for <strong>{sfeAssignModal.student?.name}</strong>:</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                {['Dina', 'Saad', 'Apsara'].map(officer => (
+                  <button 
+                    key={officer} 
+                    onClick={() => handleSfeAssign(officer)} 
+                    style={{ padding: '0.8rem', fontSize: '1rem', background: 'var(--bg-surface-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px', cursor: 'pointer', textAlign: 'center' }}
+                  >
+                    Assign to {officer}
+                  </button>
+                ))}
               </div>
             </div>
           </div>

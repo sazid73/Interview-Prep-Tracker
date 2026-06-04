@@ -61,6 +61,7 @@ const defaultIntStatuses = [
 ];
 
 const defaultSfeStatuses = [
+  "Assign for SFE",
   "Awaiting Trial SFE Approval",
   "Trial SFE submitted",
   "Trial SFE Approved",
