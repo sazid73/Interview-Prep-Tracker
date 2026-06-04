@@ -44,12 +44,12 @@ const Dashboard = ({ currentUserRole }) => {
   const [showPrepModal, setShowPrepModal] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/students`)
+    fetch(`${API_BASE}/api/students`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setStudents(data))
       .catch(err => console.error(err));
 
-    fetch(`${API_BASE}/api/users`)
+    fetch(`${API_BASE}/api/users`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setAdminUsersList(data);
@@ -57,12 +57,12 @@ const Dashboard = ({ currentUserRole }) => {
       })
       .catch(err => console.error(err));
 
-    fetch(`${API_BASE}/api/interviews`)
+    fetch(`${API_BASE}/api/interviews`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setMiInterviews(data))
       .catch(err => console.error(err));
 
-    fetch(`${API_BASE}/api/grid`)
+    fetch(`${API_BASE}/api/grid`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
          let allPreps = [];
@@ -125,7 +125,7 @@ const Dashboard = ({ currentUserRole }) => {
     if (!student) return;
     
     // Only automatically change status to 'ongoing' if it was in 'Assign for SFE' or blank.
-    const newStatus = (!student.sfeStatus || student.sfeStatus === 'Assign for SFE') ? 'SFE Submitted - Docs Pending' : student.sfeStatus;
+    const newStatus = (!student.sfeStatus || student.sfeStatus === 'Assign for SFE') ? 'SFE ongoing' : student.sfeStatus;
     
     const currentChasers = student.chasers || { cv: '', ps: '', sub: '', qa: '', sfe: '' };
     const newChasers = { ...currentChasers, sfe: val };
@@ -166,6 +166,29 @@ const Dashboard = ({ currentUserRole }) => {
       console.error(err);
     }
     setAssignModal({ show: false, student: null });
+  };
+
+  const handleSfeStatusAction = async (newStatus, confirmMsg) => {
+    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    const student = sfeAssignModal.student;
+    
+    setStudents(students.map(s => s._id === student._id ? { ...s, sfeStatus: newStatus } : s));
+    
+    try {
+      await fetch(`${API_BASE}/api/students/${student._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sfeStatus: newStatus })
+      });
+      fetch(`${API_BASE}/api/logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: 'Admin', action: 'Student Edit', details: `Updated SFE Status to ${newStatus} for ${student.name}` })
+      }).catch(e => console.error(e));
+    } catch (err) {
+      console.error(err);
+    }
+    setSfeAssignModal({ show: false, student: null });
   };
 
   // Admin Management Functions
@@ -352,9 +375,10 @@ const Dashboard = ({ currentUserRole }) => {
   const colCompleted = students.filter(s => s.appStatus?.toLowerCase() === 'submitted' || s.appStatus?.toLowerCase() === 'completed');
 
   const colSfeAwaiting = students.filter(s => s.sfeStatus === 'Assign for SFE' || s.sfeStatus === 'Awaiting Trial SFE Approval');
-  const colSfeOngoing = students.filter(s => s.sfeStatus === 'Trial SFE submitted' || s.sfeStatus === 'Trial SFE Approved' || s.sfeStatus === 'SFE Submitted - Docs Pending');
-  const colSfeSubmitted = students.filter(s => s.sfeStatus === 'SFE Submitted - Awaiting Approval');
-  const colSfeApproved = students.filter(s => s.sfeStatus === 'SFE Approved - Awaiting enrollment' || s.sfeStatus === 'Enrollment Done' || s.sfeStatus === 'SFE Approved - Deferred');
+  const colSfeOngoing = students.filter(s => s.sfeStatus === 'SFE ongoing' || s.sfeStatus === 'Trial SFE submitted' || s.sfeStatus === 'Trial SFE Approved' || s.sfeStatus === 'SFE Submitted - Docs Pending');
+  const colSfeUrgent = students.filter(s => s.sfeStatus === 'Urgent SFE' || s.sfeStatus === 'Urgent SFE ongoing');
+  const colSfeSubmitted = students.filter(s => s.sfeStatus === 'SFE submitted' || s.sfeStatus === 'SFE Submitted - Awaiting Approval');
+  const colSfeApproved = students.filter(s => s.sfeStatus === 'SFE approved' || s.sfeStatus === 'SFE Approved - Awaiting enrollment' || s.sfeStatus === 'Enrollment Done' || s.sfeStatus === 'SFE Approved - Deferred');
 
   const isDateMissed = (dateStr) => dateStr && new Date(dateStr) < new Date(new Date().setHours(0,0,0,0));
   const colIntPassed = miInterviews.filter(i => (i.status || '').toLowerCase() === 'pass');
@@ -396,7 +420,7 @@ const Dashboard = ({ currentUserRole }) => {
   const prepTotal = prepsDone.length + prepsMissed.length + prepsRescheduled.length;
   const prepCompletionRate = prepTotal > 0 ? Math.round((prepsDone.length / prepTotal) * 100) : 0;
 
-  const sfeTotal = colSfeAwaiting.length + colSfeOngoing.length + colSfeSubmitted.length + colSfeApproved.length;
+  const sfeTotal = colSfeAwaiting.length + colSfeOngoing.length + colSfeUrgent.length + colSfeSubmitted.length + colSfeApproved.length;
   const sfeCompletionRate = sfeTotal > 0 ? Math.round((colSfeApproved.length / sfeTotal) * 100) : 0;
 
   const intTotal = colIntPassed.length + colIntFailed.length + colIntMissed.length;
@@ -605,14 +629,19 @@ const Dashboard = ({ currentUserRole }) => {
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{colSfeOngoing.length}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>SFE Ongoing</div>
             </div>
+            <div onClick={() => setShowSfeWorkflowModal('urgent')} style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #ef4444', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{colSfeUrgent.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Urgent</div>
+            </div>
             <div onClick={() => setShowSfeWorkflowModal('submitted')} style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #f59e0b', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{colSfeSubmitted.length}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>SFE Submitted</div>
             </div>
-            <div onClick={() => setShowSfeWorkflowModal('approved')} style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{colSfeApproved.length}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>SFE Approved</div>
-            </div>
+          </div>
+          
+          <div onClick={() => setShowSfeWorkflowModal('approved')} style={{ marginTop: '0.8rem', background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+             <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{colSfeApproved.length}</div>
+             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>SFE Approved</div>
           </div>
           
           <div style={{ marginTop: '1rem' }}>
@@ -846,6 +875,7 @@ const Dashboard = ({ currentUserRole }) => {
                 const dateExtractor = s => s.updatedAt || s.createdAt;
                 const filteredSfeAwaiting = applyModalFilter(colSfeAwaiting, dateExtractor);
                 const filteredSfeOngoing = applyModalFilter(colSfeOngoing, dateExtractor);
+                const filteredSfeUrgent = applyModalFilter(colSfeUrgent, dateExtractor);
                 const filteredSfeSubmitted = applyModalFilter(colSfeSubmitted, dateExtractor);
                 const filteredSfeApproved = applyModalFilter(colSfeApproved, dateExtractor);
                 return (
@@ -869,6 +899,17 @@ const Dashboard = ({ currentUserRole }) => {
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                           {filteredSfeOngoing.map(s => renderStudentCard(s, '#3b82f6', (st) => setSfeAssignModal({ show: true, student: st }), 'sfe'))}
+                        </div>
+                      </div>
+                    )}
+                    {showSfeWorkflowModal === 'urgent' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Urgent SFE</span>
+                          <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeUrgent.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredSfeUrgent.map(s => renderStudentCard(s, '#ef4444', (st) => setSfeAssignModal({ show: true, student: st }), 'sfe'))}
                         </div>
                       </div>
                     )}
@@ -1153,8 +1194,29 @@ const Dashboard = ({ currentUserRole }) => {
               </div>
             </div>
 
-            <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setSfeAssignModal({ show: false, student: null })} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '0.6rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Done</button>
+            {(sfeAssignModal.student?.chasers && sfeAssignModal.student.chasers.sfe) && (
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                {(sfeAssignModal.student?.sfeStatus === 'SFE ongoing' || sfeAssignModal.student?.sfeStatus === 'Urgent SFE ongoing' || sfeAssignModal.student?.sfeStatus === 'Urgent SFE') ? (
+                  <button 
+                    onClick={() => handleSfeStatusAction('SFE submitted', 'Are you sure you want to mark this SFE task as Submitted?')}
+                    style={{ flex: 1, background: '#f59e0b', color: '#fff', border: 'none', padding: '0.8rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Mark as Submitted
+                  </button>
+                ) : null}
+                {sfeAssignModal.student?.sfeStatus === 'SFE submitted' ? (
+                  <button 
+                    onClick={() => handleSfeStatusAction('SFE approved', 'Are you sure you want to mark this SFE as Approved?')}
+                    style={{ flex: 1, background: '#10b981', color: '#fff', border: 'none', padding: '0.8rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Mark as Approved
+                  </button>
+                ) : null}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setSfeAssignModal({ show: false, student: null })} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.6rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Close</button>
             </div>
           </div>
         </div>
