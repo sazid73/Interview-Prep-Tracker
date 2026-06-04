@@ -21,8 +21,8 @@ const Dashboard = ({ currentUserRole }) => {
   const [analyticsWeek, setAnalyticsWeek] = useState('All');
   const [completedMonthFilter, setCompletedMonthFilter] = useState('All');
   const [completedWeekFilter, setCompletedWeekFilter] = useState('All');
-  const [sfeApprovedMonth, setSfeApprovedMonth] = useState('All');
-  const [sfeApprovedWeek, setSfeApprovedWeek] = useState('All');
+  const [modalFilterMonth, setModalFilterMonth] = useState('All');
+  const [modalFilterWeek, setModalFilterWeek] = useState('All');
   const [recruiterMonth, setRecruiterMonth] = useState('All');
   const [serverLogs, setServerLogs] = useState([]);
   const [logsTab, setLogsTab] = useState('Prep Tracker');
@@ -358,9 +358,34 @@ const Dashboard = ({ currentUserRole }) => {
   const colIntPending = miInterviews.filter(i => ((i.status || '').toLowerCase() === 'pending' || (i.status || '').toLowerCase() === 'rescheduled') && !isDateMissed(i.date));
   const colIntMissed = miInterviews.filter(i => ((i.status || '').toLowerCase() === 'missed') || (((i.status || '').toLowerCase() === 'pending' || (i.status || '').toLowerCase() === 'rescheduled') && isDateMissed(i.date)));
 
-  const prepsDone = prepGrid.filter(p => (p.status || '').toLowerCase() === 'done' || (p.status || '').toLowerCase() === 'pass');
-  const prepsMissed = prepGrid.filter(p => (p.status || '').toLowerCase() === 'missed');
-  const prepsRescheduled = prepGrid.filter(p => (p.status || '').toLowerCase() === 'rescheduled');
+  const getWeekNumber = (dObj) => {
+    const day = dObj.getDay();
+    const date = dObj.getDate();
+    const firstDayOfMonth = new Date(dObj.getFullYear(), dObj.getMonth(), 1).getDay();
+    const offset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+    return Math.ceil((date + offset) / 7);
+  };
+
+  const isCurrentWeek = (dStr) => {
+    if (!dStr) return false;
+    const dObj = new Date(dStr);
+    if (isNaN(dObj.getTime())) return false;
+    const now = new Date();
+    if (dObj.getMonth() !== now.getMonth() || dObj.getFullYear() !== now.getFullYear()) return false;
+    return getWeekNumber(dObj) === getWeekNumber(now);
+  };
+
+  const prepGridCurrentWeek = prepGrid.filter(p => {
+    const parts = p.keyStr.split('-');
+    return isCurrentWeek(`${parts[0]}-${parts[1]}-${parts[2]}`);
+  });
+
+  const prepsDone = prepGridCurrentWeek.filter(p => (p.status || '').toLowerCase() === 'done' || (p.status || '').toLowerCase() === 'pass');
+  const prepsMissed = prepGridCurrentWeek.filter(p => (p.status || '').toLowerCase() === 'missed');
+  const prepsRescheduled = prepGridCurrentWeek.filter(p => (p.status || '').toLowerCase() === 'rescheduled');
+
+  const prepTotal = prepsDone.length + prepsMissed.length + prepsRescheduled.length;
+  const prepCompletionRate = prepTotal > 0 ? Math.round((prepsDone.length / prepTotal) * 100) : 0;
 
   const sfeTotal = colSfeAwaiting.length + colSfeOngoing.length + colSfeSubmitted.length + colSfeApproved.length;
   const sfeCompletionRate = sfeTotal > 0 ? Math.round((colSfeApproved.length / sfeTotal) * 100) : 0;
@@ -368,20 +393,20 @@ const Dashboard = ({ currentUserRole }) => {
   const intTotal = colIntPassed.length + colIntFailed.length + colIntMissed.length;
   const intCompletionRate = intTotal > 0 ? Math.round((colIntPassed.length / intTotal) * 100) : 0;
 
-  const filteredSfeApproved = colSfeApproved.filter(s => {
-    if (sfeApprovedMonth === 'All') return true;
-    const sDate = s.updatedAt || s.createdAt;
-    if (!sDate) return false;
-    const dateObj = new Date(sDate);
-    if (dateObj.toLocaleString('default', { month: 'short' }) !== sfeApprovedMonth) return false;
-    
-    if (sfeApprovedWeek !== 'All') {
-       const d = dateObj.getDate();
-       const w = Math.ceil(d / 7);
-       return w.toString() === sfeApprovedWeek.replace('Week ', '');
-    }
-    return true;
-  });
+  const applyModalFilter = (list, dateExtractor) => {
+    return list.filter(item => {
+      const dStr = dateExtractor(item);
+      if (!dStr) return modalFilterMonth === 'All' && modalFilterWeek === 'All';
+      
+      const dObj = new Date(dStr);
+      if (isNaN(dObj.getTime())) return modalFilterMonth === 'All' && modalFilterWeek === 'All';
+
+      if (modalFilterMonth !== 'All' && dObj.toLocaleString('default', { month: 'short' }) !== modalFilterMonth) return false;
+      if (modalFilterWeek !== 'All' && getWeekNumber(dObj).toString() !== modalFilterWeek.replace('Week ', '')) return false;
+      
+      return true;
+    });
+  };
 
   const colAlertRecruiter = students.filter(s => s.recruiter && (Date.now() - new Date(s.updatedAt || s.createdAt).getTime()) > 15 * 86400000 && s.appStatus !== 'Submitted');
   const colAlertChaser = students.filter(s => s.chaser && (Date.now() - new Date(s.updatedAt || s.createdAt).getTime()) > 3 * 86400000 && s.appStatus !== 'Submitted');
@@ -591,7 +616,7 @@ const Dashboard = ({ currentUserRole }) => {
                 🎤 Interview Tracking
               </h3>
             </div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Click metrics to view ➔</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', marginLeft: '1rem' }}>Click metrics to view ➔</span>
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
@@ -624,10 +649,12 @@ const Dashboard = ({ currentUserRole }) => {
         {/* Prep Tracking Widget */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
-              🎯 Prep Tracking
-            </h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click metrics to view ➔</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+                🎯 Prep Tracking
+              </h3>
+            </div>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', marginLeft: '1rem' }}>Click metrics to view ➔</span>
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
@@ -643,6 +670,13 @@ const Dashboard = ({ currentUserRole }) => {
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{prepsRescheduled.length}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Rescheduled</div>
             </div>
+          </div>
+          
+          <div style={{ marginTop: '1rem' }}>
+            <div style={{ background: 'var(--bg-color)', borderRadius: '999px', height: '8px', width: '100%', overflow: 'hidden' }}>
+              <div style={{ background: '#10b981', height: '100%', width: `${prepCompletionRate}%`, transition: 'width 0.3s' }}></div>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>{prepCompletionRate}% completion rate (this week)</div>
           </div>
         </div>
 
@@ -763,87 +797,93 @@ const Dashboard = ({ currentUserRole }) => {
         <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1400px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
             <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                💸 SFE Workflow
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  💸 SFE Workflow
+                </h3>
+                <select 
+                  value={modalFilterMonth}
+                  onChange={e => setModalFilterMonth(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="All">All Months</option>
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <select 
+                  value={modalFilterWeek}
+                  onChange={e => setModalFilterWeek(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="All">All Weeks</option>
+                  <option value="Week 1">Week 1</option>
+                  <option value="Week 2">Week 2</option>
+                  <option value="Week 3">Week 3</option>
+                  <option value="Week 4">Week 4</option>
+                  <option value="Week 5">Week 5</option>
+                </select>
+              </div>
               <button onClick={() => setShowSfeWorkflowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
             <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
-                {showSfeWorkflowModal === 'awaiting' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Awaiting SFE</span>
-                      <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colSfeAwaiting.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colSfeAwaiting.map(s => renderStudentCard(s, '#6b7280', (st) => setSfeAssignModal({ show: true, student: st })))}
-                    </div>
-                  </div>
-                )}
-                {showSfeWorkflowModal === 'ongoing' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>SFE Ongoing</span>
-                      <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colSfeOngoing.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colSfeOngoing.map(s => renderStudentCard(s, '#3b82f6'))}
-                    </div>
-                  </div>
-                )}
-                {showSfeWorkflowModal === 'submitted' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>SFE Submitted</span>
-                      <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colSfeSubmitted.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colSfeSubmitted.map(s => renderStudentCard(s, '#f59e0b'))}
-                    </div>
-                  </div>
-                )}
-                {/* Column 4: SFE Approved */}
-                {showSfeWorkflowModal === 'approved' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem' }}>
-                      <h4 style={{ margin: 0, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span>SFE Approved</span>
-                        <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeApproved.length}</span>
-                      </h4>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <select 
-                          value={sfeApprovedMonth}
-                          onChange={e => setSfeApprovedMonth(e.target.value)}
-                          style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
-                        >
-                          <option value="All">All Months</option>
-                          {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
-                            <option key={m} value={m}>{m}</option>
-                          ))}
-                        </select>
-                        <select 
-                          value={sfeApprovedWeek}
-                          onChange={e => setSfeApprovedWeek(e.target.value)}
-                          style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
-                        >
-                          <option value="All">All Weeks</option>
-                          <option value="Week 1">Week 1</option>
-                          <option value="Week 2">Week 2</option>
-                          <option value="Week 3">Week 3</option>
-                          <option value="Week 4">Week 4</option>
-                          <option value="Week 5">Week 5</option>
-                        </select>
+              {(() => {
+                const dateExtractor = s => s.updatedAt || s.createdAt;
+                const filteredSfeAwaiting = applyModalFilter(colSfeAwaiting, dateExtractor);
+                const filteredSfeOngoing = applyModalFilter(colSfeOngoing, dateExtractor);
+                const filteredSfeSubmitted = applyModalFilter(colSfeSubmitted, dateExtractor);
+                const filteredSfeApproved = applyModalFilter(colSfeApproved, dateExtractor);
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
+                    {showSfeWorkflowModal === 'awaiting' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Awaiting SFE</span>
+                          <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeAwaiting.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredSfeAwaiting.map(s => renderStudentCard(s, '#6b7280', (st) => setSfeAssignModal({ show: true, student: st })))}
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {filteredSfeApproved.map(s => renderStudentCard(s, '#10b981'))}
-                    </div>
+                    )}
+                    {showSfeWorkflowModal === 'ongoing' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>SFE Ongoing</span>
+                          <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeOngoing.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredSfeOngoing.map(s => renderStudentCard(s, '#3b82f6'))}
+                        </div>
+                      </div>
+                    )}
+                    {showSfeWorkflowModal === 'submitted' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>SFE Submitted</span>
+                          <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeSubmitted.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredSfeSubmitted.map(s => renderStudentCard(s, '#f59e0b'))}
+                        </div>
+                      </div>
+                    )}
+                    {showSfeWorkflowModal === 'approved' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem' }}>
+                          <h4 style={{ margin: 0, color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>SFE Approved</span>
+                            <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeApproved.length}</span>
+                          </h4>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredSfeApproved.map(s => renderStudentCard(s, '#10b981'))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                );
+              })()}
           </div>
         </div>
       )}
@@ -852,58 +892,91 @@ const Dashboard = ({ currentUserRole }) => {
         <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1400px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
             <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🎤 Interview Tracking
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🎤 Interview Tracking
+                </h3>
+                <select 
+                  value={modalFilterMonth}
+                  onChange={e => setModalFilterMonth(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="All">All Months</option>
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <select 
+                  value={modalFilterWeek}
+                  onChange={e => setModalFilterWeek(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="All">All Weeks</option>
+                  <option value="Week 1">Week 1</option>
+                  <option value="Week 2">Week 2</option>
+                  <option value="Week 3">Week 3</option>
+                  <option value="Week 4">Week 4</option>
+                  <option value="Week 5">Week 5</option>
+                </select>
+              </div>
               <button onClick={() => setShowIntWorkflowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
             <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
-                {showIntWorkflowModal === 'pending' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Pending Interviews</span>
-                      <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colIntPending.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colIntPending.map(s => renderInterviewCard(s, '#3b82f6'))}
-                    </div>
+              {(() => {
+                const dateExtractor = i => i.date;
+                const filteredIntPending = applyModalFilter(colIntPending, dateExtractor);
+                const filteredIntPassed = applyModalFilter(colIntPassed, dateExtractor);
+                const filteredIntFailed = applyModalFilter(colIntFailed, dateExtractor);
+                const filteredIntMissed = applyModalFilter(colIntMissed, dateExtractor);
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
+                    {showIntWorkflowModal === 'pending' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Pending Interviews</span>
+                          <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredIntPending.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredIntPending.map(s => renderInterviewCard(s, '#3b82f6'))}
+                        </div>
+                      </div>
+                    )}
+                    {showIntWorkflowModal === 'passed' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Passed Interviews</span>
+                          <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredIntPassed.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredIntPassed.map(s => renderInterviewCard(s, '#10b981'))}
+                        </div>
+                      </div>
+                    )}
+                    {showIntWorkflowModal === 'failed' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Failed Interviews</span>
+                          <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredIntFailed.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredIntFailed.map(s => renderInterviewCard(s, '#f59e0b'))}
+                        </div>
+                      </div>
+                    )}
+                    {showIntWorkflowModal === 'missed' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Missed Interviews</span>
+                          <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredIntMissed.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredIntMissed.map(s => renderInterviewCard(s, '#ef4444'))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-                {showIntWorkflowModal === 'passed' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Passed Interviews</span>
-                      <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colIntPassed.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colIntPassed.map(s => renderInterviewCard(s, '#10b981'))}
-                    </div>
-                  </div>
-                )}
-                {showIntWorkflowModal === 'failed' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Failed Interviews</span>
-                      <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colIntFailed.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colIntFailed.map(s => renderInterviewCard(s, '#f59e0b'))}
-                    </div>
-                  </div>
-                )}
-                {showIntWorkflowModal === 'missed' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Missed Interviews</span>
-                      <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colIntMissed.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colIntMissed.map(s => renderInterviewCard(s, '#ef4444'))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -952,47 +1025,84 @@ const Dashboard = ({ currentUserRole }) => {
         <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1400px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
             <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🎯 Prep Tracking
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🎯 Prep Tracking
+                </h3>
+                <select 
+                  value={modalFilterMonth}
+                  onChange={e => setModalFilterMonth(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="All">All Months</option>
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <select 
+                  value={modalFilterWeek}
+                  onChange={e => setModalFilterWeek(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="All">All Weeks</option>
+                  <option value="Week 1">Week 1</option>
+                  <option value="Week 2">Week 2</option>
+                  <option value="Week 3">Week 3</option>
+                  <option value="Week 4">Week 4</option>
+                  <option value="Week 5">Week 5</option>
+                </select>
+              </div>
               <button onClick={() => setShowPrepModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
             <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
-                {showPrepModal === 'done' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Preps Done</span>
-                      <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{prepsDone.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {prepsDone.map(p => renderPrepCard(p, '#10b981'))}
-                    </div>
+              {(() => {
+                const dateExtractor = p => {
+                  if (!p.keyStr) return null;
+                  const parts = p.keyStr.split('-');
+                  if (parts.length < 3) return null;
+                  return `${parts[0]}-${parts[1]}-${parts[2]}`;
+                };
+                const filteredPrepsDone = applyModalFilter(prepsDone, dateExtractor);
+                const filteredPrepsMissed = applyModalFilter(prepsMissed, dateExtractor);
+                const filteredPrepsRescheduled = applyModalFilter(prepsRescheduled, dateExtractor);
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
+                    {showPrepModal === 'done' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Preps Done</span>
+                          <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredPrepsDone.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredPrepsDone.map(p => renderPrepCard(p, '#10b981'))}
+                        </div>
+                      </div>
+                    )}
+                    {showPrepModal === 'missed' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Preps Missed</span>
+                          <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredPrepsMissed.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredPrepsMissed.map(p => renderPrepCard(p, '#ef4444'))}
+                        </div>
+                      </div>
+                    )}
+                    {showPrepModal === 'rescheduled' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Preps Rescheduled</span>
+                          <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredPrepsRescheduled.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredPrepsRescheduled.map(p => renderPrepCard(p, '#3b82f6'))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-                {showPrepModal === 'missed' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Preps Missed</span>
-                      <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{prepsMissed.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {prepsMissed.map(p => renderPrepCard(p, '#ef4444'))}
-                    </div>
-                  </div>
-                )}
-                {showPrepModal === 'rescheduled' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Preps Rescheduled</span>
-                      <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{prepsRescheduled.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {prepsRescheduled.map(p => renderPrepCard(p, '#3b82f6'))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
           </div>
         </div>
