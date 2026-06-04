@@ -659,33 +659,15 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         >
           {status}
         </span>
-        <button 
-          title="Mark as Urgent" 
-          onClick={async (e) => {
-            e.stopPropagation();
-            if (window.confirm('Mark this application as Urgent Submission?')) {
-              const newStatus = 'Urgent Submission';
-              setStudents(students.map(s => s._id === student._id ? { ...s, appStatus: newStatus } : s));
-              try {
-                await fetch(`${API_BASE}/api/students/${student._id}`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ appStatus: newStatus })
-                });
-              } catch(e) { console.error(e); }
-            }
-          }}
-          style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 4px', opacity: status === 'Urgent Submission' ? 0.3 : 1 }}
-        >
-          🚨
-        </button>
-        <button 
-          title="View Assignments" 
-          onClick={() => setChaserModal({ show: true, student, readOnly: true })} 
-          style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 4px' }}
-        >
-          👁️
-        </button>
+        {(status === 'Submission ongoing' || status === 'Submitted') && (
+          <button 
+            title="View Assignments" 
+            onClick={() => setChaserModal({ show: true, student, readOnly: true })} 
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 4px' }}
+          >
+            👁️
+          </button>
+        )}
       </div>
     );
   };
@@ -1322,13 +1304,31 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                 <button 
                   onClick={handleNotesModalSave}
-                  style={{ flex: 1, background: 'var(--accent-color)', color: '#fff', border: 'none', padding: '0.75rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                  style={{ flex: 1, minWidth: '200px', background: 'var(--accent-color)', color: '#fff', border: 'none', padding: '0.75rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
                 >
                   💾 Save Changes
                 </button>
+                {notesModal.fieldType === 'appStatus' && (
+                  <button 
+                    onClick={async () => {
+                      const newStatus = 'Urgent Submission';
+                      const hField = 'appStatusHistory';
+                      const newHistory = [...(notesModal.student[hField] || []), { status: newStatus, note: notesModal.note, timestamp: new Date().toLocaleString(), user: currentUser }];
+                      const updated = { ...notesModal.student, appStatus: newStatus, [hField]: newHistory };
+                      setStudents(students.map(s => s._id === updated._id ? updated : s));
+                      setNotesModal({ show: false, student: null, fieldType: null, note: '', newValue: undefined });
+                      try {
+                        await fetch(`${API_BASE}/api/students/${updated._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ appStatus: newStatus, [hField]: newHistory }) });
+                      } catch (e) { console.error(e); }
+                    }}
+                    style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    🚨 Mark as Urgent
+                  </button>
+                )}
                 <button 
                   onClick={() => setNotesModal({ show: false, student: null, fieldType: null, note: '', newValue: undefined })}
                   style={{ background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.75rem 1.5rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}

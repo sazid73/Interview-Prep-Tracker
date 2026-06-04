@@ -14,6 +14,9 @@ const Dashboard = ({ currentUserRole }) => {
   const [adminTaskTimeframe, setAdminTaskTimeframe] = useState('All'); // 'All', 'This Week', 'Today'
   const [showLogs, setShowLogs] = useState(false);
   const [analyticsMonth, setAnalyticsMonth] = useState('All');
+  const [analyticsWeek, setAnalyticsWeek] = useState('All');
+  const [completedMonthFilter, setCompletedMonthFilter] = useState('All');
+  const [completedWeekFilter, setCompletedWeekFilter] = useState('All');
   const [recruiterMonth, setRecruiterMonth] = useState('All');
   const [serverLogs, setServerLogs] = useState([]);
   const [logsTab, setLogsTab] = useState('Prep Tracker');
@@ -60,17 +63,19 @@ const Dashboard = ({ currentUserRole }) => {
 
   const handleDashboardChaserChange = async (type, val) => {
     const student = assignModal.student;
+    const isCompleted = student.appStatus === 'Submitted';
+    const newStatus = isCompleted ? 'Submitted' : 'Submission ongoing';
     const currentChasers = student.chasers || { cv: '', ps: '', sub: '', qa: '' };
     const newChasers = { ...currentChasers, [type]: val };
     
-    setAssignModal({ show: true, student: { ...student, chasers: newChasers } });
-    setStudents(students.map(s => s._id === student._id ? { ...s, chasers: newChasers } : s));
+    setAssignModal({ show: true, student: { ...student, chasers: newChasers, appStatus: newStatus } });
+    setStudents(students.map(s => s._id === student._id ? { ...s, chasers: newChasers, appStatus: newStatus } : s));
     
     try {
       await fetch(`${API_BASE}/api/students/${student._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chasers: newChasers })
+        body: JSON.stringify({ chasers: newChasers, appStatus: newStatus })
       });
       fetch(`${API_BASE}/api/logs`, {
         method: 'POST',
@@ -83,6 +88,9 @@ const Dashboard = ({ currentUserRole }) => {
   };
 
   const handleAppStatusChange = async (newStatus) => {
+    if (newStatus === 'Submitted') {
+      if (!window.confirm("Are you sure you want to mark this submission as completed? This action will finalize the application status.")) return;
+    }
     const student = assignModal.student;
     setStudents(students.map(s => s._id === student._id ? { ...s, appStatus: newStatus } : s));
     
@@ -176,7 +184,11 @@ const Dashboard = ({ currentUserRole }) => {
 
   const getAdminStats = () => {
     const stats = {};
-    const filtered = analyticsMonth === 'All' ? students : students.filter(s => getMonthYear(s.createdAt) === analyticsMonth);
+    const filtered = students.filter(s => {
+      if (analyticsMonth !== 'All' && getMonthYear(s.createdAt) !== analyticsMonth) return false;
+      if (analyticsWeek !== 'All' && getWeekNumber(s.createdAt).toString() !== analyticsWeek) return false;
+      return true;
+    });
     
     filtered.forEach(s => {
       if (s.appStatus !== 'Submitted') return;
@@ -445,17 +457,34 @@ const Dashboard = ({ currentUserRole }) => {
                 )}
 
                 {/* Column 4: Completed */}
-                {showAdminWorkflowModal === 'completed' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Completed / Submitted</span>
-                      <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colCompleted.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colCompleted.map(s => renderStudentCard(s, '#10b981'))}
+                {showAdminWorkflowModal === 'completed' && (() => {
+                  const filteredCompleted = colCompleted.filter(s => {
+                    if (completedMonthFilter !== 'All' && getMonthYear(s.createdAt) !== completedMonthFilter) return false;
+                    if (completedWeekFilter !== 'All' && getWeekNumber(s.createdAt).toString() !== completedWeekFilter) return false;
+                    return true;
+                  });
+                  return (
+                    <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                      <div style={{ margin: '0 0 1rem 0', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <h4 style={{ margin: 0, color: '#10b981' }}>Completed / Submitted</h4>
+                          <select value={completedMonthFilter} onChange={e => setCompletedMonthFilter(e.target.value)} style={{ padding: '0.2rem', borderRadius: '4px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+                            <option value="All">All Months</option>
+                            {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
+                          </select>
+                          <select value={completedWeekFilter} onChange={e => setCompletedWeekFilter(e.target.value)} style={{ padding: '0.2rem', borderRadius: '4px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+                            <option value="All">All Weeks</option>
+                            {[1,2,3,4,5].map(w => <option key={w} value={w}>Week {w}</option>)}
+                          </select>
+                        </div>
+                        <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredCompleted.length}</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                        {filteredCompleted.map(s => renderStudentCard(s, '#10b981'))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -550,6 +579,14 @@ const Dashboard = ({ currentUserRole }) => {
                 >
                   <option value="All">All Months</option>
                   {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <select 
+                  value={analyticsWeek} 
+                  onChange={e => setAnalyticsWeek(e.target.value)}
+                  style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.4rem', borderRadius: '6px' }}
+                >
+                  <option value="All">All Weeks</option>
+                  {[1,2,3,4,5].map(w => <option key={w} value={w}>Week {w}</option>)}
                 </select>
               </div>
               <button onClick={() => setShowAnalyticsModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
@@ -932,15 +969,16 @@ const Dashboard = ({ currentUserRole }) => {
               {[
                 { type: 'cv', label: '📝 CV Writer' },
                 { type: 'ps', label: '📄 PS Writer' },
-                { type: 'qa', label: '✅ QA Officer' },
-                { type: 'sub', label: '📤 Submission Officer' }
+                { type: 'qa', label: '✅ QA Maker' },
+                { type: 'sub', label: '📤 Submission & QC Checker' }
               ].map(({ type, label }) => (
                 <div key={type} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <label style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{label}</label>
                   <select 
                     value={(assignModal.student.chasers && assignModal.student.chasers[type]) || ''}
                     onChange={(e) => handleDashboardChaserChange(type, e.target.value)}
-                    style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '200px' }}
+                    disabled={assignModal.student.appStatus === 'Submitted'}
+                    style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '200px', opacity: assignModal.student.appStatus === 'Submitted' ? 0.6 : 1 }}
                   >
                     <option value="">Unassigned</option>
                     {allUsers.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
@@ -949,25 +987,27 @@ const Dashboard = ({ currentUserRole }) => {
               ))}
             </div>
 
-            <div style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>Change Application Status</h4>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {['Awaiting Admin Docs', 'Awaiting Submission and QC', 'Urgent Submission', 'Submitted'].map(status => (
-                  <button
-                    key={status}
-                    onClick={() => handleAppStatusChange(status)}
-                    style={{ 
-                      padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold',
-                      background: assignModal.student.appStatus?.toLowerCase() === status.toLowerCase() ? '#3b82f6' : 'var(--bg-surface)',
-                      color: assignModal.student.appStatus?.toLowerCase() === status.toLowerCase() ? '#fff' : 'var(--text-primary)',
-                      border: '1px solid var(--border-color)'
-                    }}
-                  >
-                    {status === 'Submitted' ? 'Completed / Submitted' : status}
-                  </button>
-                ))}
+            {assignModal.student.appStatus !== 'Submitted' && (
+              <div style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>Change Application Status</h4>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {['Awaiting Admin Docs', 'Awaiting Submission and QC', 'Urgent Submission', 'Submitted'].map(status => (
+                    <button
+                      key={status}
+                      onClick={() => handleAppStatusChange(status)}
+                      style={{ 
+                        padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold',
+                        background: assignModal.student.appStatus?.toLowerCase() === status.toLowerCase() ? '#3b82f6' : 'var(--bg-surface)',
+                        color: assignModal.student.appStatus?.toLowerCase() === status.toLowerCase() ? '#fff' : 'var(--text-primary)',
+                        border: '1px solid var(--border-color)'
+                      }}
+                    >
+                      {status === 'Submitted' ? 'Completed / Submitted' : status}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             
             <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setAssignModal({ show: false, student: null })} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '0.6rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Done</button>
