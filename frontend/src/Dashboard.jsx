@@ -289,25 +289,41 @@ const Dashboard = ({ currentUserRole }) => {
   const colUrgent = students.filter(s => s.appStatus?.toLowerCase() === 'urgent submission');
   const colCompleted = students.filter(s => s.appStatus?.toLowerCase() === 'submitted' || s.appStatus?.toLowerCase() === 'completed');
 
-  const renderStudentCard = (student, colColor) => (
-    <div key={student._id} onClick={() => setAssignModal({ show: true, student })} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${colColor}`, cursor: 'pointer', marginBottom: '0.8rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-        <strong style={{ color: 'var(--text-primary)' }}>{student.name}</strong>
-        <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{student.studentId}</span>
+  const renderStudentCard = (student, colColor) => {
+    const isUrgent = student.appStatus?.toLowerCase() === 'urgent submission';
+    let urgentNote = '';
+    if (isUrgent && student.appStatusHistory && student.appStatusHistory.length > 0) {
+      const urgentEntries = student.appStatusHistory.filter(h => h.status === 'Urgent Submission');
+      if (urgentEntries.length > 0) {
+        urgentNote = urgentEntries[urgentEntries.length - 1].note;
+      }
+    }
+
+    return (
+      <div key={student._id} onClick={() => setAssignModal({ show: true, student })} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${colColor}`, cursor: 'pointer', marginBottom: '0.8rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+          <strong style={{ color: 'var(--text-primary)' }}>{student.name}</strong>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{student.studentId}</span>
+        </div>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          {student.courseAndCampus1 && <div style={{ marginBottom: '4px' }}>🎓 {student.courseAndCampus1}</div>}
+          {student.chasers && Object.keys(student.chasers).some(k => student.chasers[k]) && (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+              {student.chasers.cv && <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>CV: {student.chasers.cv.split(' ')[0]}</span>}
+              {student.chasers.ps && <span style={{ background: '#8b5cf6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>PS: {student.chasers.ps.split(' ')[0]}</span>}
+              {student.chasers.qa && <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>QA: {student.chasers.qa.split(' ')[0]}</span>}
+              {student.chasers.sub && <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>SUB: {student.chasers.sub.split(' ')[0]}</span>}
+            </div>
+          )}
+          {isUrgent && urgentNote && (
+            <div style={{ marginTop: '0.8rem', padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', borderLeft: '3px solid #ef4444', borderRadius: '4px', fontSize: '0.75rem', color: '#ef4444', fontStyle: 'italic', fontWeight: '500' }}>
+              🚨 {urgentNote}
+            </div>
+          )}
+        </div>
       </div>
-      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-        {student.courseAndCampus1 && <div style={{ marginBottom: '4px' }}>🎓 {student.courseAndCampus1}</div>}
-        {student.chasers && Object.keys(student.chasers).some(k => student.chasers[k]) && (
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-            {student.chasers.cv && <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>CV: {student.chasers.cv.split(' ')[0]}</span>}
-            {student.chasers.ps && <span style={{ background: '#8b5cf6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>PS: {student.chasers.ps.split(' ')[0]}</span>}
-            {student.chasers.qa && <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>QA: {student.chasers.qa.split(' ')[0]}</span>}
-            {student.chasers.sub && <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>SUB: {student.chasers.sub.split(' ')[0]}</span>}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div style={{ padding: '2rem' }}>
