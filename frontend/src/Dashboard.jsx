@@ -720,36 +720,24 @@ const Dashboard = ({ currentUserRole }) => {
         {/* Prep Tracking Widget */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
-                🎯 Prep Analytics (This Week)
-              </h3>
-            </div>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+              🎯 Prep Tracking (This Week)
+            </h3>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click metrics to view ➔</span>
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div>
-              <h4 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6', fontSize: '0.85rem' }}>Total Booked</h4>
-              <div style={{ maxHeight: '120px', overflowY: 'auto', paddingRight: '4px' }}>
-                {sortedPrepBookers.length > 0 ? sortedPrepBookers.map(([name, preps]) => (
-                  <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.3rem 0', borderBottom: '1px solid var(--border-color)' }}>
-                    <span style={{ color: 'var(--text-primary)' }}>{name}</span>
-                    <strong style={{ color: '#8b5cf6' }}>{preps.length}</strong>
-                  </div>
-                )) : <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>No bookings</div>}
-              </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem' }}>
+            <div onClick={() => setShowPrepModal('done')} style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{prepsDone.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Done</div>
             </div>
-            
-            <div>
-              <h4 style={{ margin: '0 0 0.5rem 0', color: '#10b981', fontSize: '0.85rem' }}>Completed By</h4>
-              <div style={{ maxHeight: '120px', overflowY: 'auto', paddingRight: '4px' }}>
-                {sortedPrepDoneBy.length > 0 ? sortedPrepDoneBy.map(([name, preps]) => (
-                  <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.3rem 0', borderBottom: '1px solid var(--border-color)' }}>
-                    <span style={{ color: 'var(--text-primary)' }}>{name}</span>
-                    <strong style={{ color: '#10b981' }}>{preps.length}</strong>
-                  </div>
-                )) : <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>No completions</div>}
-              </div>
+            <div onClick={() => setShowPrepModal('missed')} style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #ef4444', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{prepsMissed.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Missed</div>
+            </div>
+            <div onClick={() => setShowPrepModal('rescheduled')} style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #3b82f6', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{prepsRescheduled.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Resched.</div>
             </div>
           </div>
           
@@ -1159,41 +1147,65 @@ const Dashboard = ({ currentUserRole }) => {
                 const filteredPrepsDone = applyModalFilter(prepsDone, dateExtractor);
                 const filteredPrepsMissed = applyModalFilter(prepsMissed, dateExtractor);
                 const filteredPrepsRescheduled = applyModalFilter(prepsRescheduled, dateExtractor);
+                const currentList = showPrepModal === 'done' ? filteredPrepsDone : showPrepModal === 'missed' ? filteredPrepsMissed : filteredPrepsRescheduled;
+                const modalTitleColor = showPrepModal === 'done' ? '#10b981' : showPrepModal === 'missed' ? '#ef4444' : '#3b82f6';
+                const modalTitleText = showPrepModal === 'done' ? 'Preps Done' : showPrepModal === 'missed' ? 'Preps Missed' : 'Preps Rescheduled';
+                
+                const filteredAnalytics = { bookedBy: {}, doneBy: {} };
+                currentList.forEach(p => {
+                  if (!p.text || p.text.trim() === '') return;
+                  const parts = p.text.split('-');
+                  const employeeName = parts.length > 0 ? parts[parts.length - 1].trim() : 'Unknown';
+                  if (!filteredAnalytics.bookedBy[employeeName]) filteredAnalytics.bookedBy[employeeName] = [];
+                  filteredAnalytics.bookedBy[employeeName].push(p);
+
+                  const doneByName = p.employeeDoneBy || 'Unknown';
+                  if (!filteredAnalytics.doneBy[doneByName]) filteredAnalytics.doneBy[doneByName] = [];
+                  filteredAnalytics.doneBy[doneByName].push(p);
+                });
+
+                const sortedBooked = Object.entries(filteredAnalytics.bookedBy).sort((a, b) => b[1].length - a[1].length);
+                const sortedDone = Object.entries(filteredAnalytics.doneBy).sort((a, b) => b[1].length - a[1].length);
+
                 return (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
-                    {showPrepModal === 'done' && (
-                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Preps Done</span>
-                          <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredPrepsDone.length}</span>
-                        </h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredPrepsDone.map(p => renderPrepCard(p, '#10b981'))}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', border: `1px solid var(--border-color)` }}>
+                      <h4 style={{ margin: '0 0 1rem 0', color: modalTitleColor, borderBottom: `2px solid ${modalTitleColor}`, paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{modalTitleText} Breakdown</span>
+                        <span style={{ background: modalTitleColor, color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{currentList.length}</span>
+                      </h4>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div>
+                          <h5 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6', fontSize: '0.85rem' }}>Who Booked These Preps?</h5>
+                          <div style={{ maxHeight: '150px', overflowY: 'auto', paddingRight: '4px' }}>
+                            {sortedBooked.length > 0 ? sortedBooked.map(([name, preps]) => (
+                              <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.3rem 0', borderBottom: '1px solid var(--border-color)' }}>
+                                <span style={{ color: 'var(--text-primary)' }}>{name}</span>
+                                <strong style={{ color: '#8b5cf6' }}>{preps.length}</strong>
+                              </div>
+                            )) : <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>No bookings found</div>}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h5 style={{ margin: '0 0 0.5rem 0', color: modalTitleColor, fontSize: '0.85rem' }}>Who Acted On These Preps?</h5>
+                          <div style={{ maxHeight: '150px', overflowY: 'auto', paddingRight: '4px' }}>
+                            {sortedDone.length > 0 ? sortedDone.map(([name, preps]) => (
+                              <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.3rem 0', borderBottom: '1px solid var(--border-color)' }}>
+                                <span style={{ color: 'var(--text-primary)' }}>{name}</span>
+                                <strong style={{ color: modalTitleColor }}>{preps.length}</strong>
+                              </div>
+                            )) : <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>No actions found</div>}
+                          </div>
                         </div>
                       </div>
-                    )}
-                    {showPrepModal === 'missed' && (
-                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Preps Missed</span>
-                          <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredPrepsMissed.length}</span>
-                        </h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredPrepsMissed.map(p => renderPrepCard(p, '#ef4444'))}
-                        </div>
+                      
+                      <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '0.9rem' }}>Detailed List</h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                        {currentList.map(p => renderPrepCard(p, modalTitleColor))}
                       </div>
-                    )}
-                    {showPrepModal === 'rescheduled' && (
-                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Preps Rescheduled</span>
-                          <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredPrepsRescheduled.length}</span>
-                        </h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredPrepsRescheduled.map(p => renderPrepCard(p, '#3b82f6'))}
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 );
               })()}
