@@ -1229,6 +1229,7 @@ function App() {
                                                 oldText: initialText,
                                                 newText: currentText
                                               })
+                                            });
                                             // Ensure instant save on blur with the most current React state
                                             if (typingTimeoutRef.current[cellKey]) clearTimeout(typingTimeoutRef.current[cellKey]);
                                             setGridData(prev => {
