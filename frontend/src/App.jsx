@@ -210,8 +210,7 @@ function App() {
         await fetch(`${API_BASE}/api/grid/${key}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Socket-ID': socketId },
-          body: JSON.stringify(dataToSave),
-          keepalive: true
+          body: JSON.stringify(dataToSave)
         });
       } catch (err) {
         console.error("Failed to sync cell", err);
