@@ -1218,7 +1218,7 @@ const Dashboard = ({ currentUserRole }) => {
 
             {(sfeAssignModal.student?.chasers && sfeAssignModal.student.chasers.sfe) && (
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
-                {(sfeAssignModal.student?.sfeStatus === 'SFE ongoing' || sfeAssignModal.student?.sfeStatus === 'Urgent SFE ongoing' || sfeAssignModal.student?.sfeStatus === 'Urgent SFE') ? (
+                {(colSfeOngoing.some(s => s._id === sfeAssignModal.student?._id) || colSfeUrgent.some(s => s._id === sfeAssignModal.student?._id)) ? (
                   <button 
                     onClick={() => handleSfeStatusAction('SFE submitted', 'Are you sure you want to mark this SFE task as Submitted?')}
                     style={{ flex: 1, background: '#f59e0b', color: '#fff', border: 'none', padding: '0.8rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
@@ -1226,7 +1226,7 @@ const Dashboard = ({ currentUserRole }) => {
                     Mark as Submitted
                   </button>
                 ) : null}
-                {sfeAssignModal.student?.sfeStatus === 'SFE submitted' ? (
+                {colSfeSubmitted.some(s => s._id === sfeAssignModal.student?._id) ? (
                   <button 
                     onClick={() => handleSfeStatusAction('SFE approved', 'Are you sure you want to mark this SFE as Approved?')}
                     style={{ flex: 1, background: '#10b981', color: '#fff', border: 'none', padding: '0.8rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}

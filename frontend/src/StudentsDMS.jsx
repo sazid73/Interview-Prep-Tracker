@@ -1106,6 +1106,12 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
                     </select>
                   </div>
                   <div className="input-group">
+                    <label>Int Status</label>
+                    <select value={newStudent.intStatus || ''} onChange={e => setNewStudent({...newStudent, intStatus: e.target.value})}>
+                      {intStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div className="input-group">
                     <label>SFE Status</label>
                     <select value={newStudent.sfeStatus || ''} onChange={e => setNewStudent({...newStudent, sfeStatus: e.target.value})}>
                       {sfeStatuses.map(s => <option key={s} value={s}>{s}</option>)}

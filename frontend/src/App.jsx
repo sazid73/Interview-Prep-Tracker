@@ -211,7 +211,7 @@ function App() {
 
   // Load data from server on mount
   useEffect(() => {
-    fetch(`${API_BASE}/api/grid`)
+    fetch(`${API_BASE}/api/grid`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setGridData(data))
       .catch(err => console.error("Failed to load grid data", err));
@@ -1229,6 +1229,12 @@ function App() {
                                                 oldText: initialText,
                                                 newText: currentText
                                               })
+                                            // Ensure instant save on blur with the most current React state
+                                            if (typingTimeoutRef.current[cellKey]) clearTimeout(typingTimeoutRef.current[cellKey]);
+                                            setGridData(prev => {
+                                              const latestCell = prev[cellKey] || { slots: [] };
+                                              syncCellToServer(cellKey, latestCell);
+                                              return prev;
                                             });
                                           }
                                           window.appSocket && window.appSocket.emit('user_blur', { key: cellKey, slotIndex });
