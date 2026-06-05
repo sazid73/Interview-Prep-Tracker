@@ -183,6 +183,12 @@ function App() {
   };
 
   const typingTimeoutRef = React.useRef({});
+  const latestGridDataRef = React.useRef({});
+
+  // Sync latest grid state to ref whenever it updates, to ensure we have a baseline
+  useEffect(() => {
+    latestGridDataRef.current = { ...latestGridDataRef.current, ...gridData };
+  }, [gridData]);
 
   const syncCellToServer = (key, cellObj) => {
     const socketId = window.appSocket ? window.appSocket.id : '';
@@ -276,9 +282,21 @@ function App() {
       });
     });
 
+    // Handle page unloads to save any pending text
+    const handleBeforeUnload = () => {
+      Object.keys(typingTimeoutRef.current).forEach(cellKey => {
+        if (typingTimeoutRef.current[cellKey]) {
+          const cell = latestGridDataRef.current[cellKey] || { slots: [] };
+          syncCellToServer(cellKey, cell);
+        }
+      });
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
       socket.disconnect();
       window.appSocket = null;
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
@@ -315,11 +333,13 @@ function App() {
       newSlots[slotIndex] = { ...newSlots[slotIndex], text };
 
       const newCell = { ...cell, slots: newSlots };
-      
+      latestGridDataRef.current[cellKey] = newCell; // Instantly track the absolute latest state
+
       // Debounce the server sync to prevent DB flooding
       if (typingTimeoutRef.current[cellKey]) clearTimeout(typingTimeoutRef.current[cellKey]);
       typingTimeoutRef.current[cellKey] = setTimeout(() => {
         syncCellToServer(cellKey, newCell);
+        delete typingTimeoutRef.current[cellKey];
       }, 1000);
 
       // Instantly broadcast keystrokes via WebSocket for Google Sheets feel
@@ -1231,13 +1251,13 @@ function App() {
                                                 newText: currentText
                                               })
                                             });
-                                            // Ensure instant save on blur with the most current React state
-                                            if (typingTimeoutRef.current[cellKey]) clearTimeout(typingTimeoutRef.current[cellKey]);
-                                            setGridData(prev => {
-                                              const latestCell = prev[cellKey] || { slots: [] };
-                                              syncCellToServer(cellKey, latestCell);
-                                              return prev;
-                                            });
+                                            // Ensure instant save on blur using the absolute latest data ref
+                                            if (typingTimeoutRef.current[cellKey]) {
+                                              clearTimeout(typingTimeoutRef.current[cellKey]);
+                                              delete typingTimeoutRef.current[cellKey];
+                                            }
+                                            const absoluteLatestCell = latestGridDataRef.current[cellKey] || { slots: [] };
+                                            syncCellToServer(cellKey, absoluteLatestCell);
                                           }
                                           window.appSocket && window.appSocket.emit('user_blur', { key: cellKey, slotIndex });
                                         }}
