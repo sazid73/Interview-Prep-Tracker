@@ -428,11 +428,11 @@ const Dashboard = ({ currentUserRole }) => {
   const colUrgent = students.filter(s => s.isUrgent === true && s.appStatus !== 'Submitted' && s.appStatus !== 'Completed');
   const colCompleted = students.filter(s => s.appStatus?.toLowerCase() === 'submitted' || s.appStatus?.toLowerCase() === 'completed');
 
-  const colSfeAwaiting = students.filter(s => s.sfeStatus === 'Assign for SFE' || s.sfeStatus === 'Awaiting Trial SFE Approval');
-  const colSfeOngoing = students.filter(s => s.sfeStatus === 'SFE ongoing' || s.sfeStatus === 'Trial SFE submitted' || s.sfeStatus === 'Trial SFE Approved' || s.sfeStatus === 'SFE Submitted - Docs Pending');
+  const colSfeAwaiting = students.filter(s => s.sfeStatus === 'Assign for SFE');
+  const colSfeOngoing = students.filter(s => s.sfeStatus === 'SFE ongoing');
   const colSfeUrgent = students.filter(s => s.sfeStatus === 'Urgent SFE' || s.sfeStatus === 'Urgent SFE ongoing');
-  const colSfeSubmitted = students.filter(s => s.sfeStatus === 'SFE submitted' || s.sfeStatus === 'SFE Submitted - Awaiting Approval');
-  const colSfeApproved = students.filter(s => s.sfeStatus === 'SFE approved' || s.sfeStatus === 'SFE Approved - Awaiting enrollment' || s.sfeStatus === 'Enrollment Done' || s.sfeStatus === 'SFE Approved - Deferred');
+  const colSfeSubmitted = students.filter(s => s.sfeStatus === 'SFE submitted');
+  const colSfeApproved = students.filter(s => s.sfeStatus === 'SFE approved');
 
   const isDateMissed = (dateStr) => dateStr && new Date(dateStr) < new Date(new Date().setHours(0,0,0,0));
   const colIntPassed = miInterviews.filter(i => (i.status || '').toLowerCase() === 'pass');

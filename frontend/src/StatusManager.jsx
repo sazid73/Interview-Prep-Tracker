@@ -62,15 +62,10 @@ const defaultIntStatuses = [
 
 const defaultSfeStatuses = [
   "Assign for SFE",
-  "Awaiting Trial SFE Approval",
-  "Trial SFE submitted",
-  "Trial SFE Approved",
-  "SFE Submitted - Docs Pending",
-  "SFE Submitted - Awaiting Approval",
-  "SFE Approved - Awaiting enrollment",
-  "Awaiting SFE Approval -",
-  "Enrollment Done",
-  "SFE Approved - Deferred",
+  "SFE ongoing",
+  "SFE submitted",
+  "SFE approved",
+  "SFE Rejected",
   "Ineligible for SFE"
 ];
 

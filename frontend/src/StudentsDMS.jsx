@@ -57,9 +57,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
     "Did Not Received First Payment", "Deferred", "On holiday - Please follow up later", "QC done"
   ]);
   const [sfeStatuses, setSfeStatuses] = useState([
-    "Assign for SFE", "Awaiting Trial SFE Approval", "Trial SFE submitted", "Trial SFE Approved",
-    "SFE Submitted - Docs Pending", "SFE Submitted - Awaiting Approval", "SFE Approved - Awaiting enrollment",
-    "Awaiting SFE Approval -", "Enrollment Done", "SFE Approved - Deferred", "Ineligible for SFE"
+    "Assign for SFE", "SFE ongoing", "SFE submitted", "SFE approved", "SFE Rejected", "Ineligible for SFE"
   ]);
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [newCourseInput, setNewCourseInput] = useState('');
@@ -92,7 +90,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
     chaser: 'Click to assign', chaserHistory: [], 
     agent: '', residential: '', location: '', appId: '',
     appStatus: 'Awaiting submission', appStatusHistory: [],
-    sfeStatus: 'Awaiting Trial SFE Approval', sfeStatusHistory: [],
+    sfeStatus: 'Assign for SFE', sfeStatusHistory: [],
     clTime: '', submit: '', docs: '0'
   };
   const [newStudent, setNewStudent] = useState(initialStudentState);
@@ -781,7 +779,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
       case 'sfeStatus': return (
         <span 
           className="int-badge" 
-          onClick={() => setNotesModal({ show: true, student, fieldType: 'sfeStatus', note: '', newValue: student.sfeStatus || 'Awaiting Trial SFE Approval' })} 
+          onClick={() => setNotesModal({ show: true, student, fieldType: 'sfeStatus', note: '', newValue: student.sfeStatus || 'Assign for SFE' })} 
           onContextMenu={(e) => {
             e.preventDefault();
             setChaserModal({ show: true, student, readOnly: true, mode: 'sfe' });
@@ -1291,7 +1289,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Update SFE Status</label>
                   <select 
-                    value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student.sfeStatus || 'Awaiting Trial SFE Approval')}
+                    value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student.sfeStatus || 'Assign for SFE')}
                     onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
                   >
