@@ -189,7 +189,8 @@ function App() {
     fetch(`${API_BASE}/api/grid/${key}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Socket-ID': socketId },
-      body: JSON.stringify(cellObj)
+      body: JSON.stringify(cellObj),
+      keepalive: true
     }).catch(err => console.error("Failed to sync cell", err));
   };
 

@@ -784,8 +784,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
           onClick={() => setNotesModal({ show: true, student, fieldType: 'sfeStatus', note: '', newValue: student.sfeStatus || 'Awaiting Trial SFE Approval' })} 
           onContextMenu={(e) => {
             e.preventDefault();
-            const sfeOfficer = (student.chasers && student.chasers.sfe) ? student.chasers.sfe : 'Unassigned';
-            alert(`SFE Officer: ${sfeOfficer}`);
+            setChaserModal({ show: true, student, readOnly: true, mode: 'sfe' });
           }}
           style={{ cursor: 'pointer', background: '#8b5cf6', color: '#fff' }}
         >
@@ -1440,20 +1439,22 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         <div className="dms-modal-overlay">
           <div className="dms-modal" style={{ maxWidth: chaserModal.readOnly ? '600px' : '400px' }}>
             <div className="dms-modal-header">
-              <h3>{chaserModal.readOnly ? 'Team Assignment Report' : 'Assign Chasers'}</h3>
+              <h3>{chaserModal.readOnly ? (chaserModal.mode === 'sfe' ? 'SFE Assignment Report' : 'Team Assignment Report') : 'Assign Chasers'}</h3>
               <button onClick={() => setChaserModal({ show: false, student: null, readOnly: false })}>✗</button>
             </div>
             
             {chaserModal.readOnly ? (
               <div className="dms-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Assigned personnel for <strong>{chaserModal.student.name}</strong></p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  {[
+                <div style={{ display: 'grid', gridTemplateColumns: chaserModal.mode === 'sfe' ? '1fr' : '1fr 1fr', gap: '1rem' }}>
+                  {(chaserModal.mode === 'sfe' ? [
+                    { role: 'SFE Officer', name: chaserModal.student.chasers?.sfe, icon: '💸', color: '#8b5cf6' }
+                  ] : [
                     { role: 'CV Chaser', name: chaserModal.student.chasers?.cv, icon: '📄', color: '#3b82f6' },
                     { role: 'PS Chaser', name: chaserModal.student.chasers?.ps, icon: '📝', color: '#8b5cf6' },
                     { role: 'Submission & QC', name: chaserModal.student.chasers?.sub, icon: '📤', color: '#f59e0b' },
                     { role: 'QA Chaser', name: chaserModal.student.chasers?.qa, icon: '✅', color: '#10b981' }
-                  ].map((item, idx) => (
+                  ]).map((item, idx) => (
                     <div key={idx} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${item.color}40`, borderRadius: '8px', padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                       <div style={{ fontSize: '2rem', background: `${item.color}20`, padding: '0.5rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {item.icon}

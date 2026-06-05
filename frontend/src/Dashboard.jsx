@@ -1178,9 +1178,9 @@ const Dashboard = ({ currentUserRole }) => {
             <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                 {showAlertsModal === 'recruiter' ? (
-                  colAlertRecruiter.length > 0 ? colAlertRecruiter.map(s => renderStudentCard(s, '#ef4444')) : <p style={{ color: 'var(--text-secondary)' }}>No recruiter alerts.</p>
+                  colAlertRecruiter.length > 0 ? colAlertRecruiter.map(s => renderStudentCard(s, '#ef4444', false, () => {}, 'admin')) : <p style={{ color: 'var(--text-secondary)' }}>No recruiter alerts.</p>
                 ) : (
-                  colAlertChaser.length > 0 ? colAlertChaser.map(s => renderStudentCard(s, '#ef4444')) : <p style={{ color: 'var(--text-secondary)' }}>No chaser alerts.</p>
+                  colAlertChaser.length > 0 ? colAlertChaser.map(s => renderStudentCard(s, '#ef4444', false, () => {}, 'admin')) : <p style={{ color: 'var(--text-secondary)' }}>No chaser alerts.</p>
                 )}
               </div>
             </div>
@@ -1203,17 +1203,22 @@ const Dashboard = ({ currentUserRole }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <label style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>💸 SFE Officer</label>
-                <select 
-                  value={(sfeAssignModal.student?.chasers && sfeAssignModal.student.chasers.sfe) || ''}
-                  onChange={(e) => handleSfeAssignDropdown(e.target.value)}
-                  disabled={['SFE Approved - Awaiting enrollment', 'Enrollment Done', 'SFE Approved - Deferred'].includes(sfeAssignModal.student?.sfeStatus)}
-                  style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '200px', opacity: ['SFE Approved - Awaiting enrollment', 'Enrollment Done', 'SFE Approved - Deferred'].includes(sfeAssignModal.student?.sfeStatus) ? 0.6 : 1 }}
-                >
-                  <option value="">Unassigned</option>
-                  {allUsers.filter(u => ['dina', 'saad', 'apsara'].includes(u.name.toLowerCase())).map(u => (
-                    <option key={u._id} value={u.name}>{u.name}</option>
-                  ))}
-                </select>
+                {['SFE Approved - Awaiting enrollment', 'Enrollment Done', 'SFE Approved - Deferred', 'SFE approved'].includes(sfeAssignModal.student?.sfeStatus) ? (
+                  <span style={{ padding: '0.5rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                    {(sfeAssignModal.student?.chasers && sfeAssignModal.student.chasers.sfe) || 'Unassigned'} (Read-Only)
+                  </span>
+                ) : (
+                  <select 
+                    value={(sfeAssignModal.student?.chasers && sfeAssignModal.student.chasers.sfe) || ''}
+                    onChange={(e) => handleSfeAssignDropdown(e.target.value)}
+                    style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '200px' }}
+                  >
+                    <option value="">Unassigned</option>
+                    {allUsers.filter(u => ['dina', 'saad', 'apsara'].includes(u.name.toLowerCase())).map(u => (
+                      <option key={u._id} value={u.name}>{u.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
 
