@@ -183,20 +183,45 @@ function App() {
   };
 
   const latestGridDataRef = React.useRef({});
+  const saveQueueRef = React.useRef({});
 
   // Sync latest grid state to ref whenever it updates, to ensure we have a baseline
   useEffect(() => {
     latestGridDataRef.current = { ...latestGridDataRef.current, ...gridData };
   }, [gridData]);
 
-  const syncCellToServer = (key, cellObj) => {
-    const socketId = window.appSocket ? window.appSocket.id : '';
-    fetch(`${API_BASE}/api/grid/${key}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Socket-ID': socketId },
-      body: JSON.stringify(cellObj),
-      keepalive: true
-    }).catch(err => console.error("Failed to sync cell", err));
+  const syncCellToServer = async (key, cellObj) => {
+    if (!saveQueueRef.current[key]) {
+      saveQueueRef.current[key] = { isSaving: false, pendingCellObj: null };
+    }
+    const q = saveQueueRef.current[key];
+    
+    if (q.isSaving) {
+      q.pendingCellObj = cellObj;
+      return;
+    }
+
+    q.isSaving = true;
+    let dataToSave = cellObj;
+
+    while (dataToSave) {
+      const socketId = window.appSocket ? window.appSocket.id : '';
+      try {
+        await fetch(`${API_BASE}/api/grid/${key}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Socket-ID': socketId },
+          body: JSON.stringify(dataToSave),
+          keepalive: true
+        });
+      } catch (err) {
+        console.error("Failed to sync cell", err);
+      }
+      
+      dataToSave = q.pendingCellObj;
+      q.pendingCellObj = null;
+    }
+    
+    q.isSaving = false;
   };
 
   const logActivity = (action, details, overrideUser = null) => {
