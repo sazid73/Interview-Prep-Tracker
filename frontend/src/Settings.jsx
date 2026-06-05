@@ -38,7 +38,7 @@ const Settings = ({ currentUserRole, currentUser, currentUserData }) => {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_BASE}/api/register`, {
+      const res = await fetch(`${API_BASE}/api/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newUserName, password: newUserPassword, jobTitles: newUserJobTitles, abilities: newUserAbilities })
