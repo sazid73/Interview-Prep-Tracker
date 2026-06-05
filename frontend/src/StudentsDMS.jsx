@@ -57,7 +57,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
     "Did Not Received First Payment", "Deferred", "On holiday - Please follow up later", "QC done"
   ]);
   const [sfeStatuses, setSfeStatuses] = useState([
-    "Assign for SFE", "SFE ongoing", "SFE submitted", "SFE approved", "SFE Rejected", "Ineligible for SFE"
+    "Assign for SFE", "Urgent SFE", "SFE ongoing", "SFE submitted", "SFE approved", "SFE Rejected", "Ineligible for SFE"
   ]);
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [newCourseInput, setNewCourseInput] = useState('');

@@ -62,6 +62,7 @@ const defaultIntStatuses = [
 
 const defaultSfeStatuses = [
   "Assign for SFE",
+  "Urgent SFE",
   "SFE ongoing",
   "SFE submitted",
   "SFE approved",

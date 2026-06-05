@@ -97,7 +97,7 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
         if (s.chasers?.ps === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `ps-${s._id}`, type: 'dms', title: 'PS Review', message: `${s.name} (${s.studentId})` });
         if (s.chasers?.qa === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `qa-${s._id}`, type: 'dms', title: 'QA Check', message: `${s.name} (${s.studentId})` });
         if (s.chasers?.sub === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `sub-${s._id}`, type: 'dms', title: 'Submission & QC', message: `${s.name} (${s.studentId})` });
-        if (s.chasers?.sfe === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `sfe-${s._id}`, type: 'dms', title: 'SFE Officer', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.sfe === currentUser && !['SFE submitted', 'SFE approved', 'SFE Rejected', 'Ineligible for SFE'].includes(s.sfeStatus)) newNotifs.push({ id: `sfe-${s._id}`, type: 'dms', title: 'SFE Officer', message: `${s.name} (${s.studentId})` });
       });
 
       setNotifications(newNotifs);

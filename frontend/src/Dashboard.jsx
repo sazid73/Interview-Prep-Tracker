@@ -560,6 +560,11 @@ const Dashboard = ({ currentUserRole }) => {
               🚨 {urgentNote}
             </div>
           )}
+          {student.sfeStatus === 'Urgent SFE' && (
+            <div style={{ marginTop: '0.8rem', padding: '0.5rem', background: 'rgba(239, 68, 68, 0.1)', borderLeft: '3px solid #ef4444', borderRadius: '4px', fontSize: '0.75rem', color: '#ef4444', fontWeight: 'bold' }}>
+              🚨 Urgent SFE Required
+            </div>
+          )}
         </div>
       </div>
     );
