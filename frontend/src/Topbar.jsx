@@ -48,6 +48,72 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
 
   const viewName = formatViewName(currentView);
 
+  const [showNotifications, setShowNotifications] = React.useState(false);
+  const [notifications, setNotifications] = React.useState([]);
+
+  const fetchNotifications = async () => {
+    try {
+      const [tasksRes, stdRes] = await Promise.all([
+        fetch(`${API_BASE}/api/tasks`),
+        fetch(`${API_BASE}/api/students`)
+      ]);
+      const tasksData = await tasksRes.json();
+      const stdData = await stdRes.json();
+      
+      const newNotifs = [];
+
+      // WL Tasks
+      const myWl = tasksData.filter(t => t.assignedTo === currentUser && t.status !== 'completed');
+      myWl.forEach(t => {
+        newNotifs.push({
+          id: t._id,
+          type: 'wl',
+          title: 'Weekly WL Assignment',
+          message: `Lead: ${t.leadNum} (${t.shift})`,
+          data: t
+        });
+      });
+
+      // DMS Tasks
+      stdData.forEach(s => {
+        if (s.recruiter === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `r-${s._id}`, type: 'dms', title: 'Recruitment Lead', message: `${s.name} (${s.studentId})` });
+        if (s.chaser === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `c-${s._id}`, type: 'dms', title: 'Call & Book Prep', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.cv === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `cv-${s._id}`, type: 'dms', title: 'CV Review', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.ps === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `ps-${s._id}`, type: 'dms', title: 'PS Review', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.qa === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `qa-${s._id}`, type: 'dms', title: 'QA Check', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.sub === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `sub-${s._id}`, type: 'dms', title: 'Submission & QC', message: `${s.name} (${s.studentId})` });
+      });
+
+      setNotifications(newNotifs);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  React.useEffect(() => {
+    if (currentUser) {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 30000); // Check every 30s
+      return () => clearInterval(interval);
+    }
+  }, [currentUser]);
+
+  const handleUpdateWlTaskStatus = async (id, status) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchNotifications();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="topbar">
       <div className="topbar-left">
@@ -58,8 +124,60 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
         </div>
       </div>
       
-      <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+      <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', position: 'relative' }}>
         <button className="theme-toggle">☀️ Light</button>
+        
+        {/* Notification Bell */}
+        <div style={{ position: 'relative' }}>
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', position: 'relative', padding: '0.2rem' }}
+          >
+            🔔
+            {notifications.length > 0 && (
+              <span style={{ position: 'absolute', top: 0, right: 0, background: '#ef4444', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                {notifications.length > 9 ? '9+' : notifications.length}
+              </span>
+            )}
+          </button>
+          
+          {showNotifications && (
+            <div style={{ position: 'absolute', top: '120%', right: 0, width: '350px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 1000, overflow: 'hidden' }}>
+              <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface-hover)' }}>
+                <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>Your Tasks</h4>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{notifications.length} Pending</span>
+              </div>
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎉</div>
+                    All caught up!
+                  </div>
+                ) : (
+                  notifications.map(n => (
+                    <div key={n.id} style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: n.type === 'wl' ? '#10b981' : '#8b5cf6', background: n.type === 'wl' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{n.title}</span>
+                      </div>
+                      <div style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{n.message}</div>
+                      
+                      {n.type === 'wl' ? (
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          <button onClick={() => handleUpdateWlTaskStatus(n.data._id, 'completed')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>✓ Mark Done</button>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                          Mark complete in Students DMS
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div className="avatar">
             {currentUser ? currentUser.substring(0, 2).toUpperCase() : 'U'}

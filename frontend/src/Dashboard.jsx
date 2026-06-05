@@ -6,12 +6,12 @@ const Dashboard = ({ currentUserRole }) => {
   const [students, setStudents] = useState([]);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showRecruiterModal, setShowRecruiterModal] = useState(false);
-  const [showAdminModal, setShowAdminModal] = useState(false);
   const [showAdminTaskModal, setShowAdminTaskModal] = useState(false);
   const [showAdminWorkflowModal, setShowAdminWorkflowModal] = useState(false);
   const [showSfeWorkflowModal, setShowSfeWorkflowModal] = useState(false);
   const [showIntWorkflowModal, setShowIntWorkflowModal] = useState(false);
   const [showAlertsModal, setShowAlertsModal] = useState(false);
+  const [showRecruiterTaskModal, setShowRecruiterTaskModal] = useState(false);
   const [assignModal, setAssignModal] = useState({ show: false, student: null });
   const [sfeAssignModal, setSfeAssignModal] = useState({ show: false, student: null });
   const [adminTaskStatus, setAdminTaskStatus] = useState('Assigned'); // 'Assigned' or 'Completed'
@@ -42,6 +42,9 @@ const Dashboard = ({ currentUserRole }) => {
   const [miInterviews, setMiInterviews] = useState([]);
   const [prepGrid, setPrepGrid] = useState([]);
   const [showPrepModal, setShowPrepModal] = useState(false);
+  
+  const [tasks, setTasks] = useState([]);
+  const [recruiterTaskFilter, setRecruiterTaskFilter] = useState('All');
 
   useEffect(() => {
     const t = Date.now();
@@ -81,6 +84,11 @@ const Dashboard = ({ currentUserRole }) => {
          setPrepGrid(allPreps);
       })
       .catch(err => console.error(err));
+
+    fetch(`${API_BASE}/api/tasks?t=${t}`, { cache: 'no-store' })
+      .then(res => res.json())
+      .then(data => setTasks(data))
+      .catch(err => console.error(err));
   }, []);
 
   useEffect(() => {
@@ -94,7 +102,7 @@ const Dashboard = ({ currentUserRole }) => {
 
   useEffect(() => {
     // Legacy refresh logic if needed
-  }, [showAdminModal, currentUserRole]);
+  }, [currentUserRole]);
 
   const handleDashboardChaserChange = async (type, val) => {
     const student = assignModal.student;
@@ -553,18 +561,6 @@ const Dashboard = ({ currentUserRole }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)' }}>Dashboard Overview</h2>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          {(currentUserRole === 'admin' || currentUserRole === 'super_admin') && (
-            <button 
-              onClick={() => setShowAdminModal(true)} 
-              style={{ 
-                background: '#ec4899', color: '#fff', border: 'none', padding: '0.8rem 1.5rem', 
-                borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-              }}
-            >
-              👥 Manage Access
-            </button>
-          )}
           <button 
             onClick={() => setShowRecruiterModal(true)} 
             style={{ 
@@ -746,6 +742,27 @@ const Dashboard = ({ currentUserRole }) => {
               <div style={{ background: '#10b981', height: '100%', width: `${prepCompletionRate}%`, transition: 'width 0.3s' }}></div>
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>{prepCompletionRate}% completion rate (this week)</div>
+          </div>
+        </div>
+
+        {/* Recruiter WL Tasks Tracking Widget */}
+        <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+              📝 WL Tasks (Today)
+            </h3>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click metrics to view ➔</span>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+            <div onClick={() => setShowRecruiterTaskModal('pending')} style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #f59e0b', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{tasks.filter(t => t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status !== 'completed').length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Pending</div>
+            </div>
+            <div onClick={() => setShowRecruiterTaskModal('completed')} style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{tasks.filter(t => t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status === 'completed').length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Completed</div>
+            </div>
           </div>
         </div>
 
@@ -1823,6 +1840,88 @@ const Dashboard = ({ currentUserRole }) => {
         </div>
       )}
 
+      {showRecruiterTaskModal && (() => {
+        let filteredTasks = tasks;
+        if (recruiterTaskFilter === 'Today') {
+          filteredTasks = tasks.filter(t => t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }));
+        } else if (recruiterTaskFilter !== 'All') {
+          filteredTasks = tasks.filter(t => t.day === recruiterTaskFilter);
+        }
+        
+        const pendingTasks = filteredTasks.filter(t => t.status !== 'completed');
+        const completedTasks = filteredTasks.filter(t => t.status === 'completed');
+        
+        return (
+        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1000px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  📝 Weekly WL Task Report
+                </h3>
+                <select 
+                  value={recruiterTaskFilter}
+                  onChange={e => setRecruiterTaskFilter(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="Today">Today Only</option>
+                  <option value="All">All Week</option>
+                  <option value="Monday">Monday</option>
+                  <option value="Tuesday">Tuesday</option>
+                  <option value="Wednesday">Wednesday</option>
+                  <option value="Thursday">Thursday</option>
+                  <option value="Friday">Friday</option>
+                  <option value="Saturday">Saturday</option>
+                  <option value="Sunday">Sunday</option>
+                </select>
+              </div>
+              <button onClick={() => setShowRecruiterTaskModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+            </div>
+            <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
+                {showRecruiterTaskModal === 'pending' && (
+                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Pending Tasks</span>
+                      <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{pendingTasks.length}</span>
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {pendingTasks.map(t => (
+                        <div key={t._id} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #f59e0b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{t.assignedTo}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lead: {t.leadNum} | Day: {t.day} | Shift: {t.shift}</div>
+                          </div>
+                          <span style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>{t.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {showRecruiterTaskModal === 'completed' && (
+                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Completed Tasks</span>
+                      <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{completedTasks.length}</span>
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {completedTasks.map(t => (
+                        <div key={t._id} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{t.assignedTo}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lead: {t.leadNum} | Day: {t.day} | Shift: {t.shift}</div>
+                          </div>
+                          <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>Completed</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );})()}
     </div>
   );
 };
