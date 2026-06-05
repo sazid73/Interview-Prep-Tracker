@@ -1165,6 +1165,28 @@ const Dashboard = ({ currentUserRole }) => {
         </div>
       )}
 
+      {showAlertsModal && (
+        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1400px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                ⚠️ SLA Alerts ({showAlertsModal === 'recruiter' ? 'Recruiter > 15 Days' : 'Chaser > 3 Days'})
+              </h3>
+              <button onClick={() => setShowAlertsModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+            </div>
+            <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                {showAlertsModal === 'recruiter' ? (
+                  colAlertRecruiter.length > 0 ? colAlertRecruiter.map(s => renderStudentCard(s, '#ef4444')) : <p style={{ color: 'var(--text-secondary)' }}>No recruiter alerts.</p>
+                ) : (
+                  colAlertChaser.length > 0 ? colAlertChaser.map(s => renderStudentCard(s, '#ef4444')) : <p style={{ color: 'var(--text-secondary)' }}>No chaser alerts.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {sfeAssignModal.show && (
         <div className="dms-modal-overlay" style={{ zIndex: 3000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '500px', width: '90%', padding: '2rem', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
