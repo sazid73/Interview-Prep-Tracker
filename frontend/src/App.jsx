@@ -182,7 +182,6 @@ function App() {
     }));
   };
 
-  const typingTimeoutRef = React.useRef({});
   const latestGridDataRef = React.useRef({});
 
   // Sync latest grid state to ref whenever it updates, to ensure we have a baseline
@@ -284,12 +283,8 @@ function App() {
 
     // Handle page unloads to save any pending text
     const handleBeforeUnload = () => {
-      Object.keys(typingTimeoutRef.current).forEach(cellKey => {
-        if (typingTimeoutRef.current[cellKey]) {
-          const cell = latestGridDataRef.current[cellKey] || { slots: [] };
-          syncCellToServer(cellKey, cell);
-        }
-      });
+      // With instant save, there are no pending timeouts, but we can flush latest if needed
+      // but it's redundant since every keystroke is awaited.
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
@@ -335,12 +330,8 @@ function App() {
       const newCell = { ...cell, slots: newSlots };
       latestGridDataRef.current[cellKey] = newCell; // Instantly track the absolute latest state
 
-      // Debounce the server sync to prevent DB flooding
-      if (typingTimeoutRef.current[cellKey]) clearTimeout(typingTimeoutRef.current[cellKey]);
-      typingTimeoutRef.current[cellKey] = setTimeout(() => {
-        syncCellToServer(cellKey, newCell);
-        delete typingTimeoutRef.current[cellKey];
-      }, 1000);
+      // Instant save directly to server on every keystroke (reverted to original behavior)
+      syncCellToServer(cellKey, newCell);
 
       // Instantly broadcast keystrokes via WebSocket for Google Sheets feel
       if (window.appSocket) {
@@ -1251,11 +1242,8 @@ function App() {
                                                 newText: currentText
                                               })
                                             });
-                                            // Ensure instant save on blur using the absolute latest data ref
-                                            if (typingTimeoutRef.current[cellKey]) {
-                                              clearTimeout(typingTimeoutRef.current[cellKey]);
-                                              delete typingTimeoutRef.current[cellKey];
-                                            }
+                                            // Because we save on every keystroke now, we don't strictly need this,
+                                            // but we'll do one final sync just in case to be perfectly safe.
                                             const absoluteLatestCell = latestGridDataRef.current[cellKey] || { slots: [] };
                                             syncCellToServer(cellKey, absoluteLatestCell);
                                           }
