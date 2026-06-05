@@ -421,6 +421,24 @@ const Dashboard = ({ currentUserRole }) => {
   const prepTotal = prepsDone.length + prepsMissed.length + prepsRescheduled.length;
   const prepCompletionRate = prepTotal > 0 ? Math.round((prepsDone.length / prepTotal) * 100) : 0;
 
+  const prepAnalytics = { bookedBy: {}, doneBy: {} };
+  prepGridCurrentWeek.forEach(p => {
+    if (!p.text || p.text.trim() === '') return;
+    const parts = p.text.split('-');
+    const employeeName = parts.length > 0 ? parts[parts.length - 1].trim() : 'Unknown';
+    
+    if (!prepAnalytics.bookedBy[employeeName]) prepAnalytics.bookedBy[employeeName] = [];
+    prepAnalytics.bookedBy[employeeName].push(p);
+
+    if ((p.status || '').toLowerCase() === 'done' || (p.status || '').toLowerCase() === 'pass') {
+      if (!prepAnalytics.doneBy[employeeName]) prepAnalytics.doneBy[employeeName] = [];
+      prepAnalytics.doneBy[employeeName].push(p);
+    }
+  });
+
+  const sortedPrepBookers = Object.entries(prepAnalytics.bookedBy).sort((a, b) => b[1].length - a[1].length);
+  const sortedPrepDoneBy = Object.entries(prepAnalytics.doneBy).sort((a, b) => b[1].length - a[1].length);
+
   const sfeTotal = colSfeAwaiting.length + colSfeOngoing.length + colSfeUrgent.length + colSfeSubmitted.length + colSfeApproved.length;
   const sfeCompletionRate = sfeTotal > 0 ? Math.round((colSfeApproved.length / sfeTotal) * 100) : 0;
 
@@ -445,7 +463,7 @@ const Dashboard = ({ currentUserRole }) => {
   const colAlertRecruiter = students.filter(s => s.recruiter && (Date.now() - new Date(s.updatedAt || s.createdAt).getTime()) > 15 * 86400000 && s.appStatus !== 'Submitted');
   const colAlertChaser = students.filter(s => s.chaser && (Date.now() - new Date(s.updatedAt || s.createdAt).getTime()) > 3 * 86400000 && s.appStatus !== 'Submitted');
 
-  const renderStudentCard = (student, colColor, onClickOverride, mode = 'admin') => {
+  const renderStudentCard = (student, colColor, onClickOverride = null, mode = 'admin') => {
     const isUrgent = student.appStatus?.toLowerCase() === 'urgent submission';
     let urgentNote = '';
     if (isUrgent && student.appStatusHistory && student.appStatusHistory.length > 0) {
@@ -455,8 +473,15 @@ const Dashboard = ({ currentUserRole }) => {
       }
     }
 
+    const isClickable = onClickOverride !== false;
+    const handleClick = () => {
+      if (onClickOverride === false) return; // Do nothing
+      if (onClickOverride) onClickOverride(student);
+      else setAssignModal({ show: true, student });
+    };
+
     return (
-      <div key={student._id} onClick={() => onClickOverride ? onClickOverride(student) : setAssignModal({ show: true, student })} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${colColor}`, cursor: 'pointer', marginBottom: '0.8rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+      <div key={student._id} onClick={handleClick} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${colColor}`, cursor: isClickable ? 'pointer' : 'default', marginBottom: '0.8rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
           <strong style={{ color: 'var(--text-primary)' }}>{student.name}</strong>
           <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{student.studentId}</span>
@@ -696,24 +721,34 @@ const Dashboard = ({ currentUserRole }) => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
-                🎯 Prep Tracking
+                🎯 Prep Analytics (This Week)
               </h3>
             </div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', marginLeft: '1rem' }}>Click metrics to view ➔</span>
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
-            <div onClick={() => setShowPrepModal('done')} style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{prepsDone.length}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Done</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <h4 style={{ margin: '0 0 0.5rem 0', color: '#8b5cf6', fontSize: '0.85rem' }}>Total Booked</h4>
+              <div style={{ maxHeight: '120px', overflowY: 'auto', paddingRight: '4px' }}>
+                {sortedPrepBookers.length > 0 ? sortedPrepBookers.map(([name, preps]) => (
+                  <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.3rem 0', borderBottom: '1px solid var(--border-color)' }}>
+                    <span style={{ color: 'var(--text-primary)' }}>{name}</span>
+                    <strong style={{ color: '#8b5cf6' }}>{preps.length}</strong>
+                  </div>
+                )) : <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>No bookings</div>}
+              </div>
             </div>
-            <div onClick={() => setShowPrepModal('missed')} style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #ef4444', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{prepsMissed.length}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Missed</div>
-            </div>
-            <div onClick={() => setShowPrepModal('rescheduled')} style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #3b82f6', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{prepsRescheduled.length}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Rescheduled</div>
+            
+            <div>
+              <h4 style={{ margin: '0 0 0.5rem 0', color: '#10b981', fontSize: '0.85rem' }}>Completed By</h4>
+              <div style={{ maxHeight: '120px', overflowY: 'auto', paddingRight: '4px' }}>
+                {sortedPrepDoneBy.length > 0 ? sortedPrepDoneBy.map(([name, preps]) => (
+                  <div key={name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '0.3rem 0', borderBottom: '1px solid var(--border-color)' }}>
+                    <span style={{ color: 'var(--text-primary)' }}>{name}</span>
+                    <strong style={{ color: '#10b981' }}>{preps.length}</strong>
+                  </div>
+                )) : <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>No completions</div>}
+              </div>
             </div>
           </div>
           
@@ -1178,9 +1213,9 @@ const Dashboard = ({ currentUserRole }) => {
             <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                 {showAlertsModal === 'recruiter' ? (
-                  colAlertRecruiter.length > 0 ? colAlertRecruiter.map(s => renderStudentCard(s, '#ef4444', false, () => {}, 'admin')) : <p style={{ color: 'var(--text-secondary)' }}>No recruiter alerts.</p>
+                  colAlertRecruiter.length > 0 ? colAlertRecruiter.map(s => renderStudentCard(s, '#ef4444', false, 'admin')) : <p style={{ color: 'var(--text-secondary)' }}>No recruiter alerts.</p>
                 ) : (
-                  colAlertChaser.length > 0 ? colAlertChaser.map(s => renderStudentCard(s, '#ef4444', false, () => {}, 'admin')) : <p style={{ color: 'var(--text-secondary)' }}>No chaser alerts.</p>
+                  colAlertChaser.length > 0 ? colAlertChaser.map(s => renderStudentCard(s, '#ef4444', false, 'admin')) : <p style={{ color: 'var(--text-secondary)' }}>No chaser alerts.</p>
                 )}
               </div>
             </div>
