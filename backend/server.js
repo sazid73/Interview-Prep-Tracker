@@ -194,6 +194,9 @@ const TaskAssignment = mongoose.model('TaskAssignment', taskSchema);
 // GET: Fetch all grid data
 app.get('/api/grid', async (req, res) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     const cells = await GridCell.find({});
     // Convert array of objects back into a mapping object: { "key": { color, slots } }
     const gridData = {};

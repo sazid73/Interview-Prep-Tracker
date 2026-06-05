@@ -217,7 +217,7 @@ function App() {
 
   // Load data from server on mount
   useEffect(() => {
-    fetch(`${API_BASE}/api/grid`, { cache: 'no-store' })
+    fetch(`${API_BASE}/api/grid?t=${Date.now()}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setGridData(data))
       .catch(err => console.error("Failed to load grid data", err));

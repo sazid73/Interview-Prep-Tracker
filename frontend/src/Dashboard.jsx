@@ -44,12 +44,13 @@ const Dashboard = ({ currentUserRole }) => {
   const [showPrepModal, setShowPrepModal] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/students`, { cache: 'no-store' })
+    const t = Date.now();
+    fetch(`${API_BASE}/api/students?t=${t}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setStudents(data))
       .catch(err => console.error(err));
 
-    fetch(`${API_BASE}/api/users`, { cache: 'no-store' })
+    fetch(`${API_BASE}/api/users?t=${t}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         setAdminUsersList(data);
@@ -57,12 +58,12 @@ const Dashboard = ({ currentUserRole }) => {
       })
       .catch(err => console.error(err));
 
-    fetch(`${API_BASE}/api/interviews`, { cache: 'no-store' })
+    fetch(`${API_BASE}/api/interviews?t=${t}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setMiInterviews(data))
       .catch(err => console.error(err));
 
-    fetch(`${API_BASE}/api/grid`, { cache: 'no-store' })
+    fetch(`${API_BASE}/api/grid?t=${t}`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
          let allPreps = [];
