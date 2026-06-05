@@ -37,9 +37,30 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
 
   const [collegeCourses, setCollegeCourses] = useState(defaultCollegeCourses);
   const [collegeResponsible, setCollegeResponsible] = useState({});
-  const [appStatuses, setAppStatuses] = useState(["Awaiting submission", "Submission ongoing", "Submitted"]);
-  const [intStatuses, setIntStatuses] = useState(["Interested and Responding", "Interested - Awaiting Docs", "Interested - Further Info Required", "Fully Enrolled", "Not eligible - Check Later", "Awaiting SFE", "Awaiting Prep"]);
-  const [sfeStatuses, setSfeStatuses] = useState(["Awaiting Trial SFE Approval", "Trial SFE submitted", "Trial SFE Approved", "SFE Submitted - Docs Pending", "SFE Submitted - Awaiting Approval", "SFE Approved - Awaiting enrollment", "Awaiting SFE Approval -", "Enrollment Done", "SFE Approved - Deferred", "Ineligible for SFE"]);
+  const [appStatuses, setAppStatuses] = useState([
+    "Assign for submission", "Submission ongoing", "Urgent Submission", "Submitted"
+  ]);
+  const [intStatuses, setIntStatuses] = useState([
+    "Interested and Responding", "Declined", "Prep Done", "Offer Sent", "SFE Not Approved",
+    "On Hold - Check Later (AN)", "SFE Approved - Process Next Steps", "On Holiday (AN)",
+    "Awaiting Further Entry Criteria Docs/Info (AN)", "Awaiting Necessary Pretask For Act Int",
+    "DNC (AN)", "File Withdrawn (AN)", "File Declined (AN)", "Fully Enrolled 3rd Year",
+    "Fully Enrolled 2nd Year", "Awaiting Interview Result", "Awaiting Prep",
+    "Interview Passed - Proceed Next Steps", "Interested - Awaiting Docs", "Interested - Call Back Later",
+    "Failed - Try Within Time-frame/Process Elsewhere", "SFE Submitted - Awaiting Approval",
+    "Awaiting Submission", "At Risk Of Cancelation", "No Longer Interested",
+    "Interested - Not Responding", "Interested - Further Info Required", "New Application",
+    "Direct", "Fully Enrolled", "Awaiting Induction", "Awaiting Transfer", "Awaiting SFE",
+    "Awaiting QC", "Awaiting Offer Letter", "Awaiting Actual Interview", "Not eligible - Check Later",
+    "Received 3rd Payment", "Received 2nd Payment", "Received 1st payment", "Not Progressed To 3rd Year",
+    "Not Progressed to 2nd Year", "Did not received 3rd Payment", "Did not received 2nd payment",
+    "Did Not Received First Payment", "Deferred", "On holiday - Please follow up later", "QC done"
+  ]);
+  const [sfeStatuses, setSfeStatuses] = useState([
+    "Assign for SFE", "Awaiting Trial SFE Approval", "Trial SFE submitted", "Trial SFE Approved",
+    "SFE Submitted - Docs Pending", "SFE Submitted - Awaiting Approval", "SFE Approved - Awaiting enrollment",
+    "Awaiting SFE Approval -", "Enrollment Done", "SFE Approved - Deferred", "Ineligible for SFE"
+  ]);
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [newCourseInput, setNewCourseInput] = useState('');
   const [selectedConfigCollege, setSelectedConfigCollege] = useState('GBS');
@@ -758,7 +779,16 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
         </span>
       );
       case 'sfeStatus': return (
-        <span className="int-badge" onClick={() => setNotesModal({ show: true, student, fieldType: 'sfeStatus', note: '', newValue: student.sfeStatus || 'Awaiting Trial SFE Approval' })} style={{ cursor: 'pointer', background: '#8b5cf6', color: '#fff' }}>
+        <span 
+          className="int-badge" 
+          onClick={() => setNotesModal({ show: true, student, fieldType: 'sfeStatus', note: '', newValue: student.sfeStatus || 'Awaiting Trial SFE Approval' })} 
+          onContextMenu={(e) => {
+            e.preventDefault();
+            const sfeOfficer = (student.chasers && student.chasers.sfe) ? student.chasers.sfe : 'Unassigned';
+            alert(`SFE Officer: ${sfeOfficer}`);
+          }}
+          style={{ cursor: 'pointer', background: '#8b5cf6', color: '#fff' }}
+        >
           {student.sfeStatus || 'Awaiting'}
         </span>
       );

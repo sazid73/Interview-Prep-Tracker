@@ -67,11 +67,12 @@ const Dashboard = ({ currentUserRole }) => {
       .then(data => {
          let allPreps = [];
          Object.keys(data).forEach(key => {
-            if (key.match(/^\d{4}-\d{1,2}-\d{1,2}-/)) {
+            // "interview-YYYY-M-D-TIME"
+            if (key.startsWith('interview-')) {
                const slots = data[key].slots || [];
                slots.forEach(slot => {
                   if (slot && slot.text && slot.text.trim() !== '') {
-                     allPreps.push({ ...slot, keyStr: key });
+                     allPreps.push({ ...slot, keyStr: key.replace('interview-', '') });
                   }
                });
             }
@@ -393,7 +394,7 @@ const Dashboard = ({ currentUserRole }) => {
     const parts = dStr.split('-');
     if (parts.length < 3) return false;
     
-    const dObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    const dObj = new Date(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
     const now = new Date();
     now.setHours(0,0,0,0);
     
