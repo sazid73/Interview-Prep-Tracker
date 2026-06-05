@@ -21,7 +21,7 @@ const EditableInput = ({ initialValue, onSave, disabled, placeholder }) => {
   );
 };
 
-const WeeklyWL = ({ currentUserRole, currentUser }) => {
+const WeeklyWL = ({ currentUserRole, currentUser, currentUserData }) => {
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [wlRecruiters, setWlRecruiters] = useState([]);
@@ -38,7 +38,9 @@ const WeeklyWL = ({ currentUserRole, currentUser }) => {
   
   const [showLeave, setShowLeave] = useState(false);
 
-  const isAdmin = ['super_admin', 'admin', 'admins for task assigns', 'team leader', 'asst. team leader'].includes(currentUserRole);
+  const isAdmin = currentUserData?.abilities?.includes('super_admin') 
+               || currentUserData?.abilities?.includes('assign_tasks') 
+               || ['super_admin', 'admin', 'admins for task assigns', 'team leader', 'asst. team leader'].includes(currentUserRole);
 
   useEffect(() => {
     fetchTasks();

@@ -309,14 +309,14 @@ const Settings = ({ currentUserRole, currentUser, currentUserData }) => {
         {activeTab === 'statuses' && (
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <h2 style={{ marginBottom: '2rem' }}>Status Flow Editor</h2>
-            <StatusManager />
+            <StatusManager currentUserRole={currentUserRole} currentUser={currentUser} currentUserData={currentUserData} />
           </div>
         )}
 
         {activeTab === 'columns' && (
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <h2 style={{ marginBottom: '2rem' }}>DMS Column Setup</h2>
-            <ColumnManager />
+            <ColumnManager currentUserRole={currentUserRole} currentUser={currentUser} currentUserData={currentUserData} />
           </div>
         )}
       </div>

@@ -14,7 +14,7 @@ const defaultCollegeCourses = {
   "VCAD": [], "Arden Sky": [], "Arden BBSL": [], "Arden GVA": [], "QA-Solent/Lmet": [], "William College": []
 };
 
-const CourseAndCampus = ({ currentUserRole, currentUser }) => {
+const CourseAndCampus = ({ currentUserRole, currentUser, currentUserData }) => {
   const [collegeCourses, setCollegeCourses] = useState(defaultCollegeCourses);
   const [collegeResponsible, setCollegeResponsible] = useState({});
   const [users, setUsers] = useState([]);
@@ -23,7 +23,10 @@ const CourseAndCampus = ({ currentUserRole, currentUser }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [responsibleInput, setResponsibleInput] = useState('');
 
-  const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
+  const isAdmin = currentUserData?.abilities?.includes('super_admin') 
+               || currentUserData?.abilities?.includes('manage_settings') 
+               || currentUserRole === 'admin' 
+               || currentUserRole === 'super_admin';
 
   useEffect(() => {
     fetch(`${API_BASE}/api/grid`)

@@ -29,7 +29,7 @@ export const defaultColumnsConfig = [
   { id: 'actions', label: 'ACTIONS', visible: true, order: 23, isSpecial: true, filterable: false }
 ];
 
-const ColumnManager = ({ currentUserRole, currentUser }) => {
+const ColumnManager = ({ currentUserRole, currentUser, currentUserData }) => {
   const [columns, setColumns] = useState([]);
   const [newColLabel, setNewColLabel] = useState('');
   const [newColFilterable, setNewColFilterable] = useState(false);
@@ -38,7 +38,10 @@ const ColumnManager = ({ currentUserRole, currentUser }) => {
   const [editingColId, setEditingColId] = useState(null);
   const [editingColValue, setEditingColValue] = useState('');
 
-  const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
+  const isAdmin = currentUserData?.abilities?.includes('super_admin') 
+               || currentUserData?.abilities?.includes('manage_settings') 
+               || currentUserRole === 'admin' 
+               || currentUserRole === 'super_admin';
 
   useEffect(() => {
     fetch(`${API_BASE}/api/grid`)

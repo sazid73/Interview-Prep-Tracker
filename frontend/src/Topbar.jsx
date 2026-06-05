@@ -173,11 +173,11 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
                   notifications.map(n => (
                     <div key={n.id} style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: n.type === 'wl' ? '#10b981' : '#8b5cf6', background: n.type === 'wl' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{n.title}</span>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: n.type === 'wl' ? '#10b981' : n.type === 'chaser' ? '#f59e0b' : '#8b5cf6', background: n.type === 'wl' ? 'rgba(16, 185, 129, 0.1)' : n.type === 'chaser' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(139, 92, 246, 0.1)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{n.title}</span>
                       </div>
                       <div style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>{n.message}</div>
                       
-                      {n.type === 'wl' ? (
+                      {n.type === 'wl' || n.type === 'chaser' ? (
                         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                           <button onClick={() => handleUpdateWlTaskStatus(n.data._id, 'completed')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>✓ Mark Done</button>
                         </div>

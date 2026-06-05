@@ -5,7 +5,7 @@ import { defaultColumnsConfig } from './ColumnManager';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole }) => {
+const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUserData }) => {
   const [students, setStudents] = useState([]);
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');

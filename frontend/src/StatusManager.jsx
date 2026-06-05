@@ -74,7 +74,7 @@ const defaultSfeStatuses = [
   "Ineligible for SFE"
 ];
 
-const StatusManager = ({ currentUserRole, currentUser }) => {
+const StatusManager = ({ currentUserRole, currentUser, currentUserData }) => {
   const [appStatuses, setAppStatuses] = useState(defaultAppStatuses);
   const [intStatuses, setIntStatuses] = useState(defaultIntStatuses);
   const [sfeStatuses, setSfeStatuses] = useState(defaultSfeStatuses);
@@ -85,7 +85,10 @@ const StatusManager = ({ currentUserRole, currentUser }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [editState, setEditState] = useState({ type: null, index: null, value: '' });
 
-  const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
+  const isAdmin = currentUserData?.abilities?.includes('super_admin') 
+               || currentUserData?.abilities?.includes('manage_settings') 
+               || currentUserRole === 'admin' 
+               || currentUserRole === 'super_admin';
 
   useEffect(() => {
     fetch(`${API_BASE}/api/grid`, { cache: 'no-store' })
