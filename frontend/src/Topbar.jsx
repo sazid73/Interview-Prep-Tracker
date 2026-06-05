@@ -57,19 +57,34 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
         fetch(`${API_BASE}/api/tasks`),
         fetch(`${API_BASE}/api/students`)
       ]);
+      
+      if (!tasksRes.ok || !stdRes.ok) return; // Backend might be down
+      
       const tasksData = await tasksRes.json();
       const stdData = await stdRes.json();
       
       const newNotifs = [];
 
       // WL Tasks
-      const myWl = tasksData.filter(t => t.assignedTo === currentUser && t.status !== 'completed');
+      const myWl = tasksData.filter(t => t.assignedTo === currentUser && t.taskType !== 'Chaser' && t.status !== 'completed');
       myWl.forEach(t => {
         newNotifs.push({
           id: t._id,
           type: 'wl',
           title: 'Weekly WL Assignment',
           message: `Lead: ${t.leadNum} (${t.shift})`,
+          data: t
+        });
+      });
+      
+      // Chaser Dashboard Tasks
+      const myChaser = tasksData.filter(t => t.assignedTo === currentUser && t.taskType === 'Chaser' && t.status !== 'completed');
+      myChaser.forEach(t => {
+        newNotifs.push({
+          id: t._id,
+          type: 'chaser',
+          title: 'Assigned Chaser Task',
+          message: `Lead: ${t.leadNum} - ${t.notes}`,
           data: t
         });
       });
@@ -82,11 +97,12 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
         if (s.chasers?.ps === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `ps-${s._id}`, type: 'dms', title: 'PS Review', message: `${s.name} (${s.studentId})` });
         if (s.chasers?.qa === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `qa-${s._id}`, type: 'dms', title: 'QA Check', message: `${s.name} (${s.studentId})` });
         if (s.chasers?.sub === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `sub-${s._id}`, type: 'dms', title: 'Submission & QC', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.sfe === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `sfe-${s._id}`, type: 'dms', title: 'SFE Officer', message: `${s.name} (${s.studentId})` });
       });
 
       setNotifications(newNotifs);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch notifications:', err);
     }
   };
 

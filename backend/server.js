@@ -75,6 +75,8 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   password: { type: String }, // Plain text for simplicity, as per requirements
   role: { type: String, default: 'standard' }, // 'standard', 'special', 'admin'
+  jobTitles: { type: [String], default: [] }, // Array of job roles
+  abilities: { type: [String], default: [] }, // Array of super features / permissions
   presence: { type: String, default: 'working' }, // 'working', 'break', 'leave', 'prep'
   shiftStart: { type: String, default: '' },
   shiftEnd: { type: String, default: '' },
@@ -523,12 +525,18 @@ app.get('/api/users', async (req, res) => {
 // POST: Create new user (Admin only)
 app.post('/api/users', async (req, res) => {
   try {
-    const { name, password, role } = req.body;
+    const { name, password, role, jobTitles, abilities } = req.body;
     const normalizedName = name.trim();
     const existing = await User.findOne({ name: { $regex: new RegExp(`^${normalizedName}$`, 'i') } });
     if (existing) return res.status(400).json({ error: 'User already exists' });
     
-    const newUser = new User({ name: normalizedName, password, role });
+    const newUser = new User({ 
+      name: normalizedName, 
+      password, 
+      role: role || 'standard',
+      jobTitles: jobTitles || [],
+      abilities: abilities || []
+    });
     await newUser.save();
     res.json({ success: true, user: newUser });
   } catch (error) {
@@ -536,18 +544,23 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// PUT: Change user role
+// PUT: Change user role, jobTitles, and abilities
 app.put('/api/users/:name/role', async (req, res) => {
   try {
-    const { role } = req.body;
+    const { role, jobTitles, abilities } = req.body;
+    const updateObj = {};
+    if (role !== undefined) updateObj.role = role;
+    if (jobTitles !== undefined) updateObj.jobTitles = jobTitles;
+    if (abilities !== undefined) updateObj.abilities = abilities;
+
     const user = await User.findOneAndUpdate(
       { name: req.params.name },
-      { role },
+      { $set: updateObj },
       { new: true }
     );
     res.json({ success: true, user });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update role' });
+    res.status(500).json({ error: 'Failed to update user config' });
   }
 });
 

@@ -45,6 +45,12 @@ const Dashboard = ({ currentUserRole }) => {
   
   const [tasks, setTasks] = useState([]);
   const [recruiterTaskFilter, setRecruiterTaskFilter] = useState('All');
+  
+  // Chaser Tasks State
+  const [showChaserTaskModal, setShowChaserTaskModal] = useState(false);
+  const [chaserTaskFilter, setChaserTaskFilter] = useState('All');
+  const [showCreateChaserTaskModal, setShowCreateChaserTaskModal] = useState(false);
+  const [newChaserTask, setNewChaserTask] = useState({ assignedTo: '', leadNum: '', notes: '' });
 
   useEffect(() => {
     const t = Date.now();
@@ -156,6 +162,44 @@ const Dashboard = ({ currentUserRole }) => {
       }).catch(e => console.error(e));
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleCreateChaserTask = async (e) => {
+    e.preventDefault();
+    if (!newChaserTask.assignedTo) return alert('Please select a Chaser');
+    
+    try {
+      const taskData = {
+        ...newChaserTask,
+        taskType: 'Chaser',
+        day: new Date().toLocaleDateString('en-US', { weekday: 'long' }),
+        shift: 'DAY TIME',
+        status: 'pending',
+        assignedBy: 'Admin', // In real app, use currentUser
+        startDateAndTime: new Date().toISOString()
+      };
+      
+      const res = await fetch(`${API_BASE}/api/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData)
+      });
+      
+      const savedTask = await res.json();
+      setTasks(prev => [...prev, savedTask]);
+      setShowCreateChaserTaskModal(false);
+      setNewChaserTask({ assignedTo: '', leadNum: '', notes: '' });
+      
+      fetch(`${API_BASE}/api/logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timestamp: new Date().toLocaleString(), user: 'Admin', action: 'Task Assigned', details: `Assigned Chaser Task for Lead ${newChaserTask.leadNum} to ${newChaserTask.assignedTo}` })
+      }).catch(e => console.error(e));
+      
+    } catch (err) {
+      console.error(err);
+      alert('Failed to assign task');
     }
   };
 
@@ -745,6 +789,43 @@ const Dashboard = ({ currentUserRole }) => {
           </div>
         </div>
 
+        {/* Chaser Tasks Tracking Widget */}
+        <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+              🏃 Chaser Tasks (Today)
+            </h3>
+            <button onClick={() => setShowCreateChaserTaskModal(true)} style={{ fontSize: '0.75rem', background: '#3b82f6', color: '#fff', border: 'none', padding: '0.3rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>➕ Assign Task</button>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+            <div onClick={() => setShowChaserTaskModal('pending')} style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #f59e0b', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{tasks.filter(t => t.taskType === 'Chaser' && t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status !== 'completed').length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Pending</div>
+            </div>
+            <div onClick={() => setShowChaserTaskModal('completed')} style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{tasks.filter(t => t.taskType === 'Chaser' && t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status === 'completed').length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Completed</div>
+            </div>
+          </div>
+          
+          <div style={{ marginTop: '1rem' }}>
+            {(() => {
+              const chaserTotal = tasks.filter(t => t.taskType === 'Chaser' && t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' })).length;
+              const chaserComp = tasks.filter(t => t.taskType === 'Chaser' && t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status === 'completed').length;
+              const chaserRate = chaserTotal === 0 ? 0 : Math.round((chaserComp / chaserTotal) * 100);
+              return (
+                <>
+                  <div style={{ background: 'var(--bg-color)', borderRadius: '999px', height: '8px', width: '100%', overflow: 'hidden' }}>
+                    <div style={{ background: '#10b981', height: '100%', width: `${chaserRate}%`, transition: 'width 0.3s' }}></div>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>{chaserRate}% completion rate (today)</div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+
         {/* Recruiter WL Tasks Tracking Widget */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -756,11 +837,11 @@ const Dashboard = ({ currentUserRole }) => {
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
             <div onClick={() => setShowRecruiterTaskModal('pending')} style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #f59e0b', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{tasks.filter(t => t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status !== 'completed').length}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{tasks.filter(t => t.taskType !== 'Chaser' && t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status !== 'completed').length}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Pending</div>
             </div>
             <div onClick={() => setShowRecruiterTaskModal('completed')} style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{tasks.filter(t => t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status === 'completed').length}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{tasks.filter(t => t.taskType !== 'Chaser' && t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status === 'completed').length}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Completed</div>
             </div>
           </div>
@@ -1817,6 +1898,124 @@ const Dashboard = ({ currentUserRole }) => {
                           <div>
                             <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{t.assignedTo}</div>
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lead: {t.leadNum} | Day: {t.day} | Shift: {t.shift}</div>
+                          </div>
+                          <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>Completed</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );})()}
+
+      {/* CREATE CHASER TASK MODAL */}
+      {showCreateChaserTaskModal && (
+        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', padding: '2rem', borderRadius: '12px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>➕ Assign Chaser Task</h3>
+              <button onClick={() => setShowCreateChaserTaskModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+            </div>
+            <form onSubmit={handleCreateChaserTask} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Assign To (Chaser)</label>
+                <select required value={newChaserTask.assignedTo} onChange={e => setNewChaserTask({ ...newChaserTask, assignedTo: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}>
+                  <option value="">Select Chaser...</option>
+                  {allUsers.filter(u => u.jobTitles?.includes('Chaser') || u.role === 'chaser').map(u => (
+                    <option key={u._id} value={u.name}>{u.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Lead Num / Reference</label>
+                <input required value={newChaserTask.leadNum} onChange={e => setNewChaserTask({ ...newChaserTask, leadNum: e.target.value })} placeholder="e.g. Lead 12345" style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Notes / Instructions</label>
+                <textarea required value={newChaserTask.notes} onChange={e => setNewChaserTask({ ...newChaserTask, notes: e.target.value })} rows="3" placeholder="Add specific task notes..." style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', resize: 'vertical' }}></textarea>
+              </div>
+              <button type="submit" style={{ padding: '0.8rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '0.5rem' }}>Assign Task</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CHASER TASK REPORT MODAL */}
+      {showChaserTaskModal && (() => {
+        let filteredTasks = tasks.filter(t => t.taskType === 'Chaser');
+        if (chaserTaskFilter === 'Today') {
+          filteredTasks = filteredTasks.filter(t => t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }));
+        } else if (chaserTaskFilter !== 'All') {
+          filteredTasks = filteredTasks.filter(t => t.day === chaserTaskFilter);
+        }
+        
+        const pendingTasks = filteredTasks.filter(t => t.status !== 'completed');
+        const completedTasks = filteredTasks.filter(t => t.status === 'completed');
+        
+        return (
+        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1000px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🏃 Chaser Task Report
+                </h3>
+                <select 
+                  value={chaserTaskFilter}
+                  onChange={e => setChaserTaskFilter(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="Today">Today Only</option>
+                  <option value="All">All Week</option>
+                  <option value="Monday">Monday</option>
+                  <option value="Tuesday">Tuesday</option>
+                  <option value="Wednesday">Wednesday</option>
+                  <option value="Thursday">Thursday</option>
+                  <option value="Friday">Friday</option>
+                  <option value="Saturday">Saturday</option>
+                  <option value="Sunday">Sunday</option>
+                </select>
+              </div>
+              <button onClick={() => setShowChaserTaskModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+            </div>
+            <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
+                {showChaserTaskModal === 'pending' && (
+                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Pending Tasks</span>
+                      <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{pendingTasks.length}</span>
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {pendingTasks.map(t => (
+                        <div key={t._id} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #f59e0b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{t.assignedTo}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lead: {t.leadNum} | Day: {t.day}</div>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.4rem', background: 'var(--bg-color)', padding: '0.5rem', borderRadius: '4px', fontStyle: 'italic' }}>{t.notes}</div>
+                          </div>
+                          <span style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>{t.status}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {showChaserTaskModal === 'completed' && (
+                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Completed Tasks</span>
+                      <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{completedTasks.length}</span>
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {completedTasks.map(t => (
+                        <div key={t._id} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{t.assignedTo}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lead: {t.leadNum} | Day: {t.day}</div>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.4rem', background: 'var(--bg-color)', padding: '0.5rem', borderRadius: '4px', fontStyle: 'italic' }}>{t.notes}</div>
                           </div>
                           <span style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>Completed</span>
                         </div>

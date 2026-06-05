@@ -162,6 +162,21 @@ function App() {
   const [rescheduleData, setRescheduleData] = useState(null);
   const [currentUser, setCurrentUser] = useState(() => localStorage.getItem('trackerUser') || null);
   const [currentUserRole, setCurrentUserRole] = useState(() => localStorage.getItem('trackerRole') || 'standard');
+  const [currentUserData, setCurrentUserData] = useState(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetch(`${API_BASE}/api/users`)
+        .then(res => res.json())
+        .then(data => {
+          const me = data.find(u => u.name === currentUser);
+          if (me) setCurrentUserData(me);
+        })
+        .catch(console.error);
+    } else {
+      setCurrentUserData(null);
+    }
+  }, [currentUser]);
   const [monthDays, setMonthDays] = useState([]);
   
   const [historyModalData, setHistoryModalData] = useState(null);
@@ -1342,18 +1357,19 @@ function App() {
             localStorage.removeItem('trackerRole'); 
             setCurrentUser(null);
             setCurrentUserRole('standard');
+            setCurrentUserData(null);
           }}
         />
         
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {currentView === 'dashboard' && <Dashboard currentUserRole={currentUserRole} />}
-          {currentView === 'students' && <StudentsDMS setCurrentView={setCurrentView} currentUser={currentUser} currentUserRole={currentUserRole} />}
+          {currentView === 'dashboard' && <Dashboard currentUserRole={currentUserRole} currentUserData={currentUserData} />}
+          {currentView === 'students' && <StudentsDMS setCurrentView={setCurrentView} currentUser={currentUser} currentUserRole={currentUserRole} currentUserData={currentUserData} />}
           
           {currentView === 'prep_interviews' && renderPrepInterviews()}
-          {currentView === 'interviews' && <Interviews currentUser={currentUser} />}
-          {currentView === 'course_campus' && <CourseAndCampus currentUserRole={currentUserRole} currentUser={currentUser} />}
-          {currentView === 'settings' && <Settings currentUserRole={currentUserRole} currentUser={currentUser} />}
-          {currentView === 'weekly_wl' && <WeeklyWL currentUserRole={currentUserRole} currentUser={currentUser} />}
+          {currentView === 'interviews' && <Interviews currentUser={currentUser} currentUserData={currentUserData} />}
+          {currentView === 'course_campus' && <CourseAndCampus currentUserRole={currentUserRole} currentUser={currentUser} currentUserData={currentUserData} />}
+          {currentView === 'settings' && <Settings currentUserRole={currentUserRole} currentUser={currentUser} currentUserData={currentUserData} />}
+          {currentView === 'weekly_wl' && <WeeklyWL currentUserRole={currentUserRole} currentUser={currentUser} currentUserData={currentUserData} />}
           
           {currentView !== 'dashboard' && currentView !== 'students' && currentView !== 'prep_interviews' && currentView !== 'interviews' && currentView !== 'course_campus' && currentView !== 'weekly_wl' && currentView !== 'settings' && (
             <div style={{ padding: '3rem', textAlign: 'center', color: '#6b7280' }}>
