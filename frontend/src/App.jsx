@@ -78,6 +78,44 @@ const normalizeName = (name) => {
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+const SlotInput = ({
+  cellKey, slotIndex, slot, textColor, isFocusedByOther,
+  onFocus, onBlur, onContextMenu, onChange, onKeyDown, status
+}) => {
+  const [localText, setLocalText] = useState(slot.text || '');
+
+  useEffect(() => {
+    setLocalText(slot.text || '');
+  }, [slot.text]);
+
+  const handleChange = (e) => {
+    setLocalText(e.target.value);
+    onChange(e.target.value);
+  };
+
+  return (
+    <div className="textarea-grid-wrapper" data-replicated-value={localText + ' '}>
+      <textarea
+        id={`cell-${cellKey}-${slotIndex}`}
+        className={`cell-input ${status || ''}`}
+        style={{ 
+          color: textColor,
+          borderColor: isFocusedByOther ? '#ec4899' : undefined,
+          borderWidth: isFocusedByOther ? '2px' : undefined
+        }}
+        value={localText}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        onContextMenu={onContextMenu}
+        onChange={handleChange}
+        onKeyDown={onKeyDown}
+        placeholder={`Slot ${slotIndex + 1}...`}
+        rows={1}
+      />
+    </div>
+  );
+};
+
 const LoginScreen = ({ onLogin }) => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -354,32 +392,31 @@ function App() {
     return currentView === 'interviews' ? `interview-${y}-${m}-${d}-${t}` : `${y}-${m}-${d}-${t}`;
   };
 
+  const typingTimeoutRef = React.useRef({});
+
   const handleSlotChange = (dateNum, time, slotIndex, text) => {
     const cellKey = getCellKey(currentYear, currentMonth, dateNum, time);
-    setGridData(prev => {
-      const cell = prev[cellKey] || {};
-      const slots = getSlots(cell);
-      const newSlots = [...slots];
-      const oldText = newSlots[slotIndex]?.text || '';
-      
-      newSlots[slotIndex] = { ...newSlots[slotIndex], text };
+    
+    const prev = latestGridDataRef.current;
+    const cell = prev[cellKey] || {};
+    const slots = cell.slots ? [...cell.slots] : [{}, {}, {}];
+    slots[slotIndex] = { ...slots[slotIndex], text };
+    const newCell = { ...cell, slots };
+    
+    latestGridDataRef.current[cellKey] = newCell; 
 
-      const newCell = { ...cell, slots: newSlots };
-      latestGridDataRef.current[cellKey] = newCell; // Instantly track the absolute latest state
+    if (window.appSocket) {
+      window.appSocket.emit('user_typing', { key: cellKey, slotIndex, text });
+    }
 
-      // Instant save directly to server on every keystroke (reverted to original behavior)
+    if (typingTimeoutRef.current[`${cellKey}-${slotIndex}`]) {
+      clearTimeout(typingTimeoutRef.current[`${cellKey}-${slotIndex}`]);
+    }
+    
+    typingTimeoutRef.current[`${cellKey}-${slotIndex}`] = setTimeout(() => {
+      setGridData(p => ({ ...p, [cellKey]: newCell }));
       syncCellToServer(cellKey, newCell);
-
-      // Instantly broadcast keystrokes via WebSocket for Google Sheets feel
-      if (window.appSocket) {
-        window.appSocket.emit('user_typing', { key: cellKey, slotIndex, text });
-      }
-
-      return {
-        ...prev,
-        [cellKey]: newCell
-      };
-    });
+    }, 500);
   };
 
   const handleCellClick = (dateNum, time) => {
@@ -1249,53 +1286,46 @@ function App() {
                                         {activeEditors[`${cellKey}-${slotIndex}`]} is typing...
                                       </div>
                                     )}
-                                    <div className="textarea-grid-wrapper" data-replicated-value={(slot.text || '') + ' '}>
-                                      <textarea
-                                        id={`cell-${dayObj.dateNum}-${time}-${slotIndex}`}
-                                        className={`cell-input ${slot.status || ''}`}
-                                        style={{ 
-                                          color: textColor,
-                                          borderColor: activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser ? '#ec4899' : undefined,
-                                          borderWidth: activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser ? '2px' : undefined
-                                        }}
-                                        value={slot.text || ''}
-                                        onFocus={() => {
-                                          initialTextRefs.current[`${cellKey}-${slotIndex}`] = slot.text || '';
-                                          window.appSocket && window.appSocket.emit('user_focus', { key: cellKey, slotIndex, user: currentUser });
-                                        }}
-                                        onBlur={() => {
-                                          const initialText = initialTextRefs.current[`${cellKey}-${slotIndex}`] || '';
-                                          const currentText = slot.text || '';
-                                          if (initialText !== currentText) {
-                                            fetch(`${API_BASE}/api/history`, {
-                                              method: 'POST',
-                                              headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({
-                                                cellKey,
-                                                slotIndex,
-                                                user: currentUser,
-                                                timestamp: new Date().toLocaleString(),
-                                                oldText: initialText,
-                                                newText: currentText
-                                              })
-                                            });
-                                            // Because we save on every keystroke now, we don't strictly need this,
-                                            // but we'll do one final sync just in case to be perfectly safe.
-                                            const absoluteLatestCell = latestGridDataRef.current[cellKey] || { slots: [] };
-                                            syncCellToServer(cellKey, absoluteLatestCell);
-                                          }
-                                          window.appSocket && window.appSocket.emit('user_blur', { key: cellKey, slotIndex });
-                                        }}
-                                        onContextMenu={(e) => {
-                                          e.preventDefault();
-                                          setHistoryModalData({ cellKey, slotIndex, time, dateNum: dayObj.dateNum, month: MONTHS[currentMonth] });
-                                        }}
-                                        onChange={(e) => handleSlotChange(dayObj.dateNum, time, slotIndex, e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(e, item.indexInMonth, time, slotIndex)}
-                                        placeholder={`Slot ${slotIndex + 1}...`}
-                                        rows={1}
-                                      />
-                                    </div>
+                                    <SlotInput
+                                      cellKey={cellKey}
+                                      slotIndex={slotIndex}
+                                      slot={slot}
+                                      textColor={textColor}
+                                      isFocusedByOther={activeEditors[`${cellKey}-${slotIndex}`] && activeEditors[`${cellKey}-${slotIndex}`] !== currentUser}
+                                      status={slot.status}
+                                      onFocus={() => {
+                                        initialTextRefs.current[`${cellKey}-${slotIndex}`] = latestGridDataRef.current[cellKey]?.slots?.[slotIndex]?.text || slot.text || '';
+                                        window.appSocket && window.appSocket.emit('user_focus', { key: cellKey, slotIndex, user: currentUser });
+                                      }}
+                                      onBlur={() => {
+                                        const initialText = initialTextRefs.current[`${cellKey}-${slotIndex}`] || '';
+                                        const currentCell = latestGridDataRef.current[cellKey] || {};
+                                        const currentSlots = currentCell.slots ? [...currentCell.slots] : [];
+                                        const currentText = currentSlots[slotIndex]?.text || '';
+                                        if (initialText !== currentText) {
+                                          fetch(`${API_BASE}/api/history`, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                              cellKey,
+                                              slotIndex,
+                                              user: currentUser,
+                                              timestamp: new Date().toLocaleString(),
+                                              oldText: initialText,
+                                              newText: currentText
+                                            })
+                                          });
+                                          syncCellToServer(cellKey, currentCell);
+                                        }
+                                        window.appSocket && window.appSocket.emit('user_blur', { key: cellKey, slotIndex });
+                                      }}
+                                      onContextMenu={(e) => {
+                                        e.preventDefault();
+                                        setHistoryModalData({ cellKey, slotIndex, time, dateNum: dayObj.dateNum, month: MONTHS[currentMonth] });
+                                      }}
+                                      onChange={(text) => handleSlotChange(dayObj.dateNum, time, slotIndex, text)}
+                                      onKeyDown={(e) => handleKeyDown(e, item.indexInMonth, time, slotIndex)}
+                                    />
                                     {slot.text && (
                                       <div className="status-actions">
                                         <button

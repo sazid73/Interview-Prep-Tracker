@@ -830,37 +830,7 @@ const Dashboard = ({ currentUserRole }) => {
           </div>
         </div>
 
-        {/* Prep Tracking Widget */}
-        <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
-              🎯 Prep Tracking (This Week)
-            </h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click metrics to view ➔</span>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem' }}>
-            <div onClick={() => setShowPrepModal('done')} style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{prepsDone.length}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Done</div>
-            </div>
-            <div onClick={() => setShowPrepModal('missed')} style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #ef4444', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{prepsMissed.length}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Missed</div>
-            </div>
-            <div onClick={() => setShowPrepModal('rescheduled')} style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #3b82f6', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#3b82f6' }}>{prepsRescheduled.length}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Resched.</div>
-            </div>
-          </div>
-          
-          <div style={{ marginTop: '1rem' }}>
-            <div style={{ background: 'var(--bg-color)', borderRadius: '999px', height: '8px', width: '100%', overflow: 'hidden' }}>
-              <div style={{ background: '#10b981', height: '100%', width: `${prepCompletionRate}%`, transition: 'width 0.3s' }}></div>
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>{prepCompletionRate}% completion rate (this week)</div>
-          </div>
-        </div>
+
 
         {/* Chaser Tasks Tracking Widget */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
