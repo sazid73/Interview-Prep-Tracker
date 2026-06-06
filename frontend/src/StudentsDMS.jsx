@@ -60,6 +60,9 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
   const [sfeStatuses, setSfeStatuses] = useState([
     "Assign for SFE", "Urgent SFE", "SFE ongoing", "SFE submitted", "SFE approved", "SFE Rejected", "Ineligible for SFE"
   ]);
+  const [sessions, setSessions] = useState([
+    "2026 June", "2026 Sep"
+  ]);
   const [showCourseSettings, setShowCourseSettings] = useState(false);
   const [newCourseInput, setNewCourseInput] = useState('');
   const [selectedConfigCollege, setSelectedConfigCollege] = useState('GBS');
@@ -99,6 +102,8 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
   const [bookingModal, setBookingModal] = useState({ show: false, student: null, date: '', time: '10:00', campus: '', notes: '' });
   const [notesModal, setNotesModal] = useState({ show: false, student: null, fieldType: null, note: '' });
   const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
+  const [showOrderedOnly, setShowOrderedOnly] = useState(false);
+  const [showReceivedOnly, setShowReceivedOnly] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/students`, { cache: 'no-store' })
@@ -123,17 +128,17 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
            setCollegeResponsible(JSON.parse(respConfig.slots[0].text));
          }
          const appConfig = data['APP_STATUSES'];
-         if (appConfig && appConfig.slots && appConfig.slots[0] && appConfig.slots[0].text) {
-           setAppStatuses(JSON.parse(appConfig.slots[0].text));
-         }
+         if (appConfig && appConfig.slots[0]) setAppStatuses(JSON.parse(appConfig.slots[0].text));
+         
          const intConfig = data['INT_STATUSES'];
-         if (intConfig && intConfig.slots && intConfig.slots[0] && intConfig.slots[0].text) {
-           setIntStatuses(JSON.parse(intConfig.slots[0].text));
-         }
+         if (intConfig && intConfig.slots[0]) setIntStatuses(JSON.parse(intConfig.slots[0].text));
+         
          const sfeConfig = data['SFE_STATUSES'];
-         if (sfeConfig && sfeConfig.slots && sfeConfig.slots[0] && sfeConfig.slots[0].text) {
-           setSfeStatuses(JSON.parse(sfeConfig.slots[0].text));
-         }
+         if (sfeConfig && sfeConfig.slots[0]) setSfeStatuses(JSON.parse(sfeConfig.slots[0].text));
+ 
+         const sessionConfig = data['SESSIONS_CONFIG'];
+         if (sessionConfig && sessionConfig.slots[0]) setSessions(JSON.parse(sessionConfig.slots[0].text));
+         
          const colConfig = data['DMS_COLUMNS_CONFIG'];
          if (colConfig && colConfig.slots && colConfig.slots[0] && colConfig.slots[0].text) {
            setTableColumns(JSON.parse(colConfig.slots[0].text));
@@ -614,6 +619,8 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
                            (s.courseAndCampus1 && s.courseAndCampus1.startsWith(activeCollegeTab));
     
     const matchesVerified = showVerifiedOnly ? s.routeWorkVerification === true : true;
+    const matchesOrdered = showOrderedOnly ? s.routeEduOrdered === true : true;
+    const matchesReceived = showReceivedOnly ? s.routeEduReceived === true : true;
     
     // Dynamic Filters
     const visibleFilters = tableColumns.filter(c => c.filterable);
@@ -632,7 +639,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
       return studentVal.includes(filterVal);
     });
 
-    return matchesSearch && matchesCollege && matchesVerified && matchesFilters;
+    return matchesSearch && matchesCollege && matchesVerified && matchesOrdered && matchesReceived && matchesFilters;
   });
 
   const uniqueRecruiters = [...new Set(students.map(s => s.recruiter).filter(Boolean))];
@@ -951,9 +958,11 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
               </div>
             );
           })}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button onClick={() => setShowVerifiedOnly(!showVerifiedOnly)} style={{ padding: '0.4rem 1rem', background: showVerifiedOnly ? '#10b981' : 'var(--bg-surface)', color: showVerifiedOnly ? '#fff' : 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>{showVerifiedOnly ? '✓ Verified Only' : 'Show All Verified'}</button>
-            <button onClick={() => { setFilters({}); setShowVerifiedOnly(false); }} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
+            <button onClick={() => setShowOrderedOnly(!showOrderedOnly)} style={{ padding: '0.4rem 1rem', background: showOrderedOnly ? '#3b82f6' : 'var(--bg-surface)', color: showOrderedOnly ? '#fff' : 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>{showOrderedOnly ? '✓ Ordered Only' : 'Show All Ordered'}</button>
+            <button onClick={() => setShowReceivedOnly(!showReceivedOnly)} style={{ padding: '0.4rem 1rem', background: showReceivedOnly ? '#8b5cf6' : 'var(--bg-surface)', color: showReceivedOnly ? '#fff' : 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>{showReceivedOnly ? '✓ Received Only' : 'Show All Received'}</button>
+            <button onClick={() => { setFilters({}); setShowVerifiedOnly(false); setShowOrderedOnly(false); setShowReceivedOnly(false); }} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear Filters</button>
           </div>
         </div>
       )}
@@ -1105,8 +1114,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
                     <label>Session</label>
                     <SearchableSelect value={newStudent.session} onChange={e => setNewStudent({...newStudent, session: e.target.value})}>
                       <option value="">Select</option>
-                      <option value="2026 June">2026 June</option>
-                      <option value="2026 Sep">2026 Sep</option>
+                      {sessions.map(s => <option key={s} value={s}>{s}</option>)}
                     </SearchableSelect>
                   </div>
                   <div className="input-group">

@@ -8,14 +8,11 @@ const Sidebar = ({ currentView, setCurrentView, isOpen, setSidebarOpen }) => {
     ]},
     { section: 'STUDENTS', items: [
       { id: 'students', label: 'Students', icon: '👤' },
-      { id: 'student_activity', label: 'Student Activity', icon: '📋' },
       { id: 'prep_interviews', label: 'Prep Interviews', icon: '🎯' },
-      { id: 'interviews', label: 'Interviews', icon: '💬' },
-      { id: 'interview_status', label: 'Interview Status', icon: '✓' }
+      { id: 'interviews', label: 'Interviews', icon: '💬' }
     ]},
     { section: 'ACADEMIC', items: [
-      { id: 'course_campus', label: 'Course and Campus', icon: '🏛️' },
-      { id: 'sessions', label: 'Sessions', icon: '📅' }
+      { id: 'course_campus', label: 'Course and Campus', icon: '🏛️' }
     ]},
     { section: 'MANAGEMENT', items: [
       { id: 'weekly_wl', label: 'Weekly WL', icon: '📝' },
