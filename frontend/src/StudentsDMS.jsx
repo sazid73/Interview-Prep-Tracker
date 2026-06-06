@@ -1341,28 +1341,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
                 >
                   💾 Save Changes
                 </button>
-                {notesModal.fieldType === 'appStatus' && (
-                  <button 
-                    onClick={async () => {
-                      if (!notesModal.note || !notesModal.note.trim()) {
-                        alert("Please add a note explaining why this is urgent.");
-                        return;
-                      }
-                      const newStatus = 'Urgent Submission';
-                      const hField = 'appStatusHistory';
-                      const newHistory = [...(notesModal.student[hField] || []), { status: newStatus, note: notesModal.note, timestamp: new Date().toLocaleString(), user: currentUser }];
-                      const updated = { ...notesModal.student, appStatus: newStatus, [hField]: newHistory };
-                      setStudents(students.map(s => s._id === updated._id ? updated : s));
-                      setNotesModal({ show: false, student: null, fieldType: null, note: '', newValue: undefined });
-                      try {
-                        await fetch(`${API_BASE}/api/students/${updated._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ appStatus: newStatus, [hField]: newHistory }) });
-                      } catch (e) { console.error(e); }
-                    }}
-                    style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                  >
-                    🚨 Mark as Urgent
-                  </button>
-                )}
+
                 <button 
                   onClick={() => setNotesModal({ show: false, student: null, fieldType: null, note: '', newValue: undefined })}
                   style={{ background: 'transparent', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.75rem 1.5rem', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
