@@ -89,9 +89,7 @@ const StatusManager = ({ currentUserRole, currentUser, currentUserData }) => {
   const [editState, setEditState] = useState({ type: null, index: null, value: '' });
 
   const isAdmin = currentUserData?.abilities?.includes('super_admin') 
-               || currentUserData?.abilities?.includes('manage_settings') 
-               || currentUserRole === 'admin' 
-               || currentUserRole === 'super_admin';
+               || currentUserData?.abilities?.includes('manage_settings');
 
   useEffect(() => {
     fetch(`${API_BASE}/api/grid`, { cache: 'no-store' })

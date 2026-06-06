@@ -98,9 +98,7 @@ const Settings = ({ currentUserRole, currentUser, currentUserData }) => {
   };
 
   const isAdmin = currentUserData?.abilities?.includes('super_admin') 
-               || currentUserData?.abilities?.includes('manage_settings') 
-               || currentUserRole === 'admin' 
-               || currentUserRole === 'super_admin';
+               || currentUserData?.abilities?.includes('manage_settings');
 
   if (!isAdmin) {
     return <div style={{ padding: '2rem', color: '#ef4444' }}>Unauthorized access. System Settings are restricted to administrators.</div>;

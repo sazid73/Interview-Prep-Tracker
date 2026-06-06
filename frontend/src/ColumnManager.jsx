@@ -39,9 +39,7 @@ const ColumnManager = ({ currentUserRole, currentUser, currentUserData }) => {
   const [editingColValue, setEditingColValue] = useState('');
 
   const isAdmin = currentUserData?.abilities?.includes('super_admin') 
-               || currentUserData?.abilities?.includes('manage_settings') 
-               || currentUserRole === 'admin' 
-               || currentUserRole === 'super_admin';
+               || currentUserData?.abilities?.includes('manage_settings');
 
   useEffect(() => {
     fetch(`${API_BASE}/api/grid`)

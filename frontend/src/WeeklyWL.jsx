@@ -41,15 +41,11 @@ const WeeklyWL = ({ currentUserRole, currentUser, currentUserData }) => {
 
   const isAdmin = currentUserData?.abilities?.includes('super_admin') 
                || currentUserData?.abilities?.includes('assign_tasks') 
-               || ['super_admin', 'admin', 'admins for task assigns', 'team leader', 'asst. team leader'].includes(currentUserRole);
+               || ['team leader', 'asst. team leader'].includes(currentUserRole);
 
   useEffect(() => {
     fetchTasks();
     fetchUsers();
-    
-    const handleProfileUpdate = () => fetchUsers();
-    window.addEventListener('user-profile-updated', handleProfileUpdate);
-    return () => window.removeEventListener('user-profile-updated', handleProfileUpdate);
   }, []);
 
   const fetchTasks = async () => {
@@ -165,6 +161,17 @@ const WeeklyWL = ({ currentUserRole, currentUser, currentUserData }) => {
          (t.day === selectedDay && t.assignedTo === recruiterName) ? { ...t, status: value } : t
       ));
   };
+
+  useEffect(() => {
+    const handleProfileUpdate = (e) => {
+      fetchUsers();
+      if (e.detail && e.detail.field === 'presence' && e.detail.currentUser) {
+        handleUpdateStatus(e.detail.currentUser, e.detail.value);
+      }
+    };
+    window.addEventListener('user-profile-updated', handleProfileUpdate);
+    return () => window.removeEventListener('user-profile-updated', handleProfileUpdate);
+  }, [tasks, selectedDay]);
 
   const handleAdvancedDistribute = async () => {
      if(!isAdmin) return;

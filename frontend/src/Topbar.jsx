@@ -44,7 +44,7 @@ const Topbar = ({ currentView, currentUser, currentUserRole, currentUserData, to
         body: JSON.stringify({ [field]: value })
       });
       // Optionally fire a global event so WeeklyWL can update instantly without prop drilling
-      window.dispatchEvent(new CustomEvent('user-profile-updated'));
+      window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: { field, value, currentUser } }));
     } catch (err) {
       console.error('Failed to update profile', err);
     }
@@ -188,6 +188,15 @@ const Topbar = ({ currentView, currentUser, currentUserRole, currentUserData, to
       <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', position: 'relative' }}>
         <button className="theme-toggle">☀️ Light</button>
         
+        {/* Theme Toggle */}
+        <button 
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer', padding: '0.2rem', color: 'var(--text-primary)' }}
+          title="Toggle Theme"
+        >
+          {theme === 'dark' ? '🌙' : '☀️'}
+        </button>
+
         {/* Notification Bell */}
         <div style={{ position: 'relative' }}>
           <button 
@@ -260,12 +269,14 @@ const Topbar = ({ currentView, currentUser, currentUserRole, currentUserData, to
           </div>
 
           {showProfileMenu && (
-            <div style={{ position: 'absolute', top: '120%', right: '0', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1rem', width: '280px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+            <div style={{ position: 'absolute', top: '120%', right: '0', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1rem', width: '300px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 99999 }}>
               <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
                 <div style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '1.1rem' }}>{currentUser}</div>
-                <div style={{ color: 'var(--accent-color)', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', textTransform: 'capitalize' }}>Role: {currentUserRole ? currentUserRole.replace('_', ' ') : 'Standard'}</div>
+                <div style={{ color: 'var(--accent-color)', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', textTransform: 'capitalize' }}>
+                  Role: {currentUserData?.jobTitles && currentUserData.jobTitles.length > 0 ? currentUserData.jobTitles.join(' • ') : (currentUserRole ? currentUserRole.replace('_', ' ') : 'Standard')}
+                </div>
                 {currentUserData?.abilities && currentUserData.abilities.length > 0 && (
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                     <strong>Abilities:</strong> {currentUserData.abilities.join(', ')}
                   </div>
                 )}
@@ -307,16 +318,6 @@ const Topbar = ({ currentView, currentUser, currentUserRole, currentUserData, to
                       style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
                     />
                   </div>
-                </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>
-                  <label style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 'bold' }}>Theme Mode</label>
-                  <button 
-                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                    style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                  >
-                    {theme === 'dark' ? '🌙 Dark' : '☀️ Light'}
-                  </button>
                 </div>
               </div>
 

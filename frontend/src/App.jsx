@@ -1051,7 +1051,7 @@ function App() {
         </div>
 
         <div className="toolbar">
-          {(currentUserData?.jobTitles?.includes('Prep Coach') || currentUserData?.abilities?.includes('super_admin') || currentUserRole === 'admin' || currentUserRole === 'special') && (
+          {(currentUserData?.jobTitles?.includes('Prep Coach') || currentUserData?.abilities?.includes('super_admin') || currentUserRole === 'special') && (
             <div className="toolbar-group">
               <span className="toolbar-label">Paint:</span>
               {COLORS.map(color => (
@@ -1075,7 +1075,7 @@ function App() {
             </div>
           )}
 
-          {(currentUserData?.jobTitles?.includes('Prep Coach') || currentUserData?.abilities?.includes('super_admin') || currentUserRole === 'admin' || currentUserRole === 'special') && (
+          {(currentUserData?.jobTitles?.includes('Prep Coach') || currentUserData?.abilities?.includes('super_admin') || currentUserRole === 'special') && (
             <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 8px' }}></div>
           )}
           
@@ -1103,7 +1103,7 @@ function App() {
             📈 Analytics
           </button>
 
-          {(currentUserData?.abilities?.includes('super_admin') || currentUserRole === 'admin') && (
+          {(currentUserData?.abilities?.includes('super_admin')) && (
             <>
               <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 8px' }}></div>
               <button className="btn-secondary" onClick={clearMonth}>
