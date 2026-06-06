@@ -1024,9 +1024,6 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Week 4">Week 4</option>
                   <option value="Week 5">Week 5</option>
                 </select>
-                  <option value="Week 4">Week 4</option>
-                  <option value="Week 5">Week 5</option>
-                </select>
                 <input 
                   type="text" 
                   placeholder="Search..." 
@@ -1084,7 +1081,6 @@ const Dashboard = ({ currentUserRole }) => {
                       </div>
                     )}
                     {showSfeWorkflowModal === 'submitted' && (
-                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
                       <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem' }}>
                           <h4 style={{ margin: 0, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
