@@ -946,88 +946,112 @@ const Dashboard = ({ currentUserRole }) => {
         <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1400px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
             <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                👨‍💼 Admin Submission Workflow
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  👨‍💼 Admin Submission Workflow
+                </h3>
+                <select 
+                  value={modalFilterMonth}
+                  onChange={e => setModalFilterMonth(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="All">All Months</option>
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <select 
+                  value={modalFilterWeek}
+                  onChange={e => setModalFilterWeek(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="All">All Weeks</option>
+                  <option value="Week 1">Week 1</option>
+                  <option value="Week 2">Week 2</option>
+                  <option value="Week 3">Week 3</option>
+                  <option value="Week 4">Week 4</option>
+                  <option value="Week 5">Week 5</option>
+                </select>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={modalSearchTerm}
+                  onChange={(e) => setModalSearchTerm(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', width: '150px' }}
+                />
+              </div>
               <button onClick={() => setShowAdminWorkflowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
             
             <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-                Real-time tracking of application submissions. Click on a student card to assign tasks (CV, PS, QA, Sub) or change their status.
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
-                
-                {/* Column 1: Awaiting App Assignments */}
-                {showAdminWorkflowModal === 'docs' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Awaiting App Assignments</span>
-                      <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAwaitingAssignments.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colAwaitingAssignments.map(s => renderStudentCard(s, '#6b7280'))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Column 2: Submission Ongoing */}
-                {showAdminWorkflowModal === 'sub' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Submission Ongoing</span>
-                      <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colSubmissionOngoing.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colSubmissionOngoing.map(s => renderStudentCard(s, '#3b82f6'))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Column 3: Urgent Submission */}
-                {showAdminWorkflowModal === 'urgent' && (
-                  <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                    <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Urgent Submission</span>
-                      <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colUrgent.length}</span>
-                    </h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colUrgent.map(s => renderStudentCard(s, '#ef4444'))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Column 4: Completed */}
-                {showAdminWorkflowModal === 'completed' && (() => {
-                  const filteredCompleted = colCompleted.filter(s => {
-                    if (completedMonthFilter !== 'All' && getMonthYear(s.createdAt) !== completedMonthFilter) return false;
-                    if (completedWeekFilter !== 'All' && getWeekNumber(s.createdAt).toString() !== completedWeekFilter) return false;
-                    return true;
-                  });
-                  return (
-                    <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                      <div style={{ margin: '0 0 1rem 0', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <h4 style={{ margin: 0, color: '#10b981' }}>Completed / Submitted</h4>
-                          <select value={completedMonthFilter} onChange={e => setCompletedMonthFilter(e.target.value)} style={{ padding: '0.2rem', borderRadius: '4px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-                            <option value="All">All Months</option>
-                            {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
-                          </select>
-                          <select value={completedWeekFilter} onChange={e => setCompletedWeekFilter(e.target.value)} style={{ padding: '0.2rem', borderRadius: '4px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
-                            <option value="All">All Weeks</option>
-                            {[1,2,3,4,5].map(w => <option key={w} value={w}>Week {w}</option>)}
-                          </select>
+              {(() => {
+                const dateExtractor = s => s.updatedAt || s.createdAt;
+                const filteredDocs = applyModalFilter(colAwaitingAssignments, dateExtractor);
+                const filteredSub = applyModalFilter(colSubmissionOngoing, dateExtractor);
+                const filteredUrgent = applyModalFilter(colUrgent, dateExtractor);
+                const filteredCompleted = applyModalFilter(colCompleted, dateExtractor);
+                return (
+                  <div>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                      Real-time tracking of application submissions. Click on a student card to assign tasks (CV, PS, QA, Sub) or change their status.
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
+                      
+                      {/* Column 1: Awaiting App Assignments */}
+                      {showAdminWorkflowModal === 'docs' && (
+                        <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Awaiting App Assignments</span>
+                            <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredDocs.length}</span>
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                            {filteredDocs.map(s => renderStudentCard(s, '#6b7280'))}
+                          </div>
                         </div>
-                        <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredCompleted.length}</span>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                        {filteredCompleted.map(s => renderStudentCard(s, '#10b981'))}
-                      </div>
+                      )}
+
+                      {/* Column 2: Submission Ongoing */}
+                      {showAdminWorkflowModal === 'sub' && (
+                        <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Submission Ongoing</span>
+                            <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSub.length}</span>
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                            {filteredSub.map(s => renderStudentCard(s, '#3b82f6'))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Column 3: Urgent Submission */}
+                      {showAdminWorkflowModal === 'urgent' && (
+                        <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Urgent Submission</span>
+                            <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredUrgent.length}</span>
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                            {filteredUrgent.map(s => renderStudentCard(s, '#ef4444'))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Column 4: Completed */}
+                      {showAdminWorkflowModal === 'completed' && (
+                        <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Completed / Submitted</span>
+                            <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredCompleted.length}</span>
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                            {filteredCompleted.map(s => renderStudentCard(s, '#10b981'))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  );
-                })()}
-              </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -1419,28 +1443,6 @@ const Dashboard = ({ currentUserRole }) => {
                   </div>
                 );
               })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAlertsModal && (
-        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1400px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
-            <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                ⚠️ SLA Alerts ({showAlertsModal === 'recruiter' ? 'Recruiter > 15 Days' : 'Chaser > 3 Days'})
-              </h3>
-              <button onClick={() => setShowAlertsModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
-            </div>
-            <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                {showAlertsModal === 'recruiter' ? (
-                  colAlertRecruiter.length > 0 ? colAlertRecruiter.map(s => renderStudentCard(s, '#ef4444', false, 'admin')) : <p style={{ color: 'var(--text-secondary)' }}>No recruiter alerts.</p>
-                ) : (
-                  colAlertChaser.length > 0 ? colAlertChaser.map(s => renderStudentCard(s, '#ef4444', false, 'admin')) : <p style={{ color: 'var(--text-secondary)' }}>No chaser alerts.</p>
-                )}
-              </div>
             </div>
           </div>
         </div>
