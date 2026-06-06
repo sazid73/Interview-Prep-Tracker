@@ -424,8 +424,8 @@ const Dashboard = ({ currentUserRole }) => {
   const uniqueLogUsers = [...new Set(serverLogs.map(l => l.user).filter(Boolean))].sort();
 
   const colAwaitingAssignments = students.filter(s => s.appStatus?.toLowerCase() === 'assign for submission');
-  const colSubmissionOngoing = students.filter(s => s.appStatus?.toLowerCase() === 'submission ongoing' && !s.isUrgent);
-  const colUrgent = students.filter(s => s.isUrgent === true && s.appStatus !== 'Submitted' && s.appStatus !== 'Completed');
+  const colSubmissionOngoing = students.filter(s => s.appStatus?.toLowerCase() === 'submission ongoing' && s.isUrgent !== true && s.appStatus?.toLowerCase() !== 'urgent submission');
+  const colUrgent = students.filter(s => (s.isUrgent === true || s.appStatus?.toLowerCase() === 'urgent submission') && s.appStatus !== 'Submitted' && s.appStatus !== 'Completed');
   const colCompleted = students.filter(s => s.appStatus?.toLowerCase() === 'submitted' || s.appStatus?.toLowerCase() === 'completed');
 
   const colSfeAwaiting = students.filter(s => s.sfeStatus === 'Assign for SFE');

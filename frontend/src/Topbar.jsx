@@ -97,7 +97,7 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
         if (s.chasers?.ps === currentUser && s.appStatus !== 'Submitted' && !s.tasksCompleted?.ps) newNotifs.push({ id: `ps-${s._id}`, type: 'dms', dmsType: 'ps', studentId: s._id, tasksCompleted: s.tasksCompleted, title: 'PS Review', message: `${s.name} (${s.studentId})` });
         if (s.chasers?.qa === currentUser && s.appStatus !== 'Submitted' && !s.tasksCompleted?.qa) newNotifs.push({ id: `qa-${s._id}`, type: 'dms', dmsType: 'qa', studentId: s._id, tasksCompleted: s.tasksCompleted, title: 'QA Check', message: `${s.name} (${s.studentId})` });
         if (s.chasers?.sub === currentUser && s.appStatus !== 'Submitted' && !s.tasksCompleted?.sub) newNotifs.push({ id: `sub-${s._id}`, type: 'dms', dmsType: 'sub', studentId: s._id, tasksCompleted: s.tasksCompleted, title: 'Submission & QC', message: `${s.name} (${s.studentId})` });
-        if (s.chasers?.sfe === currentUser && !['SFE submitted', 'SFE approved', 'SFE Rejected', 'Ineligible for SFE'].includes(s.sfeStatus)) newNotifs.push({ id: `sfe-${s._id}`, type: 'dms', title: 'SFE Officer', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.sfe === currentUser && !['SFE submitted', 'SFE approved', 'SFE Rejected', 'Ineligible for SFE'].includes(s.sfeStatus)) newNotifs.push({ id: `sfe-${s._id}`, type: 'dms', dmsType: 'sfe', studentId: s._id, title: 'SFE Officer', message: `${s.name} (${s.studentId})` });
       });
 
       setNotifications(newNotifs);
@@ -115,6 +115,7 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
   }, [currentUser]);
 
   const handleUpdateWlTaskStatus = async (id, status) => {
+    if (status === 'completed' && !window.confirm("Are you sure you want to mark this task as done?")) return;
     try {
       const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
         method: 'PUT',
@@ -131,12 +132,21 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
   };
 
   const handleMarkDmsTaskDone = async (studentId, currentTasksCompleted, taskType) => {
+    if (!window.confirm("Are you sure you want to mark this task as done?")) return;
     try {
-      const newTasksCompleted = { ...(currentTasksCompleted || {}), [taskType]: true };
+      let updatePayload = {};
+      if (taskType === 'sfe') {
+        updatePayload = { sfeStatus: 'SFE submitted' };
+      } else {
+        updatePayload = { tasksCompleted: { ...(currentTasksCompleted || {}), [taskType]: true } };
+        if (taskType === 'sub') {
+          updatePayload.appStatus = 'Submitted';
+        }
+      }
       const res = await fetch(`${API_BASE}/api/students/${studentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tasksCompleted: newTasksCompleted })
+        body: JSON.stringify(updatePayload)
       });
       if (res.ok) fetchNotifications();
     } catch (err) {
