@@ -93,10 +93,10 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
       stdData.forEach(s => {
         if (s.recruiter === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `r-${s._id}`, type: 'dms', title: 'Recruitment Lead', message: `${s.name} (${s.studentId})` });
         if (s.chaser === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `c-${s._id}`, type: 'dms', title: 'Call & Book Prep', message: `${s.name} (${s.studentId})` });
-        if (s.chasers?.cv === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `cv-${s._id}`, type: 'dms', title: 'CV Review', message: `${s.name} (${s.studentId})` });
-        if (s.chasers?.ps === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `ps-${s._id}`, type: 'dms', title: 'PS Review', message: `${s.name} (${s.studentId})` });
-        if (s.chasers?.qa === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `qa-${s._id}`, type: 'dms', title: 'QA Check', message: `${s.name} (${s.studentId})` });
-        if (s.chasers?.sub === currentUser && s.appStatus !== 'Submitted') newNotifs.push({ id: `sub-${s._id}`, type: 'dms', title: 'Submission & QC', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.cv === currentUser && s.appStatus !== 'Submitted' && !s.tasksCompleted?.cv) newNotifs.push({ id: `cv-${s._id}`, type: 'dms', dmsType: 'cv', studentId: s._id, tasksCompleted: s.tasksCompleted, title: 'CV Review', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.ps === currentUser && s.appStatus !== 'Submitted' && !s.tasksCompleted?.ps) newNotifs.push({ id: `ps-${s._id}`, type: 'dms', dmsType: 'ps', studentId: s._id, tasksCompleted: s.tasksCompleted, title: 'PS Review', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.qa === currentUser && s.appStatus !== 'Submitted' && !s.tasksCompleted?.qa) newNotifs.push({ id: `qa-${s._id}`, type: 'dms', dmsType: 'qa', studentId: s._id, tasksCompleted: s.tasksCompleted, title: 'QA Check', message: `${s.name} (${s.studentId})` });
+        if (s.chasers?.sub === currentUser && s.appStatus !== 'Submitted' && !s.tasksCompleted?.sub) newNotifs.push({ id: `sub-${s._id}`, type: 'dms', dmsType: 'sub', studentId: s._id, tasksCompleted: s.tasksCompleted, title: 'Submission & QC', message: `${s.name} (${s.studentId})` });
         if (s.chasers?.sfe === currentUser && !['SFE submitted', 'SFE approved', 'SFE Rejected', 'Ineligible for SFE'].includes(s.sfeStatus)) newNotifs.push({ id: `sfe-${s._id}`, type: 'dms', title: 'SFE Officer', message: `${s.name} (${s.studentId})` });
       });
 
@@ -125,6 +125,20 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
       if (data.success) {
         fetchNotifications();
       }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkDmsTaskDone = async (studentId, currentTasksCompleted, taskType) => {
+    try {
+      const newTasksCompleted = { ...(currentTasksCompleted || {}), [taskType]: true };
+      const res = await fetch(`${API_BASE}/api/students/${studentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tasksCompleted: newTasksCompleted })
+      });
+      if (res.ok) fetchNotifications();
     } catch (err) {
       console.error(err);
     }
@@ -180,6 +194,10 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
                       {n.type === 'wl' || n.type === 'chaser' ? (
                         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                           <button onClick={() => handleUpdateWlTaskStatus(n.data._id, 'completed')} style={{ background: '#10b981', color: 'white', border: 'none', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>✓ Mark Done</button>
+                        </div>
+                      ) : n.dmsType ? (
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          <button onClick={() => handleMarkDmsTaskDone(n.studentId, n.tasksCompleted, n.dmsType)} style={{ background: '#10b981', color: 'white', border: 'none', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 'bold' }}>✓ Mark Done</button>
                         </div>
                       ) : (
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontStyle: 'italic' }}>

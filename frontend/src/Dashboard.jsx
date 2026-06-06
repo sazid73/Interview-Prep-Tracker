@@ -547,10 +547,10 @@ const Dashboard = ({ currentUserRole }) => {
                 student.chasers.sfe && <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>SFE: {student.chasers.sfe.split(' ')[0]}</span>
               ) : (
                 <>
-                  {student.chasers.cv && <span style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>CV: {student.chasers.cv.split(' ')[0]}</span>}
-                  {student.chasers.ps && <span style={{ background: '#8b5cf6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>PS: {student.chasers.ps.split(' ')[0]}</span>}
-                  {student.chasers.qa && <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>QA: {student.chasers.qa.split(' ')[0]}</span>}
-                  {student.chasers.sub && <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>SUB: {student.chasers.sub.split(' ')[0]}</span>}
+                  {student.chasers.cv && <span style={{ background: student.tasksCompleted?.cv ? '#10b981' : '#3b82f6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>CV: {student.chasers.cv.split(' ')[0]} {student.tasksCompleted?.cv && '✅'}</span>}
+                  {student.chasers.ps && <span style={{ background: student.tasksCompleted?.ps ? '#10b981' : '#8b5cf6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>PS: {student.chasers.ps.split(' ')[0]} {student.tasksCompleted?.ps && '✅'}</span>}
+                  {student.chasers.qa && <span style={{ background: student.tasksCompleted?.qa ? '#10b981' : '#f59e0b', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>QA: {student.chasers.qa.split(' ')[0]} {student.tasksCompleted?.qa && '✅'}</span>}
+                  {student.chasers.sub && <span style={{ background: student.tasksCompleted?.sub ? '#10b981' : '#ef4444', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', fontSize: '0.65rem' }}>SUB: {student.chasers.sub.split(' ')[0]} {student.tasksCompleted?.sub && '✅'}</span>}
                 </>
               )}
             </div>
