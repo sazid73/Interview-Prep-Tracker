@@ -1087,7 +1087,7 @@ const Dashboard = ({ currentUserRole }) => {
                           <span style={{ background: '#6b7280', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeAwaiting.length}</span>
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredSfeAwaiting.map(s => renderStudentCard(s, '#6b7280', (st) => setSfeAssignModal({ show: true, student: st }), 'sfe'))}
+                          {filteredSfeAwaiting.map(s => renderStudentCard(s, '#6b7280', (st) => setSfeAssignModal({ show: true, student: st, sourceBox: 'awaiting' }), 'sfe'))}
                         </div>
                       </div>
                     )}
@@ -1452,7 +1452,7 @@ const Dashboard = ({ currentUserRole }) => {
               </div>
             </div>
 
-            {(sfeAssignModal.student?.chasers && sfeAssignModal.student.chasers.sfe) && (
+            {(sfeAssignModal.student?.chasers && sfeAssignModal.student.chasers.sfe && sfeAssignModal.sourceBox !== 'awaiting') && (
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
                 {(colSfeOngoing.some(s => s._id === sfeAssignModal.student?._id) || colSfeUrgent.some(s => s._id === sfeAssignModal.student?._id)) ? (
                   <button 
@@ -1896,6 +1896,8 @@ const Dashboard = ({ currentUserRole }) => {
               ))}
             </div>
 
+            {/* Manual Application Status buttons temporarily locked as per user request */}
+            {/* 
             {assignModal.student.appStatus !== 'Submitted' && (
               <div style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <h4 style={{ margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>Change Application Status</h4>
@@ -1916,7 +1918,8 @@ const Dashboard = ({ currentUserRole }) => {
                   ))}
                 </div>
               </div>
-            )}
+            )} 
+            */}
             
             <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={() => setAssignModal({ show: false, student: null })} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '0.6rem 1.5rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Done</button>

@@ -138,9 +138,22 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
       if (taskType === 'sfe') {
         updatePayload = { sfeStatus: 'SFE submitted' };
       } else {
-        updatePayload = { tasksCompleted: { ...(currentTasksCompleted || {}), [taskType]: true } };
-        if (taskType === 'sub') {
-          updatePayload.appStatus = 'Submitted';
+        const sRes = await fetch(`${API_BASE}/api/students`);
+        const sData = await sRes.json();
+        const student = sData.find(s => s._id === studentId);
+        
+        const newTasksCompleted = { ...(student?.tasksCompleted || {}), [taskType]: true };
+        updatePayload = { tasksCompleted: newTasksCompleted };
+        
+        if (student && student.chasers) {
+          const isCvDone = student.chasers.cv ? newTasksCompleted.cv : true;
+          const isPsDone = student.chasers.ps ? newTasksCompleted.ps : true;
+          const isQaDone = student.chasers.qa ? newTasksCompleted.qa : true;
+          const isSubDone = student.chasers.sub ? newTasksCompleted.sub : true;
+          
+          if (isCvDone && isPsDone && isQaDone && isSubDone) {
+            updatePayload.appStatus = 'Submitted';
+          }
         }
       }
       const res = await fetch(`${API_BASE}/api/students/${studentId}`, {

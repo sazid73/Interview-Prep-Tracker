@@ -97,6 +97,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
   const [isViewMode, setIsViewMode] = useState(false);
   const [bookingModal, setBookingModal] = useState({ show: false, student: null, date: '', time: '10:00', campus: '', notes: '' });
   const [notesModal, setNotesModal] = useState({ show: false, student: null, fieldType: null, note: '' });
+  const [showVerifiedOnly, setShowVerifiedOnly] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/students`, { cache: 'no-store' })
@@ -161,7 +162,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
             {student.routeCompany && <span>🏢 {student.routeCompany} </span>}
             {student.routeJobRole && <span>💼 {student.routeJobRole}</span>}
-            {student.routeWorkVerification && <div style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginTop: '0.2rem', fontSize: '0.7rem', fontWeight: 'bold' }}>✓ Work Verification Done</div>}
+            {student.routeWorkVerification && <div style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'block', marginTop: '0.4rem', fontSize: '0.7rem', fontWeight: 'bold', width: 'fit-content' }}>✓ Verified</div>}
           </div>
         )}
         {showEdu && (
@@ -275,7 +276,15 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
               type="checkbox" 
               id={`work-verification-${studentState._id || 'new'}`}
               checked={studentState.routeWorkVerification || false}
-              onChange={(e) => setStudentState({ ...studentState, routeWorkVerification: e.target.checked })}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  if (window.confirm("Are you sure you want to mark Work Verification as Done?")) {
+                    setStudentState({ ...studentState, routeWorkVerification: true });
+                  }
+                } else {
+                  setStudentState({ ...studentState, routeWorkVerification: false });
+                }
+              }}
               style={{ width: 'auto', cursor: 'pointer' }}
             />
             <label htmlFor={`work-verification-${studentState._id || 'new'}`} style={{ cursor: 'pointer', margin: 0, fontWeight: 'bold', color: 'var(--text-primary)' }}>Work Verification Done</label>
@@ -560,6 +569,8 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
     const matchesCollege = activeCollegeTab === 'All Students' || 
                            (s.courseAndCampus1 && s.courseAndCampus1.startsWith(activeCollegeTab));
     
+    const matchesVerified = showVerifiedOnly ? s.routeWorkVerification === true : true;
+    
     // Dynamic Filters
     const visibleFilters = tableColumns.filter(c => c.filterable);
     const matchesFilters = visibleFilters.every(col => {
@@ -577,7 +588,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
       return studentVal.includes(filterVal);
     });
 
-    return matchesSearch && matchesCollege && matchesFilters;
+    return matchesSearch && matchesCollege && matchesVerified && matchesFilters;
   });
 
   const uniqueRecruiters = [...new Set(students.map(s => s.recruiter).filter(Boolean))];
@@ -896,8 +907,9 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
               </div>
             );
           })}
-          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <button onClick={() => setFilters({})} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem' }}>
+            <button onClick={() => setShowVerifiedOnly(!showVerifiedOnly)} style={{ padding: '0.4rem 1rem', background: showVerifiedOnly ? '#10b981' : 'var(--bg-surface)', color: showVerifiedOnly ? '#fff' : 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>{showVerifiedOnly ? '✓ Verified Only' : 'Show All Verified'}</button>
+            <button onClick={() => { setFilters({}); setShowVerifiedOnly(false); }} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear</button>
           </div>
         </div>
       )}
