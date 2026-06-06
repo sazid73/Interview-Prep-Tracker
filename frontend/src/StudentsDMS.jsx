@@ -84,7 +84,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
   };
   const initialStudentState = {
     name: '', email: '', mobile: '', source: 'manual entry', session: '', 
-    courseAndCampus1: '', courseAndCampus2: '', route: '', routeNotes: '', routeCompany: '', routeJobRole: '', routeQualification: '', routeCredits: '', routeProvider: '', routeWorkType: '', routeEduType: '', routeHistory: [], 
+    courseAndCampus1: '', courseAndCampus2: '', route: '', routeNotes: '', routeCompany: '', routeJobRole: '', routeQualification: '', routeCredits: '', routeProvider: '', routeWorkType: '', routeEduType: '', routeWorkVerification: false, routeHistory: [], 
     intStatus: 'Interested and Responding', intStatusHistory: [],
     recruiter: '', recruiterHistory: [], 
     chaser: 'Click to assign', chaserHistory: [], 
@@ -161,6 +161,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
             {student.routeCompany && <span>🏢 {student.routeCompany} </span>}
             {student.routeJobRole && <span>💼 {student.routeJobRole}</span>}
+            {student.routeWorkVerification && <div style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-block', marginTop: '0.2rem', fontSize: '0.7rem', fontWeight: 'bold' }}>✓ Work Verification Done</div>}
           </div>
         )}
         {showEdu && (
@@ -178,6 +179,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
     routeJobRole: s.routeJobRole, routeQualification: s.routeQualification,
     routeCredits: s.routeCredits, routeProvider: s.routeProvider,
     routeWorkType: s.routeWorkType, routeEduType: s.routeEduType,
+    routeWorkVerification: s.routeWorkVerification,
     timestamp: new Date().toLocaleString(),
     user: currentUser || 'Unknown'
   });
@@ -267,6 +269,16 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
           <div className="input-group">
             <label>Job Role</label>
             <input type="text" value={studentState.routeJobRole || ''} onChange={(e) => setStudentState({ ...studentState, routeJobRole: e.target.value })} />
+          </div>
+          <div className="input-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexDirection: 'row', marginTop: '0.5rem' }}>
+            <input 
+              type="checkbox" 
+              id={`work-verification-${studentState._id || 'new'}`}
+              checked={studentState.routeWorkVerification || false}
+              onChange={(e) => setStudentState({ ...studentState, routeWorkVerification: e.target.checked })}
+              style={{ width: 'auto', cursor: 'pointer' }}
+            />
+            <label htmlFor={`work-verification-${studentState._id || 'new'}`} style={{ cursor: 'pointer', margin: 0, fontWeight: 'bold', color: 'var(--text-primary)' }}>Work Verification Done</label>
           </div>
         </>
       )}
@@ -451,7 +463,8 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
           oldStudent.routeCredits !== studentToSave.routeCredits ||
           oldStudent.routeProvider !== studentToSave.routeProvider ||
           oldStudent.routeWorkType !== studentToSave.routeWorkType ||
-          oldStudent.routeEduType !== studentToSave.routeEduType
+          oldStudent.routeEduType !== studentToSave.routeEduType ||
+          oldStudent.routeWorkVerification !== studentToSave.routeWorkVerification
         )) {
           studentToSave.routeHistory = [...(studentToSave.routeHistory || []), createRouteHistoryEntry(studentToSave)];
         }
