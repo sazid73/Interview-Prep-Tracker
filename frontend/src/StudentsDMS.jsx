@@ -16,6 +16,8 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeModalTab, setActiveModalTab] = useState('Details');
   const [editingCell, setEditingCell] = useState({ id: null, field: null });
+  const [editingValue, setEditingValue] = useState('');
+  const [toastMsg, setToastMsg] = useState(null);
   const [routeModal, setRouteModal] = useState({ show: false, student: null });
   const [chaserModal, setChaserModal] = useState({ show: false, student: null, readOnly: false });
   const [showFilters, setShowFilters] = useState(false);
@@ -694,6 +696,8 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
         body: JSON.stringify({ [field]: newValue })
       });
       logActivity('Student Edit', `Changed ${field} to "${newValue}" for ${targetStudent.name}`);
+      setToastMsg('Saved successfully');
+      setTimeout(() => setToastMsg(null), 3000);
     } catch (err) {
       console.error(err);
     }
@@ -766,48 +770,71 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
   const renderCell = (student, field, placeholder = '—') => {
     const isEditing = editingCell.id === student._id && editingCell.field === field;
     if (isEditing) {
-      if (field === 'recruiter' || field === 'chaser') {
-        return (
-          <SearchableSelect 
-            autoFocus 
-            defaultValue={student[field]} 
-            onBlur={(e) => handleCellEdit(student._id, field, e.target.value)}
-            style={{ width: '100%', padding: '0.2rem', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
-          >
-            <option value="">Select</option>
-            {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
-          </SearchableSelect>
-        );
-      }
-      if (field === 'courseAndCampus1' || field === 'courseAndCampus2') {
-        const allOptions = Object.entries(collegeCourses).flatMap(([c, courses]) => courses.map(course => `${c} - ${course}`));
+      const colLabel = tableColumns.find(c => c.id === field)?.label || field;
+      
+      const handleSave = (e) => {
+        e.stopPropagation();
+        handleCellEdit(student._id, field, editingValue);
+      };
 
-        return (
-          <div style={{ position: 'relative', width: '100%' }}>
-            <input 
-              autoFocus
-              defaultValue={student[field]}
-              list={`course-options-${student._id}-${field}`}
-              onBlur={(e) => handleCellEdit(student._id, field, e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-              placeholder="Search..."
-              style={{ width: '100%', padding: '0.4rem', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
-            />
-            <datalist id={`course-options-${student._id}-${field}`}>
-               {allOptions.map(opt => <option key={opt} value={opt} />)}
-            </datalist>
-          </div>
-        );
-      }
+      const handleCancel = (e) => {
+        e.stopPropagation();
+        setEditingCell({ id: null, field: null });
+      };
 
       return (
-        <input 
-          autoFocus
-          defaultValue={student[field]}
-          onBlur={(e) => handleCellEdit(student._id, field, e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
-          style={{ width: '100%', padding: '0.2rem', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
-        />
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', zIndex: 9999, background: 'var(--bg-surface)', padding: '0.75rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-color)', minWidth: '250px', top: '-10px', left: '-10px' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{colLabel}</div>
+            
+            {field === 'recruiter' || field === 'chaser' ? (
+              <SearchableSelect 
+                autoFocus 
+                value={editingValue}
+                onChange={e => setEditingValue(e.target.value)}
+                style={{ width: '100%', padding: '0.4rem', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
+              >
+                <option value="">Select</option>
+                {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
+              </SearchableSelect>
+            ) : field === 'courseAndCampus1' || field === 'courseAndCampus2' ? (
+              <SearchableSelect 
+                autoFocus 
+                value={editingValue}
+                onChange={e => setEditingValue(e.target.value)}
+                style={{ width: '100%', padding: '0.4rem', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)' }}
+              >
+                <option value="">Search...</option>
+                {Object.entries(collegeCourses).flatMap(([c, courses]) => courses.map(course => (
+                   <option key={`${c} - ${course}`} value={`${c} - ${course}`}>{c} - {course}</option>
+                )))}
+              </SearchableSelect>
+            ) : (
+              <input 
+                autoFocus
+                value={editingValue}
+                onChange={(e) => setEditingValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSave(e)}
+                style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--accent-color)', borderRadius: '6px' }}
+              />
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button 
+                onClick={handleSave}
+                style={{ flex: 1, background: '#4f46e5', color: '#fff', border: 'none', padding: '0.5rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+              >
+                ✓
+              </button>
+              <button 
+                onClick={handleCancel}
+                style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.5rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
       );
     }
     
@@ -816,7 +843,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minHeight: '1.5rem' }}>
           <span 
-            onClick={() => setEditingCell({ id: student._id, field })} 
+            onClick={() => { setEditingCell({ id: student._id, field }); setEditingValue(student[field] || ''); }} 
             style={{ cursor: 'pointer', flex: 1, color: field==='chaser' && (!student[field] || student[field]==='Click to assign') ? '#9ca3af' : 'inherit' }}
           >
             {student[field] || placeholder}
@@ -834,7 +861,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
       );
     }
 
-    return <span onClick={() => setEditingCell({ id: student._id, field })} style={{ cursor: 'text', display: 'block', minHeight: '1.5rem' }}>{student[field] || placeholder}</span>;
+    return <span onClick={() => { setEditingCell({ id: student._id, field }); setEditingValue(student[field] || ''); }} style={{ cursor: 'text', display: 'block', minHeight: '1.5rem' }}>{student[field] || placeholder}</span>;
   };
 
   const renderTableCell = (student, col) => {
@@ -889,6 +916,11 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
 
   return (
     <div className="dms-container">
+      {toastMsg && (
+        <div style={{ position: 'fixed', top: '20px', right: '20px', background: '#10b981', color: '#fff', padding: '1rem 2rem', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 99999, fontWeight: 'bold', animation: 'fadeIn 0.3s ease' }}>
+          ✓ {toastMsg}
+        </div>
+      )}
       <div className="dms-accordion">
         <div className="dms-accordion-header">
           <span>📍 Distance Search</span>

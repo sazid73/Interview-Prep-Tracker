@@ -280,11 +280,11 @@ const ColumnManager = ({ currentUserRole, currentUser, currentUserData }) => {
                 <td style={{ padding: '1rem' }}>
                   <button 
                     onClick={() => handleToggleFilterable(col.id)}
-                    disabled={!isAdmin || col.isSpecial && !col.filterable} // Prevent making unfilterable specials filterable if they don't support it natively yet
+                    disabled={!isAdmin || ['checkbox', 'actions', 'createdAt', 'modifiedAt', 'appId', 'clTime', 'docs'].includes(col.id)} // Prevent filtering on non-data columns
                     style={{ 
                       background: col.filterable ? '#8b5cf6' : 'var(--bg-surface-hover)', 
                       color: col.filterable ? '#fff' : 'var(--text-secondary)', 
-                      border: 'none', padding: '0.4rem 1rem', borderRadius: '20px', cursor: (isAdmin && !(col.isSpecial && !col.filterable)) ? 'pointer' : 'not-allowed', fontSize: '0.8rem', fontWeight: 'bold'
+                      border: 'none', padding: '0.4rem 1rem', borderRadius: '20px', cursor: (isAdmin && !['checkbox', 'actions', 'createdAt', 'modifiedAt', 'appId', 'clTime', 'docs'].includes(col.id)) ? 'pointer' : 'not-allowed', fontSize: '0.8rem', fontWeight: 'bold'
                     }}
                   >
                     {col.filterable ? 'FILTER ON' : 'FILTER OFF'}
