@@ -24,7 +24,7 @@ export const defaultColumnsConfig = [
   { id: 'location', label: 'LOCATION', visible: true, order: 18, isSpecial: false, filterable: true, filterType: 'text' },
   { id: 'appId', label: 'APPL ID', visible: true, order: 19, isSpecial: true, filterable: false },
   { id: 'clTime', label: 'CL TIME', visible: true, order: 20, isSpecial: true, filterable: false },
-  { id: 'route', label: 'ROUTE', visible: true, order: 21, isSpecial: true, filterable: false },
+  { id: 'route', label: 'ROUTE', visible: true, order: 21, isSpecial: true, filterable: true, filterType: 'select' },
   { id: 'docs', label: 'DOCS', visible: true, order: 22, isSpecial: true, filterable: false },
   { id: 'actions', label: 'ACTIONS', visible: true, order: 23, isSpecial: true, filterable: false }
 ];

@@ -1,3 +1,4 @@
+import SearchableSelect from './SearchableSelect';
 import React, { useState, useEffect } from 'react';
 import './WeeklyWL.css';
 
@@ -253,15 +254,15 @@ const WeeklyWL = ({ currentUserRole, currentUser, currentUserData }) => {
           <h2>Weekly Work List (WL)</h2>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <span style={{ color: 'var(--text-secondary)' }}>Viewing Day:</span>
-            <select 
+            <SearchableSelect 
               value={selectedDay} 
               onChange={e => setSelectedDay(e.target.value)}
               style={{ padding: '0.6rem 1rem', borderRadius: '8px', background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontSize: '1.1rem', fontWeight: 'bold' }}
             >
               {days.map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
+            </SearchableSelect>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <select onChange={async (e) => {
+              <SearchableSelect onChange={async (e) => {
                  if (e.target.value) {
                    const userName = e.target.value;
                    const u = users.find(user => user.name === userName);
@@ -280,7 +281,7 @@ const WeeklyWL = ({ currentUserRole, currentUser, currentUserData }) => {
               }} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
                 <option value="">+ Add Recruiter to Board</option>
                 {users.map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
-              </select>
+              </SearchableSelect>
             </div>
             <button 
               onClick={() => setShowLeave(!showLeave)}
@@ -366,7 +367,7 @@ const WeeklyWL = ({ currentUserRole, currentUser, currentUserData }) => {
                     {recruiter.name}
                   </td>
                   <td>
-                    <select 
+                    <SearchableSelect 
                       disabled={!isAdmin && currentUser !== recruiter.name}
                       className={`status-badge ${status}`} 
                       value={status} 
@@ -379,7 +380,7 @@ const WeeklyWL = ({ currentUserRole, currentUser, currentUserData }) => {
                       <option value="Leave">Leave</option>
                       <option value="pending">Pending</option>
                       <option value="completed">Completed</option>
-                    </select>
+                    </SearchableSelect>
                   </td>
                   <td>
                     <EditableInput 

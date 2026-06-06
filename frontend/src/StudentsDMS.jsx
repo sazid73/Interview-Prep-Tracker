@@ -1,3 +1,4 @@
+import SearchableSelect from './SearchableSelect';
 import React, { useState, useEffect, useRef } from 'react';
 import './StudentsDMS.css';
 import './StudentsDMS_colors.css';
@@ -84,7 +85,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
   };
   const initialStudentState = {
     name: '', email: '', mobile: '', source: 'manual entry', session: '', 
-    courseAndCampus1: '', courseAndCampus2: '', route: '', routeNotes: '', routeCompany: '', routeJobRole: '', routeQualification: '', routeCredits: '', routeProvider: '', routeWorkType: '', routeEduType: '', routeWorkVerification: false, routeHistory: [], 
+    courseAndCampus1: '', courseAndCampus2: '', route: '', routeNotes: '', routeCompany: '', routeJobRole: '', routeQualification: '', routeCredits: '', routeProvider: '', routeWorkType: '', routeEduType: '', routeWorkVerification: false, routeEduOrdered: false, routeEduReceived: false, routeHistory: [], 
     intStatus: 'Interested and Responding', intStatusHistory: [],
     recruiter: '', recruiterHistory: [], 
     chaser: 'Click to assign', chaserHistory: [], 
@@ -169,6 +170,9 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
           <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
             {student.routeQualification && <span>🎓 {student.routeQualification} </span>}
             {student.routeCredits && <span>(Credits: {student.routeCredits})</span>}
+            {student.routeProvider && <div>🏫 {student.routeProvider}</div>}
+            {student.routeEduOrdered && <div style={{ background: '#3b82f6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'block', marginTop: '0.4rem', fontSize: '0.7rem', fontWeight: 'bold', width: 'fit-content' }}>✓ Ordered</div>}
+            {student.routeEduReceived && <div style={{ background: '#8b5cf6', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'block', marginTop: '0.4rem', fontSize: '0.7rem', fontWeight: 'bold', width: 'fit-content' }}>✓ Received</div>}
           </div>
         )}
       </div>
@@ -229,14 +233,14 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
     <>
       <div className="input-group">
         <label>Route</label>
-        <select value={studentState.route || ''} onChange={(e) => setStudentState({ ...studentState, route: e.target.value })}>
+        <SearchableSelect value={studentState.route || ''} onChange={(e) => setStudentState({ ...studentState, route: e.target.value })}>
           <option value="">Select Route</option>
           <option value="Work our">Work our</option>
           <option value="Work own">Work own</option>
           <option value="Edu our">Edu our</option>
           <option value="Edu Own">Edu Own</option>
           <option value="Work + Edu">Work + Edu</option>
-        </select>
+        </SearchableSelect>
       </div>
       
       {(studentState.route === 'Work our' || studentState.route === 'Work own' || studentState.route === 'Work + Edu') && (
@@ -244,21 +248,21 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
           {studentState.route === 'Work + Edu' && (
             <div className="input-group">
               <label>Work Type</label>
-              <select value={studentState.routeWorkType || ''} onChange={(e) => setStudentState({ ...studentState, routeWorkType: e.target.value })}>
+              <SearchableSelect value={studentState.routeWorkType || ''} onChange={(e) => setStudentState({ ...studentState, routeWorkType: e.target.value })}>
                 <option value="">Select Work Type</option>
                 <option value="Work our">Work our</option>
                 <option value="Work own">Work own</option>
-              </select>
+              </SearchableSelect>
             </div>
           )}
           {((studentState.route === 'Work + Edu' && studentState.routeWorkType === 'Work our') || studentState.route === 'Work our') && (
             <div className="input-group">
               <label>Company</label>
-              <select value={studentState.routeCompany || ''} onChange={(e) => setStudentState({ ...studentState, routeCompany: e.target.value })}>
+              <SearchableSelect value={studentState.routeCompany || ''} onChange={(e) => setStudentState({ ...studentState, routeCompany: e.target.value })}>
                 <option value="">Select Company</option>
                 <option value="Green Grocery">Green Grocery</option>
                 <option value="Big Discount">Big Discount</option>
-              </select>
+              </SearchableSelect>
             </div>
           )}
           {((studentState.route === 'Work + Edu' && studentState.routeWorkType === 'Work own') || studentState.route === 'Work own') && (
@@ -297,11 +301,11 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
           {studentState.route === 'Work + Edu' && (
             <div className="input-group">
               <label>Edu Type</label>
-              <select value={studentState.routeEduType || ''} onChange={(e) => setStudentState({ ...studentState, routeEduType: e.target.value })}>
+              <SearchableSelect value={studentState.routeEduType || ''} onChange={(e) => setStudentState({ ...studentState, routeEduType: e.target.value })}>
                 <option value="">Select Edu Type</option>
                 <option value="Edu our">Edu our</option>
                 <option value="Edu Own">Edu Own</option>
-              </select>
+              </SearchableSelect>
             </div>
           )}
           <div className="input-group">
@@ -316,6 +320,46 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
             <label>Provider Name</label>
             <input type="text" value={studentState.routeProvider || ''} onChange={(e) => setStudentState({ ...studentState, routeProvider: e.target.value })} />
           </div>
+          {((studentState.route === 'Edu our') || (studentState.route === 'Work + Edu' && studentState.routeEduType === 'Edu our')) && (
+            <div className="input-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexDirection: 'row', marginTop: '0.5rem' }}>
+              <input 
+                type="checkbox" 
+                id={`edu-ordered-${studentState._id || 'new'}`}
+                checked={studentState.routeEduOrdered || false}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    if (window.confirm("Are you sure you want to mark Edu as Ordered?")) {
+                      setStudentState({ ...studentState, routeEduOrdered: true });
+                    }
+                  } else {
+                    setStudentState({ ...studentState, routeEduOrdered: false });
+                  }
+                }}
+                style={{ width: 'auto', cursor: 'pointer' }}
+              />
+              <label htmlFor={`edu-ordered-${studentState._id || 'new'}`} style={{ cursor: 'pointer', margin: 0, fontWeight: 'bold', color: 'var(--text-primary)' }}>Edu Ordered</label>
+            </div>
+          )}
+          {((studentState.route === 'Edu Own') || (studentState.route === 'Work + Edu' && studentState.routeEduType === 'Edu Own')) && (
+            <div className="input-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexDirection: 'row', marginTop: '0.5rem' }}>
+              <input 
+                type="checkbox" 
+                id={`edu-received-${studentState._id || 'new'}`}
+                checked={studentState.routeEduReceived || false}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    if (window.confirm("Are you sure you want to mark Edu as Received?")) {
+                      setStudentState({ ...studentState, routeEduReceived: true });
+                    }
+                  } else {
+                    setStudentState({ ...studentState, routeEduReceived: false });
+                  }
+                }}
+                style={{ width: 'auto', cursor: 'pointer' }}
+              />
+              <label htmlFor={`edu-received-${studentState._id || 'new'}`} style={{ cursor: 'pointer', margin: 0, fontWeight: 'bold', color: 'var(--text-primary)' }}>Edu Received</label>
+            </div>
+          )}
         </>
       )}
 
@@ -717,7 +761,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
     if (isEditing) {
       if (field === 'recruiter' || field === 'chaser') {
         return (
-          <select 
+          <SearchableSelect 
             autoFocus 
             defaultValue={student[field]} 
             onBlur={(e) => handleCellEdit(student._id, field, e.target.value)}
@@ -725,7 +769,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
           >
             <option value="">Select</option>
             {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
-          </select>
+          </SearchableSelect>
         );
       }
       if (field === 'courseAndCampus1' || field === 'courseAndCampus2') {
@@ -854,11 +898,11 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <select className="dms-rows-select" value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))}>
+          <SearchableSelect className="dms-rows-select" value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))}>
             <option value={10}>10</option>
             <option value={25}>25</option>
             <option value={50}>50</option>
-          </select>
+          </SearchableSelect>
         </div>
         <div className="dms-toolbar-right" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <button className="dms-btn-filter" onClick={() => setShowFilters(!showFilters)}>⧨ Filters</button>
@@ -893,10 +937,10 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
               return (
                 <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{col.label}</label>
-                  <select value={filters[col.id] || ''} onChange={e => setFilters({...filters, [col.id]: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+                  <SearchableSelect value={filters[col.id] || ''} onChange={e => setFilters({...filters, [col.id]: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
                     <option value="">All</option>
                     {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                  </SearchableSelect>
                 </div>
               );
             }
@@ -1051,19 +1095,19 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
                   </div>
                   <div className="input-group">
                     <label>Residential Status</label>
-                    <select value={newStudent.residential} onChange={e => setNewStudent({...newStudent, residential: e.target.value})}>
+                    <SearchableSelect value={newStudent.residential} onChange={e => setNewStudent({...newStudent, residential: e.target.value})}>
                       <option value="">Select Status</option>
                       <option value="UK Resident">UK Resident</option>
                       <option value="International">International</option>
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div className="input-group">
                     <label>Session</label>
-                    <select value={newStudent.session} onChange={e => setNewStudent({...newStudent, session: e.target.value})}>
+                    <SearchableSelect value={newStudent.session} onChange={e => setNewStudent({...newStudent, session: e.target.value})}>
                       <option value="">Select</option>
                       <option value="2026 June">2026 June</option>
                       <option value="2026 Sep">2026 Sep</option>
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div className="input-group">
                     <label>Date of Birth</label>
@@ -1071,24 +1115,24 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
                   </div>
                   <div className="input-group">
                     <label>Recruiter</label>
-                    <select value={newStudent.recruiter} onChange={e => setNewStudent({...newStudent, recruiter: e.target.value})}>
+                    <SearchableSelect value={newStudent.recruiter} onChange={e => setNewStudent({...newStudent, recruiter: e.target.value})}>
                       <option value="">Select</option>
                       {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div className="input-group">
                     <label>Chaser</label>
-                    <select value={newStudent.chaser} onChange={e => setNewStudent({...newStudent, chaser: e.target.value})}>
+                    <SearchableSelect value={newStudent.chaser} onChange={e => setNewStudent({...newStudent, chaser: e.target.value})}>
                       <option value="">Select</option>
                       {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div className="input-group">
                     <label>Agent</label>
-                    <select value={newStudent.agent} onChange={e => setNewStudent({...newStudent, agent: e.target.value})}>
+                    <SearchableSelect value={newStudent.agent} onChange={e => setNewStudent({...newStudent, agent: e.target.value})}>
                       <option value="">Select</option>
                       <option value="Direct">Direct</option>
-                    </select>
+                    </SearchableSelect>
                   </div>
                 </div>
               )}
@@ -1153,21 +1197,21 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
                   </div>
                   <div className="input-group">
                     <label>Application Status</label>
-                    <select value={newStudent.appStatus || ''} onChange={e => setNewStudent({...newStudent, appStatus: e.target.value})}>
+                    <SearchableSelect value={newStudent.appStatus || ''} onChange={e => setNewStudent({...newStudent, appStatus: e.target.value})}>
                       {appStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div className="input-group">
                     <label>Int Status</label>
-                    <select value={newStudent.intStatus || ''} onChange={e => setNewStudent({...newStudent, intStatus: e.target.value})}>
+                    <SearchableSelect value={newStudent.intStatus || ''} onChange={e => setNewStudent({...newStudent, intStatus: e.target.value})}>
                       {intStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div className="input-group">
                     <label>SFE Status</label>
-                    <select value={newStudent.sfeStatus || ''} onChange={e => setNewStudent({...newStudent, sfeStatus: e.target.value})}>
+                    <SearchableSelect value={newStudent.sfeStatus || ''} onChange={e => setNewStudent({...newStudent, sfeStatus: e.target.value})}>
                       {sfeStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div className="input-group">
                     <label>Branch Email</label>
@@ -1179,11 +1223,11 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
                   </div>
                   <div className="input-group">
                     <label>Sources</label>
-                    <select value={newStudent.source} onChange={e => setNewStudent({...newStudent, source: e.target.value})}>
+                    <SearchableSelect value={newStudent.source} onChange={e => setNewStudent({...newStudent, source: e.target.value})}>
                       <option value="manual entry">manual entry</option>
                       <option value="FB Leads">FB Leads</option>
                       <option value="TikTok Leads">TikTok Leads</option>
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div className="input-group">
                     <label>Referral</label>
@@ -1302,47 +1346,47 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
               {notesModal.fieldType === 'intStatus' ? (
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Update Interview Status</label>
-                  <select 
+                  <SearchableSelect 
                     value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student.intStatus || 'Interested and Responding')}
                     onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
                   >
                      {intStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  </SearchableSelect>
                 </div>
               ) : notesModal.fieldType === 'sfeStatus' ? (
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Update SFE Status</label>
-                  <select 
+                  <SearchableSelect 
                     value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student.sfeStatus || 'Assign for SFE')}
                     onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
                   >
                      {sfeStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  </SearchableSelect>
                 </div>
               ) : notesModal.fieldType === 'appStatus' ? (
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Update Application Status</label>
-                  <select 
+                  <SearchableSelect 
                     value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student.appStatus || 'Assign for submission')}
                     onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
                   >
                      {appStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  </SearchableSelect>
                 </div>
               ) : (
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Update Assignee</label>
-                  <select 
+                  <SearchableSelect 
                     value={notesModal.newValue !== undefined ? notesModal.newValue : (notesModal.student[notesModal.fieldType] || '')}
                     onChange={e => setNotesModal({...notesModal, newValue: e.target.value})}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', color: 'var(--text-primary)', background: 'var(--bg-color)' }}
                   >
                      <option value="">Select Assignee</option>
                      {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
-                  </select>
+                  </SearchableSelect>
                 </div>
               )}
 
@@ -1478,31 +1522,31 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
               <div className="dms-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="input-group">
                   <label>CV Chaser</label>
-                  <select value={chaserModal.student.chasers?.cv || ''} onChange={(e) => handleChaserChange('cv', e.target.value)}>
+                  <SearchableSelect value={chaserModal.student.chasers?.cv || ''} onChange={(e) => handleChaserChange('cv', e.target.value)}>
                     <option value="">Select Person</option>
                     {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="input-group">
                   <label>PS Chaser</label>
-                  <select value={chaserModal.student.chasers?.ps || ''} onChange={(e) => handleChaserChange('ps', e.target.value)}>
+                  <SearchableSelect value={chaserModal.student.chasers?.ps || ''} onChange={(e) => handleChaserChange('ps', e.target.value)}>
                     <option value="">Select Person</option>
                     {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="input-group">
                   <label>Submission & QC</label>
-                  <select value={chaserModal.student.chasers?.sub || ''} onChange={(e) => handleChaserChange('sub', e.target.value)}>
+                  <SearchableSelect value={chaserModal.student.chasers?.sub || ''} onChange={(e) => handleChaserChange('sub', e.target.value)}>
                     <option value="">Select Person</option>
                     {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="input-group">
                   <label>QA Chaser</label>
-                  <select value={chaserModal.student.chasers?.qa || ''} onChange={(e) => handleChaserChange('qa', e.target.value)}>
+                  <SearchableSelect value={chaserModal.student.chasers?.qa || ''} onChange={(e) => handleChaserChange('qa', e.target.value)}>
                     <option value="">Select Person</option>
                     {users.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="dms-modal-footer" style={{ marginTop: '1rem' }}>
                   <button type="button" className="dms-btn-save" onClick={handleChaserDone} style={{ width: '100%' }}>

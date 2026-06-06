@@ -1,3 +1,4 @@
+import SearchableSelect from './SearchableSelect';
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { io } from 'socket.io-client';
@@ -649,7 +650,7 @@ function App() {
                   No empty slots available in the next 3 days!
                 </div>
               ) : (
-                <select 
+                <SearchableSelect 
                   style={{ width: '100%', padding: '0.6rem', background: 'var(--bg-surface-hover)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '6px' }}
                   value={currentSelection}
                   onChange={(e) => setRescheduleData({ ...rescheduleData, selectedTarget: e.target.value })}
@@ -657,7 +658,7 @@ function App() {
                   {upcomingOptions.map(opt => (
                     <option key={opt.id} value={opt.id}>{opt.label}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               )}
             </div>
           </div>
@@ -843,7 +844,7 @@ function App() {
 
           <div className="report-controls">
             <label style={{ marginRight: '1rem' }}>Select Date: </label>
-            <select
+            <SearchableSelect
               value={reportDayObj.dateNum}
               onChange={e => {
                 const selected = monthDays.find(d => d.dateNum === Number(e.target.value));
@@ -853,7 +854,7 @@ function App() {
               {monthDays.map(dayObj => (
                 <option key={dayObj.dateNum} value={dayObj.dateNum}>{dayObj.label}</option>
               ))}
-            </select>
+            </SearchableSelect>
           </div>
 
           <div className="report-body" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
@@ -1109,17 +1110,17 @@ function App() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status</label>
-              <select value={prepSearchStatus} onChange={e => setPrepSearchStatus(e.target.value)} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+              <SearchableSelect value={prepSearchStatus} onChange={e => setPrepSearchStatus(e.target.value)} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
                 <option value="">All</option>
                 <option value="done">Done (✓)</option>
                 <option value="missed">Missed (✗)</option>
                 <option value="rescheduled">Rescheduled (🔄)</option>
                 <option value="pending">Pending (No Status)</option>
-              </select>
+              </SearchableSelect>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>College</label>
-              <select value={prepSearchCollege} onChange={e => setPrepSearchCollege(e.target.value)} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+              <SearchableSelect value={prepSearchCollege} onChange={e => setPrepSearchCollege(e.target.value)} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
                 <option value="">All</option>
                 <option value="GBS">GBS</option>
                 <option value="VCAD">VCAD</option>
@@ -1130,7 +1131,7 @@ function App() {
                 <option value="OLC">OLC</option>
                 <option value="UKMC">UKMC</option>
                 <option value="LSC">LSC</option>
-              </select>
+              </SearchableSelect>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Recruiter</label>

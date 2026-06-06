@@ -1,3 +1,4 @@
+import SearchableSelect from './SearchableSelect';
 import React from 'react';
 import './Topbar.css';
 
@@ -246,7 +247,7 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
-            <select 
+            <SearchableSelect 
               value={presence} 
               onChange={e => handleProfileUpdate('presence', e.target.value)}
               style={{ padding: '0.3rem', borderRadius: '4px', background: presence === 'working' ? '#10b981' : presence === 'leave' ? '#ef4444' : presence === 'break' ? '#f59e0b' : '#8b5cf6', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
@@ -255,7 +256,7 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
               <option value="break">Break</option>
               <option value="prep">Prep</option>
               <option value="leave">Leave</option>
-            </select>
+            </SearchableSelect>
             <input 
               type="text" 
               placeholder="Start Time (e.g. 10 AM)" 

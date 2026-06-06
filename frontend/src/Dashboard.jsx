@@ -1,3 +1,4 @@
+import SearchableSelect from './SearchableSelect';
 import React, { useState, useEffect } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -157,7 +158,7 @@ const Dashboard = ({ currentUserRole }) => {
     const currentChasers = student.chasers || { cv: '', ps: '', sub: '', qa: '', sfe: '' };
     const newChasers = { ...currentChasers, sfe: val };
     
-    setSfeAssignModal({ show: true, student: { ...student, chasers: newChasers, sfeStatus: newStatus } });
+    setSfeAssignModal(prev => ({ ...prev, show: true, student: { ...student, chasers: newChasers, sfeStatus: newStatus } }));
     setStudents(students.map(s => s._id === student._id ? { ...s, chasers: newChasers, sfeStatus: newStatus } : s));
     
     try {
@@ -920,7 +921,7 @@ const Dashboard = ({ currentUserRole }) => {
                 <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   👨‍💼 Admin Submission Workflow
                 </h3>
-                <select 
+                <SearchableSelect 
                   value={modalFilterMonth}
                   onChange={e => setModalFilterMonth(e.target.value)}
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
@@ -929,8 +930,8 @@ const Dashboard = ({ currentUserRole }) => {
                   {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}
-                </select>
-                <select 
+                </SearchableSelect>
+                <SearchableSelect 
                   value={modalFilterWeek}
                   onChange={e => setModalFilterWeek(e.target.value)}
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
@@ -941,7 +942,7 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Week 3">Week 3</option>
                   <option value="Week 4">Week 4</option>
                   <option value="Week 5">Week 5</option>
-                </select>
+                </SearchableSelect>
                 <input 
                   type="text" 
                   placeholder="Search..." 
@@ -1035,7 +1036,7 @@ const Dashboard = ({ currentUserRole }) => {
                 <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   💸 SFE Workflow
                 </h3>
-                <select 
+                <SearchableSelect 
                   value={modalFilterMonth}
                   onChange={e => setModalFilterMonth(e.target.value)}
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
@@ -1044,8 +1045,8 @@ const Dashboard = ({ currentUserRole }) => {
                   {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}
-                </select>
-                <select 
+                </SearchableSelect>
+                <SearchableSelect 
                   value={modalFilterWeek}
                   onChange={e => setModalFilterWeek(e.target.value)}
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
@@ -1056,7 +1057,7 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Week 3">Week 3</option>
                   <option value="Week 4">Week 4</option>
                   <option value="Week 5">Week 5</option>
-                </select>
+                </SearchableSelect>
                 <input 
                   type="text" 
                   placeholder="Search..." 
@@ -1159,7 +1160,7 @@ const Dashboard = ({ currentUserRole }) => {
                 <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   🎤 Interview Tracking
                 </h3>
-                <select 
+                <SearchableSelect 
                   value={modalFilterMonth}
                   onChange={e => setModalFilterMonth(e.target.value)}
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
@@ -1168,8 +1169,8 @@ const Dashboard = ({ currentUserRole }) => {
                   {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}
-                </select>
-                <select 
+                </SearchableSelect>
+                <SearchableSelect 
                   value={modalFilterWeek}
                   onChange={e => setModalFilterWeek(e.target.value)}
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
@@ -1180,7 +1181,7 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Week 3">Week 3</option>
                   <option value="Week 4">Week 4</option>
                   <option value="Week 5">Week 5</option>
-                </select>
+                </SearchableSelect>
                 <input 
                   type="text" 
                   placeholder="Search..." 
@@ -1308,7 +1309,7 @@ const Dashboard = ({ currentUserRole }) => {
                 <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   🎯 Prep Tracking
                 </h3>
-                <select 
+                <SearchableSelect 
                   value={modalFilterMonth}
                   onChange={e => setModalFilterMonth(e.target.value)}
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
@@ -1317,8 +1318,8 @@ const Dashboard = ({ currentUserRole }) => {
                   {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}
-                </select>
-                <select 
+                </SearchableSelect>
+                <SearchableSelect 
                   value={modalFilterWeek}
                   onChange={e => setModalFilterWeek(e.target.value)}
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
@@ -1329,7 +1330,7 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Week 3">Week 3</option>
                   <option value="Week 4">Week 4</option>
                   <option value="Week 5">Week 5</option>
-                </select>
+                </SearchableSelect>
                 <input 
                   type="text" 
                   placeholder="Search..." 
@@ -1438,7 +1439,7 @@ const Dashboard = ({ currentUserRole }) => {
                     {(sfeAssignModal.student?.chasers && sfeAssignModal.student.chasers.sfe) || 'Unassigned'} (Read-Only)
                   </span>
                 ) : (
-                  <select 
+                  <SearchableSelect 
                     value={(sfeAssignModal.student?.chasers && sfeAssignModal.student.chasers.sfe) || ''}
                     onChange={(e) => handleSfeAssignDropdown(e.target.value)}
                     style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', color: 'var(--text-primary)', width: '200px' }}
@@ -1447,7 +1448,7 @@ const Dashboard = ({ currentUserRole }) => {
                     {allUsers.filter(u => ['dina', 'saad', 'apsara'].includes(u.name.toLowerCase())).map(u => (
                       <option key={u._id} value={u.name}>{u.name}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 )}
               </div>
             </div>
@@ -1517,7 +1518,7 @@ const Dashboard = ({ currentUserRole }) => {
                 onChange={e => setLogSearchTerm(e.target.value)}
                 style={{ flex: 1, padding: '0.6rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
               />
-              <select 
+              <SearchableSelect 
                 value={logUserFilter}
                 onChange={e => setLogUserFilter(e.target.value)}
                 style={{ padding: '0.6rem 1rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
@@ -1526,7 +1527,7 @@ const Dashboard = ({ currentUserRole }) => {
                 {uniqueLogUsers.map(u => (
                   <option key={u} value={u}>{u}</option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
             
             <div className="dms-modal-body" style={{ display: 'block', flex: 1, padding: '0 1.5rem 1.5rem 1.5rem', overflowY: 'auto' }}>
@@ -1561,22 +1562,22 @@ const Dashboard = ({ currentUserRole }) => {
             <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Admin App Analytics</h3>
-                <select 
+                <SearchableSelect 
                   value={analyticsMonth} 
                   onChange={e => setAnalyticsMonth(e.target.value)}
                   style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.4rem', borderRadius: '6px' }}
                 >
                   <option value="All">All Months</option>
                   {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <select 
+                </SearchableSelect>
+                <SearchableSelect 
                   value={analyticsWeek} 
                   onChange={e => setAnalyticsWeek(e.target.value)}
                   style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.4rem', borderRadius: '6px' }}
                 >
                   <option value="All">All Weeks</option>
                   {[1,2,3,4,5].map(w => <option key={w} value={w}>Week {w}</option>)}
-                </select>
+                </SearchableSelect>
               </div>
               <button onClick={() => setShowAnalyticsModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
@@ -1639,14 +1640,14 @@ const Dashboard = ({ currentUserRole }) => {
             <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Recruiter Performance (Leads & Conversion)</h3>
-                <select 
+                <SearchableSelect 
                   value={recruiterMonth} 
                   onChange={e => setRecruiterMonth(e.target.value)}
                   style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.4rem', borderRadius: '6px' }}
                 >
                   <option value="All">All Sessions</option>
                   {uniqueSessions.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                </SearchableSelect>
               </div>
               <button onClick={() => setShowRecruiterModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
@@ -1820,16 +1821,16 @@ const Dashboard = ({ currentUserRole }) => {
                 </h3>
                 
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  <select 
+                  <SearchableSelect 
                     value={adminTaskStatus} 
                     onChange={e => setAdminTaskStatus(e.target.value)}
                     style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.4rem 0.8rem', borderRadius: '6px' }}
                   >
                     <option value="Assigned">Live / Assigned</option>
                     <option value="Completed">Completed (Submitted)</option>
-                  </select>
+                  </SearchableSelect>
                   
-                  <select 
+                  <SearchableSelect 
                     value={adminTaskTimeframe} 
                     onChange={e => setAdminTaskTimeframe(e.target.value)}
                     style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.4rem 0.8rem', borderRadius: '6px' }}
@@ -1837,7 +1838,7 @@ const Dashboard = ({ currentUserRole }) => {
                     <option value="All">All Time</option>
                     <option value="Today">Today</option>
                     <option value="This Week">This Week</option>
-                  </select>
+                  </SearchableSelect>
 
                   <input 
                     type="text" 
@@ -1883,7 +1884,7 @@ const Dashboard = ({ currentUserRole }) => {
               ].map(({ type, label }) => (
                 <div key={type} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <label style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{label}</label>
-                  <select 
+                  <SearchableSelect 
                     value={(assignModal.student.chasers && assignModal.student.chasers[type]) || ''}
                     onChange={(e) => handleDashboardChaserChange(type, e.target.value)}
                     disabled={assignModal.student.appStatus === 'Submitted'}
@@ -1891,7 +1892,7 @@ const Dashboard = ({ currentUserRole }) => {
                   >
                     <option value="">Unassigned</option>
                     {allUsers.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
-                  </select>
+                  </SearchableSelect>
                 </div>
               ))}
             </div>
@@ -1951,7 +1952,7 @@ const Dashboard = ({ currentUserRole }) => {
                 <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   📝 Weekly WL Task Report
                 </h3>
-                <select 
+                <SearchableSelect 
                   value={recruiterTaskFilter}
                   onChange={e => setRecruiterTaskFilter(e.target.value)}
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
@@ -1965,7 +1966,7 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Friday">Friday</option>
                   <option value="Saturday">Saturday</option>
                   <option value="Sunday">Sunday</option>
-                </select>
+                </SearchableSelect>
                 <input 
                   type="text" 
                   placeholder="Search..." 
@@ -2033,12 +2034,12 @@ const Dashboard = ({ currentUserRole }) => {
             <form onSubmit={handleCreateChaserTask} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Assign To (Chaser)</label>
-                <select required value={newChaserTask.assignedTo} onChange={e => setNewChaserTask({ ...newChaserTask, assignedTo: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}>
+                <SearchableSelect required value={newChaserTask.assignedTo} onChange={e => setNewChaserTask({ ...newChaserTask, assignedTo: e.target.value })} style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}>
                   <option value="">Select Chaser...</option>
                   {allUsers.filter(u => u.jobTitles?.includes('Chaser') || u.role === 'chaser').map(u => (
                     <option key={u._id} value={u.name}>{u.name}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Lead Num / Reference</label>
@@ -2078,7 +2079,7 @@ const Dashboard = ({ currentUserRole }) => {
                 <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   🏃 Chaser Task Report
                 </h3>
-                <select 
+                <SearchableSelect 
                   value={chaserTaskFilter}
                   onChange={e => setChaserTaskFilter(e.target.value)}
                   style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
@@ -2092,7 +2093,7 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Friday">Friday</option>
                   <option value="Saturday">Saturday</option>
                   <option value="Sunday">Sunday</option>
-                </select>
+                </SearchableSelect>
                 <input 
                   type="text" 
                   placeholder="Search..." 

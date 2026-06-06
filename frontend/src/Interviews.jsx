@@ -1,3 +1,4 @@
+import SearchableSelect from './SearchableSelect';
 import React, { useState, useEffect } from 'react';
 import './Interviews.css';
 
@@ -160,7 +161,7 @@ const Interviews = ({ currentUser }) => {
     if (field === 'status') {
       if (isEditing) {
         return (
-          <select 
+          <SearchableSelect 
             autoFocus
             defaultValue={row[field]}
             onChange={(e) => handleCellEdit(row._id, field, e.target.value)}
@@ -173,7 +174,7 @@ const Interviews = ({ currentUser }) => {
             <option value="pending" disabled hidden>Pending</option>
             <option value="rescheduled">Pending</option>
             <option value="reschedule">Reschedule...</option>
-          </select>
+          </SearchableSelect>
         );
       }
       return (
@@ -332,10 +333,10 @@ const Interviews = ({ currentUser }) => {
       <div className="interviews-toolbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>Weekly MI</h2>
-          <select className="week-filter-select" value={filterWeek} onChange={e => setFilterWeek(e.target.value)}>
+          <SearchableSelect className="week-filter-select" value={filterWeek} onChange={e => setFilterWeek(e.target.value)}>
             <option value="All">All Months</option>
             {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
+          </SearchableSelect>
           <input 
             type="text" 
             placeholder="🔍 Search name.." 
@@ -362,34 +363,34 @@ const Interviews = ({ currentUser }) => {
         <div style={{ padding: '1rem 1.5rem', background: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status</label>
-            <select value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+            <SearchableSelect value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               <option value="">All</option>
               <option value="pass">Pass</option>
               <option value="failed">Failed</option>
               <option value="rescheduled">Rescheduled</option>
               <option value="pending">Pending</option>
-            </select>
+            </SearchableSelect>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>College</label>
-            <select value={filters.college} onChange={e => setFilters({...filters, college: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+            <SearchableSelect value={filters.college} onChange={e => setFilters({...filters, college: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               <option value="">All</option>
               {[...new Set(interviews.map(i => i.college).filter(Boolean))].map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            </SearchableSelect>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Recruiter</label>
-            <select value={filters.recruiter} onChange={e => setFilters({...filters, recruiter: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+            <SearchableSelect value={filters.recruiter} onChange={e => setFilters({...filters, recruiter: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               <option value="">All</option>
               {[...new Set(interviews.map(i => i.recruiter).filter(Boolean))].map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            </SearchableSelect>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Intake</label>
-            <select value={filters.intake} onChange={e => setFilters({...filters, intake: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
+            <SearchableSelect value={filters.intake} onChange={e => setFilters({...filters, intake: e.target.value})} style={{ padding: '0.4rem', borderRadius: '4px', background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}>
               <option value="">All</option>
               {[...new Set(interviews.map(i => i.intake).filter(Boolean))].map(i => <option key={i} value={i}>{i}</option>)}
-            </select>
+            </SearchableSelect>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Subject</label>
