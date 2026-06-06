@@ -599,6 +599,45 @@ const Dashboard = ({ currentUserRole }) => {
     );
   };
 
+  const renderSLACard = (student, type) => {
+    const personName = type === 'recruiter' ? student.recruiter : student.chaser;
+    const historyField = type === 'recruiter' ? 'recruiterHistory' : 'chaserHistory';
+    let lastNote = 'No notes available.';
+    
+    if (student[historyField] && student[historyField].length > 0) {
+      const entriesWithNotes = student[historyField].filter(e => e.note && e.note.trim() !== '');
+      if (entriesWithNotes.length > 0) {
+        lastNote = entriesWithNotes[entriesWithNotes.length - 1].note;
+      } else {
+        lastNote = student[historyField][student[historyField].length - 1].note || 'Updated without note';
+      }
+    } else if (type === 'recruiter' && student.intStatusHistory && student.intStatusHistory.length > 0) {
+      const entries = student.intStatusHistory.filter(e => e.note && e.note.trim() !== '');
+      if (entries.length > 0) lastNote = entries[entries.length - 1].note;
+    }
+
+    return (
+      <div key={student._id} style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #ef4444', display: 'flex', flexDirection: 'column', gap: '0.5rem', cursor: 'pointer', border: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <strong style={{ color: 'var(--text-primary)', fontSize: '1rem' }}>{student.name}</strong>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {student.studentId}</div>
+          </div>
+          <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+            {type === 'recruiter' ? 'Recruiter SLA' : 'Chaser SLA'}
+          </span>
+        </div>
+        
+        <div style={{ background: 'var(--bg-color)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 'bold', marginBottom: '0.3rem' }}>{type === 'recruiter' ? 'Recruiter' : 'Chaser'}: <span style={{color: '#3b82f6'}}>{personName || 'Unassigned'}</span></div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: '1.4' }}>
+            "{lastNote}"
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderInterviewCard = (interview, colColor) => {
     return (
       <div key={interview._id} style={{ background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${colColor}`, marginBottom: '0.8rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
@@ -1246,7 +1285,7 @@ const Dashboard = ({ currentUserRole }) => {
                       <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAlertRecruiter.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {applyModalFilter(colAlertRecruiter, () => null).map(s => renderStudentCard(s, '#ef4444'))}
+                      {applyModalFilter(colAlertRecruiter, () => null).map(s => renderSLACard(s, 'recruiter'))}
                     </div>
                   </div>
                 )}
@@ -1257,7 +1296,7 @@ const Dashboard = ({ currentUserRole }) => {
                       <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAlertChaser.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {applyModalFilter(colAlertChaser, () => null).map(s => renderStudentCard(s, '#ef4444'))}
+                      {applyModalFilter(colAlertChaser, () => null).map(s => renderSLACard(s, 'chaser'))}
                     </div>
                   </div>
                 )}
@@ -1805,10 +1844,10 @@ const Dashboard = ({ currentUserRole }) => {
             <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1200px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
               <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
                 <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  🎯 Admin Task Distribution (Legacy View)
+                  🎯 Admin Task Distribution
                 </h3>
                 
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <select 
                     value={adminTaskStatus} 
                     onChange={e => setAdminTaskStatus(e.target.value)}
