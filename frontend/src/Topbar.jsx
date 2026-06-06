@@ -4,10 +4,17 @@ import './Topbar.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogout }) => {
+const Topbar = ({ currentView, currentUser, currentUserRole, currentUserData, toggleMenu, onLogout }) => {
   const [presence, setPresence] = React.useState('working');
   const [shiftStart, setShiftStart] = React.useState('');
   const [shiftEnd, setShiftEnd] = React.useState('');
+  const [showProfileMenu, setShowProfileMenu] = React.useState(false);
+  const [theme, setTheme] = React.useState(() => localStorage.getItem('trackerTheme') || 'dark');
+
+  React.useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('trackerTheme', theme);
+  }, [theme]);
 
   React.useEffect(() => {
     if (currentUser) {
@@ -236,55 +243,91 @@ const Topbar = ({ currentView, currentUser, currentUserRole, toggleMenu, onLogou
           )}
         </div>
 
-        <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div className="avatar">
-            {currentUser ? currentUser.substring(0, 2).toUpperCase() : 'U'}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="user-name" style={{ fontWeight: 'bold' }}>{currentUser}</span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
-              {currentUserRole ? currentUserRole.replace('_', ' ') : 'Standard'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.2rem 0.5rem', borderRadius: '6px' }}>
-            <SearchableSelect 
-              value={presence} 
-              onChange={e => handleProfileUpdate('presence', e.target.value)}
-              style={{ padding: '0.3rem', borderRadius: '4px', background: presence === 'working' ? '#10b981' : presence === 'leave' ? '#ef4444' : presence === 'break' ? '#f59e0b' : '#8b5cf6', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
-            >
-              <option value="working">Working</option>
-              <option value="break">Break</option>
-              <option value="prep">Prep</option>
-              <option value="leave">Leave</option>
-            </SearchableSelect>
-            <input 
-              type="text" 
-              placeholder="Start Time (e.g. 10 AM)" 
-              value={shiftStart}
-              onChange={e => setShiftStart(e.target.value)}
-              onBlur={e => handleProfileUpdate('shiftStart', e.target.value)}
-              style={{ width: '80px', padding: '0.3rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', fontSize: '0.8rem' }}
-            />
-            <span style={{ color: 'var(--text-secondary)' }}>-</span>
-            <input 
-              type="text" 
-              placeholder="End Time (e.g. 6 PM)" 
-              value={shiftEnd}
-              onChange={e => setShiftEnd(e.target.value)}
-              onBlur={e => handleProfileUpdate('shiftEnd', e.target.value)}
-              style={{ width: '80px', padding: '0.3rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', fontSize: '0.8rem' }}
-            />
-          </div>
-          <button 
-            onClick={onLogout} 
-            style={{ 
-              marginLeft: '0.5rem', padding: '0.4rem 0.8rem', background: '#ef4444', 
-              color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer',
-              fontSize: '0.8rem', fontWeight: 'bold'
-            }}
+        <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
+          <div 
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px', background: showProfileMenu ? 'var(--bg-surface-hover)' : 'transparent', transition: 'background 0.2s' }}
           >
-            Logout
-          </button>
+            <div className="avatar" style={{ background: 'var(--accent-color)', color: '#fff', width: '35px', height: '35px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+              {currentUser ? currentUser.substring(0, 2).toUpperCase() : 'U'}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span className="user-name" style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{currentUser}</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
+                {currentUserRole ? currentUserRole.replace('_', ' ') : 'Standard'}
+              </span>
+            </div>
+          </div>
+
+          {showProfileMenu && (
+            <div style={{ position: 'absolute', top: '120%', right: '0', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1rem', width: '280px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', zIndex: 99999 }}>
+              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
+                <div style={{ fontWeight: 'bold', color: 'var(--text-primary)', fontSize: '1.1rem' }}>{currentUser}</div>
+                <div style={{ color: 'var(--accent-color)', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', textTransform: 'capitalize' }}>Role: {currentUserRole ? currentUserRole.replace('_', ' ') : 'Standard'}</div>
+                {currentUserData?.abilities && currentUserData.abilities.length > 0 && (
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                    <strong>Abilities:</strong> {currentUserData.abilities.join(', ')}
+                  </div>
+                )}
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 'bold' }}>Current Status</label>
+                  <select 
+                    value={presence} 
+                    onChange={e => handleProfileUpdate('presence', e.target.value)}
+                    style={{ width: '100%', marginTop: '0.3rem', padding: '0.5rem', borderRadius: '6px', background: presence === 'working' ? '#10b981' : presence === 'leave' ? '#ef4444' : presence === 'break' ? '#f59e0b' : '#8b5cf6', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer', appearance: 'auto' }}
+                  >
+                    <option value="working">Working</option>
+                    <option value="break">Break</option>
+                    <option value="prep">Prep</option>
+                    <option value="leave">Leave</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 'bold' }}>Work Time</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Start" 
+                      value={shiftStart}
+                      onChange={e => setShiftStart(e.target.value)}
+                      onBlur={e => handleProfileUpdate('shiftStart', e.target.value)}
+                      style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                    />
+                    <span style={{ color: 'var(--text-secondary)' }}>-</span>
+                    <input 
+                      type="text" 
+                      placeholder="End" 
+                      value={shiftEnd}
+                      onChange={e => setShiftEnd(e.target.value)}
+                      onBlur={e => handleProfileUpdate('shiftEnd', e.target.value)}
+                      style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>
+                  <label style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 'bold' }}>Theme Mode</label>
+                  <button 
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    {theme === 'dark' ? '🌙 Dark' : '☀️ Light'}
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                onClick={onLogout} 
+                style={{ width: '100%', padding: '0.6rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

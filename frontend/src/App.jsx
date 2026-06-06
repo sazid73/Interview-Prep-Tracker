@@ -203,18 +203,35 @@ function App() {
   const [currentUserRole, setCurrentUserRole] = useState(() => localStorage.getItem('trackerRole') || 'standard');
   const [currentUserData, setCurrentUserData] = useState(null);
 
-  useEffect(() => {
+  const fetchMyData = () => {
     if (currentUser) {
       fetch(`${API_BASE}/api/users`)
         .then(res => res.json())
         .then(data => {
           const me = data.find(u => u.name === currentUser);
-          if (me) setCurrentUserData(me);
+          if (me) {
+             setCurrentUserData(me);
+             // Update role if admin changed it
+             if (me.role && me.role !== currentUserRole) {
+               setCurrentUserRole(me.role);
+               localStorage.setItem('trackerRole', me.role);
+             }
+          }
         })
         .catch(console.error);
     } else {
       setCurrentUserData(null);
     }
+  };
+
+  useEffect(() => {
+    fetchMyData();
+    const interval = setInterval(fetchMyData, 10000);
+    window.addEventListener('user-profile-updated', fetchMyData);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('user-profile-updated', fetchMyData);
+    };
   }, [currentUser]);
   const [monthDays, setMonthDays] = useState([]);
   
@@ -1381,6 +1398,7 @@ function App() {
           currentView={currentView} 
           currentUser={currentUser} 
           currentUserRole={currentUserRole}
+          currentUserData={currentUserData}
           toggleMenu={() => setSidebarOpen(!sidebarOpen)} 
           onLogout={() => {
             logActivity('Logout', 'User logged out'); 

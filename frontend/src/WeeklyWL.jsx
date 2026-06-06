@@ -367,12 +367,12 @@ const WeeklyWL = ({ currentUserRole, currentUser, currentUserData }) => {
                     {recruiter.name}
                   </td>
                   <td>
-                    <SearchableSelect 
+                    <select 
                       disabled={!isAdmin && currentUser !== recruiter.name}
                       className={`status-badge ${status}`} 
                       value={status} 
                       onChange={e => handleUpdateStatus(recruiter.name, e.target.value)}
-                      style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid transparent' }}
+                      style={{ width: '100%', padding: '0.4rem', borderRadius: '4px', border: '1px solid transparent', background: status === 'working' ? '#10b981' : status === 'Leave' ? '#ef4444' : status === 'break' ? '#f59e0b' : status === 'prep' ? '#8b5cf6' : 'var(--bg-surface-hover)', color: 'white', fontWeight: 'bold' }}
                     >
                       <option value="working">Working</option>
                       <option value="break">Break</option>
@@ -380,7 +380,7 @@ const WeeklyWL = ({ currentUserRole, currentUser, currentUserData }) => {
                       <option value="Leave">Leave</option>
                       <option value="pending">Pending</option>
                       <option value="completed">Completed</option>
-                    </SearchableSelect>
+                    </select>
                   </td>
                   <td>
                     <EditableInput 
