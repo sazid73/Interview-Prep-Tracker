@@ -51,6 +51,15 @@ const Dashboard = ({ currentUserRole }) => {
   const [chaserTaskFilter, setChaserTaskFilter] = useState('All');
   const [showCreateChaserTaskModal, setShowCreateChaserTaskModal] = useState(false);
   const [newChaserTask, setNewChaserTask] = useState({ assignedTo: '', leadNum: '', notes: '' });
+  
+  const [modalSearchTerm, setModalSearchTerm] = useState('');
+  const [showOnlyUrgentSfeSubmitted, setShowOnlyUrgentSfeSubmitted] = useState(false);
+
+  // Clear search term when a modal is closed/opened
+  useEffect(() => {
+    setModalSearchTerm('');
+    setShowOnlyUrgentSfeSubmitted(false);
+  }, [showSfeWorkflowModal, showIntWorkflowModal, showAdminTaskModal, showRecruiterTaskModal, showAlertsModal, showChaserTaskModal, showPrepModal]);
 
   useEffect(() => {
     const t = Date.now();
@@ -112,8 +121,10 @@ const Dashboard = ({ currentUserRole }) => {
 
   const handleDashboardChaserChange = async (type, val) => {
     const student = assignModal.student;
-    const isCompleted = student.appStatus === 'Submitted';
-    const newStatus = isCompleted ? 'Submitted' : 'Submission ongoing';
+    let newStatus = student.appStatus;
+    if (newStatus !== 'Submitted' && newStatus !== 'Completed' && newStatus?.toLowerCase() !== 'urgent submission') {
+      newStatus = 'Submission ongoing';
+    }
     const currentChasers = student.chasers || { cv: '', ps: '', sub: '', qa: '' };
     const newChasers = { ...currentChasers, [type]: val };
     
@@ -498,8 +509,18 @@ const Dashboard = ({ currentUserRole }) => {
   const intTotal = colIntPassed.length + colIntFailed.length + colIntMissed.length;
   const intCompletionRate = intTotal > 0 ? Math.round((colIntPassed.length / intTotal) * 100) : 0;
 
-  const applyModalFilter = (list, dateExtractor) => {
+  const applyModalFilter = (list, dateExtractor, searchFields = ['name', 'studentId', 'studentName']) => {
     return list.filter(item => {
+      if (modalSearchTerm) {
+        const term = modalSearchTerm.toLowerCase();
+        const matchesSearch = searchFields.some(field => {
+          if (item[field] && typeof item[field] === 'string') {
+            return item[field].toLowerCase().includes(term);
+          }
+          return false;
+        });
+        if (!matchesSearch) return false;
+      }
       const dStr = dateExtractor(item);
       if (!dStr) return modalFilterMonth === 'All' && modalFilterWeek === 'All';
       
@@ -1003,6 +1024,16 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Week 4">Week 4</option>
                   <option value="Week 5">Week 5</option>
                 </select>
+                  <option value="Week 4">Week 4</option>
+                  <option value="Week 5">Week 5</option>
+                </select>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={modalSearchTerm}
+                  onChange={(e) => setModalSearchTerm(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', width: '150px' }}
+                />
               </div>
               <button onClick={() => setShowSfeWorkflowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
@@ -1012,7 +1043,10 @@ const Dashboard = ({ currentUserRole }) => {
                 const filteredSfeAwaiting = applyModalFilter(colSfeAwaiting, dateExtractor);
                 const filteredSfeOngoing = applyModalFilter(colSfeOngoing, dateExtractor);
                 const filteredSfeUrgent = applyModalFilter(colSfeUrgent, dateExtractor);
-                const filteredSfeSubmitted = applyModalFilter(colSfeSubmitted, dateExtractor);
+                let filteredSfeSubmitted = applyModalFilter(colSfeSubmitted, dateExtractor);
+                if (showOnlyUrgentSfeSubmitted) {
+                  filteredSfeSubmitted = filteredSfeSubmitted.filter(s => s.sfeStatusHistory && s.sfeStatusHistory.some(h => h.status === 'Urgent SFE'));
+                }
                 const filteredSfeApproved = applyModalFilter(colSfeApproved, dateExtractor);
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
@@ -1051,10 +1085,17 @@ const Dashboard = ({ currentUserRole }) => {
                     )}
                     {showSfeWorkflowModal === 'submitted' && (
                       <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                        <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                          <span>SFE Submitted</span>
-                          <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeSubmitted.length}</span>
-                        </h4>
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem' }}>
+                          <h4 style={{ margin: 0, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>SFE Submitted</span>
+                            <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredSfeSubmitted.length}</span>
+                          </h4>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.8rem', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={showOnlyUrgentSfeSubmitted} onChange={(e) => setShowOnlyUrgentSfeSubmitted(e.target.checked)} />
+                            Urgently Submitted Only
+                          </label>
+                        </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                           {filteredSfeSubmitted.map(s => renderStudentCard(s, '#f59e0b', (st) => setSfeAssignModal({ show: true, student: st }), 'sfe'))}
                         </div>
@@ -1111,6 +1152,13 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Week 4">Week 4</option>
                   <option value="Week 5">Week 5</option>
                 </select>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={modalSearchTerm}
+                  onChange={(e) => setModalSearchTerm(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', width: '150px' }}
+                />
               </div>
               <button onClick={() => setShowIntWorkflowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
@@ -1179,9 +1227,18 @@ const Dashboard = ({ currentUserRole }) => {
         <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1400px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
             <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                ⚠️ SLA Alerts
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  ⚠️ SLA Alerts
+                </h3>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={modalSearchTerm}
+                  onChange={(e) => setModalSearchTerm(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', width: '150px' }}
+                />
+              </div>
               <button onClick={() => setShowAlertsModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
             <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
@@ -1193,7 +1250,7 @@ const Dashboard = ({ currentUserRole }) => {
                       <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAlertRecruiter.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colAlertRecruiter.map(s => renderStudentCard(s, '#ef4444'))}
+                      {applyModalFilter(colAlertRecruiter, () => null).map(s => renderStudentCard(s, '#ef4444'))}
                     </div>
                   </div>
                 )}
@@ -1204,7 +1261,7 @@ const Dashboard = ({ currentUserRole }) => {
                       <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{colAlertChaser.length}</span>
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                      {colAlertChaser.map(s => renderStudentCard(s, '#ef4444'))}
+                      {applyModalFilter(colAlertChaser, () => null).map(s => renderStudentCard(s, '#ef4444'))}
                     </div>
                   </div>
                 )}
@@ -1244,6 +1301,13 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Week 4">Week 4</option>
                   <option value="Week 5">Week 5</option>
                 </select>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={modalSearchTerm}
+                  onChange={(e) => setModalSearchTerm(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', width: '150px' }}
+                />
               </div>
               <button onClick={() => setShowPrepModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
@@ -1683,6 +1747,11 @@ const Dashboard = ({ currentUserRole }) => {
         };
 
         const isTaskMatchingFilters = (s) => {
+          if (modalSearchTerm) {
+            const term = modalSearchTerm.toLowerCase();
+            const matchesSearch = (s.name && s.name.toLowerCase().includes(term)) || (s.studentId && s.studentId.toLowerCase().includes(term));
+            if (!matchesSearch) return false;
+          }
           // Status filter
           const isCompleted = s.appStatus === 'Submitted' || s.appStatus === 'Completed';
           if (adminTaskStatus === 'Assigned' && isCompleted) return false;
@@ -1759,9 +1828,17 @@ const Dashboard = ({ currentUserRole }) => {
                     style={{ background: 'var(--bg-color)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.4rem 0.8rem', borderRadius: '6px' }}
                   >
                     <option value="All">All Time</option>
-                    <option value="This Week">Last 7 Days</option>
                     <option value="Today">Today</option>
+                    <option value="This Week">This Week</option>
                   </select>
+
+                  <input 
+                    type="text" 
+                    placeholder="Search..." 
+                    value={modalSearchTerm}
+                    onChange={(e) => setModalSearchTerm(e.target.value)}
+                    style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.4rem 0.8rem', borderRadius: '6px', width: '150px' }}
+                  />
 
                   <button onClick={() => setShowAdminTaskModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem', marginLeft: '1rem' }}>✗</button>
                 </div>
@@ -1848,6 +1925,10 @@ const Dashboard = ({ currentUserRole }) => {
         } else if (recruiterTaskFilter !== 'All') {
           filteredTasks = tasks.filter(t => t.day === recruiterTaskFilter);
         }
+        if (modalSearchTerm) {
+          const term = modalSearchTerm.toLowerCase();
+          filteredTasks = filteredTasks.filter(t => (t.assignedTo && t.assignedTo.toLowerCase().includes(term)) || (t.leadNum && t.leadNum.toLowerCase().includes(term)));
+        }
         
         const pendingTasks = filteredTasks.filter(t => t.status !== 'completed');
         const completedTasks = filteredTasks.filter(t => t.status === 'completed');
@@ -1875,6 +1956,13 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Saturday">Saturday</option>
                   <option value="Sunday">Sunday</option>
                 </select>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={modalSearchTerm}
+                  onChange={(e) => setModalSearchTerm(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', width: '150px' }}
+                />
               </div>
               <button onClick={() => setShowRecruiterTaskModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
@@ -1964,6 +2052,10 @@ const Dashboard = ({ currentUserRole }) => {
         } else if (chaserTaskFilter !== 'All') {
           filteredTasks = filteredTasks.filter(t => t.day === chaserTaskFilter);
         }
+        if (modalSearchTerm) {
+          const term = modalSearchTerm.toLowerCase();
+          filteredTasks = filteredTasks.filter(t => (t.assignedTo && t.assignedTo.toLowerCase().includes(term)) || (t.leadNum && t.leadNum.toLowerCase().includes(term)));
+        }
         
         const pendingTasks = filteredTasks.filter(t => t.status !== 'completed');
         const completedTasks = filteredTasks.filter(t => t.status === 'completed');
@@ -1991,6 +2083,13 @@ const Dashboard = ({ currentUserRole }) => {
                   <option value="Saturday">Saturday</option>
                   <option value="Sunday">Sunday</option>
                 </select>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={modalSearchTerm}
+                  onChange={(e) => setModalSearchTerm(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', width: '150px' }}
+                />
               </div>
               <button onClick={() => setShowChaserTaskModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
             </div>
