@@ -11,6 +11,7 @@ const Dashboard = ({ currentUserRole }) => {
   const [showAdminWorkflowModal, setShowAdminWorkflowModal] = useState(false);
   const [showSfeWorkflowModal, setShowSfeWorkflowModal] = useState(false);
   const [showIntWorkflowModal, setShowIntWorkflowModal] = useState(false);
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [showAlertsModal, setShowAlertsModal] = useState(false);
   const [showRecruiterTaskModal, setShowRecruiterTaskModal] = useState(false);
   const [assignModal, setAssignModal] = useState({ show: false, student: null });
@@ -60,7 +61,7 @@ const Dashboard = ({ currentUserRole }) => {
   useEffect(() => {
     setModalSearchTerm('');
     setShowOnlyUrgentSfeSubmitted(false);
-  }, [showSfeWorkflowModal, showIntWorkflowModal, showAdminTaskModal, showRecruiterTaskModal, showAlertsModal, showChaserTaskModal, showPrepModal]);
+  }, [showSfeWorkflowModal, showIntWorkflowModal, showEnrollmentModal, showAdminTaskModal, showRecruiterTaskModal, showAlertsModal, showChaserTaskModal, showPrepModal]);
 
   useEffect(() => {
     const t = Date.now();
@@ -439,6 +440,13 @@ const Dashboard = ({ currentUserRole }) => {
   const colSubmissionOngoing = students.filter(s => s.appStatus?.toLowerCase() === 'submission ongoing' && s.isUrgent !== true && s.appStatus?.toLowerCase() !== 'urgent submission');
   const colUrgent = students.filter(s => (s.isUrgent === true || s.appStatus?.toLowerCase() === 'urgent submission') && s.appStatus !== 'Submitted' && s.appStatus !== 'Completed');
   const colCompleted = students.filter(s => s.appStatus?.toLowerCase() === 'submitted' || s.appStatus?.toLowerCase() === 'completed');
+
+  const colAwaitingEnrollment = students.filter(s => s.appStatus?.toLowerCase() === 'awaiting enrollment');
+  const colAwaitingInduction = students.filter(s => s.appStatus?.toLowerCase() === 'awaiting induction');
+  const colFullyEnrolled = students.filter(s => s.appStatus?.toLowerCase() === 'fully enrolled');
+  const colFullyEnrolled2nd = students.filter(s => s.appStatus?.toLowerCase() === 'fully enrolled 2nd year');
+  const colFullyEnrolled3rd = students.filter(s => s.appStatus?.toLowerCase() === 'fully enrolled 3rd year');
+  const colFileWithdrawn = students.filter(s => s.appStatus?.toLowerCase() === 'file withdrawn');
 
   const colSfeAwaiting = students.filter(s => s.sfeStatus === 'Assign for SFE');
   const colSfeOngoing = students.filter(s => s.sfeStatus === 'SFE ongoing');
@@ -831,9 +839,30 @@ const Dashboard = ({ currentUserRole }) => {
           </div>
         </div>
 
-
-
-        {/* Chaser Tasks Tracking Widget */}
+        {/* Enrollment Tracking Widget */}
+        <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
+              🎓 Enrollment Tracking
+            </h3>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Click metrics to view ➔</span>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+            <div onClick={() => setShowEnrollmentModal('awaiting')} style={{ background: 'rgba(245, 158, 11, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #f59e0b', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#f59e0b' }}>{colAwaitingEnrollment.length + colAwaitingInduction.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Awaiting (Total)</div>
+            </div>
+            <div onClick={() => setShowEnrollmentModal('enrolled')} style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #10b981', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{colFullyEnrolled.length + colFullyEnrolled2nd.length + colFullyEnrolled3rd.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Fully Enrolled</div>
+            </div>
+            <div onClick={() => setShowEnrollmentModal('withdrawn')} style={{ gridColumn: '1 / -1', background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #ef4444', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.1s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ef4444' }}>{colFileWithdrawn.length}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>File Withdrawn</div>
+            </div>
+          </div>
+        </div>        {/* Chaser Tasks Tracking Widget */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
@@ -1242,6 +1271,122 @@ const Dashboard = ({ currentUserRole }) => {
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                           {filteredIntMissed.map(s => renderInterviewCard(s, '#ef4444'))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEnrollmentModal && (
+        <div className="dms-modal-overlay" style={{ zIndex: 2000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', maxWidth: '1400px', width: '95%', maxHeight: '90vh', overflowY: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <div className="dms-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🎓 Enrollment Tracking
+                </h3>
+                <SearchableSelect 
+                  value={modalFilterMonth}
+                  onChange={e => setModalFilterMonth(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}
+                >
+                  <option value="All">All Months</option>
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </SearchableSelect>
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={modalSearchTerm}
+                  onChange={(e) => setModalSearchTerm(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', width: '150px' }}
+                />
+              </div>
+              <button onClick={() => setShowEnrollmentModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}>✗</button>
+            </div>
+            
+            <div className="dms-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+              {(() => {
+                const dateExtractor = s => s.updatedAt || s.createdAt;
+                const filteredAwaitingEnv = applyModalFilter(colAwaitingEnrollment, dateExtractor);
+                const filteredAwaitingInd = applyModalFilter(colAwaitingInduction, dateExtractor);
+                const filteredEnrolled = applyModalFilter(colFullyEnrolled, dateExtractor);
+                const filteredEnrolled2 = applyModalFilter(colFullyEnrolled2nd, dateExtractor);
+                const filteredEnrolled3 = applyModalFilter(colFullyEnrolled3rd, dateExtractor);
+                const filteredWithdrawn = applyModalFilter(colFileWithdrawn, dateExtractor);
+                
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem', overflowX: 'auto', minWidth: '300px' }}>
+                    
+                    {showEnrollmentModal === 'awaiting' && (
+                      <>
+                        <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '150px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Awaiting Enrollment</span>
+                            <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredAwaitingEnv.length}</span>
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                            {filteredAwaitingEnv.map(s => renderStudentCard(s, '#f59e0b'))}
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '150px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: '#f59e0b', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Awaiting Induction</span>
+                            <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredAwaitingInd.length}</span>
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                            {filteredAwaitingInd.map(s => renderStudentCard(s, '#f59e0b'))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {showEnrollmentModal === 'enrolled' && (
+                      <>
+                        <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '150px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Fully Enrolled</span>
+                            <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredEnrolled.length}</span>
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                            {filteredEnrolled.map(s => renderStudentCard(s, '#10b981'))}
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '150px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Fully Enrolled 2nd Year</span>
+                            <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredEnrolled2.length}</span>
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                            {filteredEnrolled2.map(s => renderStudentCard(s, '#10b981'))}
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '150px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Fully Enrolled 3rd Year</span>
+                            <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredEnrolled3.length}</span>
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                            {filteredEnrolled3.map(s => renderStudentCard(s, '#10b981'))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {showEnrollmentModal === 'withdrawn' && (
+                      <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
+                          <span>File Withdrawn</span>
+                          <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredWithdrawn.length}</span>
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                          {filteredWithdrawn.map(s => renderStudentCard(s, '#ef4444'))}
                         </div>
                       </div>
                     )}

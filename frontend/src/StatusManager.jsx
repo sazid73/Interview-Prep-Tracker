@@ -6,7 +6,13 @@ const defaultAppStatuses = [
   "Assign for submission",
   "Submission ongoing",
   "Urgent Submission",
-  "Submitted"
+  "Submitted",
+  "Awaiting Enrollment",
+  "Awaiting Induction",
+  "Fully Enrolled",
+  "Fully Enrolled 2nd Year",
+  "Fully Enrolled 3rd Year",
+  "File Withdrawn"
 ];
 
 const defaultIntStatuses = [
