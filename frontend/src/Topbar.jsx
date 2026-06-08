@@ -306,16 +306,16 @@ const Topbar = ({ currentView, currentUser, currentUserRole, currentUserData, to
                       value={shiftStart}
                       onChange={e => setShiftStart(e.target.value)}
                       onBlur={e => handleProfileUpdate('shiftStart', e.target.value)}
-                      style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                      style={{ flex: 1, width: '100%', minWidth: 0, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', fontSize: '0.85rem', boxSizing: 'border-box' }}
                     />
-                    <span style={{ color: 'var(--text-secondary)' }}>-</span>
+                    <span style={{ color: 'var(--text-secondary)', flexShrink: 0 }}>-</span>
                     <input 
                       type="text" 
                       placeholder="End" 
                       value={shiftEnd}
                       onChange={e => setShiftEnd(e.target.value)}
                       onBlur={e => handleProfileUpdate('shiftEnd', e.target.value)}
-                      style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', fontSize: '0.85rem' }}
+                      style={{ flex: 1, width: '100%', minWidth: 0, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', fontSize: '0.85rem', boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
