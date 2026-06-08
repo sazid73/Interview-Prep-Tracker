@@ -16,6 +16,7 @@ const Dashboard = ({ currentUserRole }) => {
   const [showRecruiterTaskModal, setShowRecruiterTaskModal] = useState(false);
   const [assignModal, setAssignModal] = useState({ show: false, student: null });
   const [sfeAssignModal, setSfeAssignModal] = useState({ show: false, student: null });
+  const [enrollmentAssignModal, setEnrollmentAssignModal] = useState({ show: false, student: null });
   const [adminTaskStatus, setAdminTaskStatus] = useState('Assigned'); // 'Assigned' or 'Completed'
   const [adminTaskTimeframe, setAdminTaskTimeframe] = useState('All'); // 'All', 'This Week', 'Today'
   const [showLogs, setShowLogs] = useState(false);
@@ -518,6 +519,9 @@ const Dashboard = ({ currentUserRole }) => {
   const intTotal = colIntPassed.length + colIntFailed.length + colIntMissed.length;
   const intCompletionRate = intTotal > 0 ? Math.round((colIntPassed.length / intTotal) * 100) : 0;
 
+  const enrollmentTotal = colAwaitingEnrollment.length + colAwaitingInduction.length + colFullyEnrolled.length + colFullyEnrolled2nd.length + colFullyEnrolled3rd.length;
+  const enrollmentCompletionRate = enrollmentTotal > 0 ? Math.round(((colFullyEnrolled.length + colFullyEnrolled2nd.length + colFullyEnrolled3rd.length) / enrollmentTotal) * 100) : 0;
+
   const applyModalFilter = (list, dateExtractor, searchFields = ['name', 'studentId', 'studentName']) => {
     return list.filter(item => {
       if (modalSearchTerm) {
@@ -862,6 +866,13 @@ const Dashboard = ({ currentUserRole }) => {
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>File Withdrawn</div>
             </div>
           </div>
+          
+          <div style={{ marginTop: '1rem' }}>
+            <div style={{ background: 'var(--bg-color)', borderRadius: '999px', height: '8px', width: '100%', overflow: 'hidden' }}>
+              <div style={{ background: '#10b981', height: '100%', width: `${enrollmentCompletionRate}%`, transition: 'width 0.3s' }}></div>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>{enrollmentCompletionRate}% enrollment rate</div>
+          </div>
         </div>        {/* Chaser Tasks Tracking Widget */}
         <div style={{ background: 'var(--bg-surface)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -917,6 +928,22 @@ const Dashboard = ({ currentUserRole }) => {
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981' }}>{tasks.filter(t => t.taskType !== 'Chaser' && t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status === 'completed').length}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Completed</div>
             </div>
+          </div>
+          
+          <div style={{ marginTop: '1rem' }}>
+            {(() => {
+              const wlTotal = tasks.filter(t => t.taskType !== 'Chaser' && t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' })).length;
+              const wlComp = tasks.filter(t => t.taskType !== 'Chaser' && t.day === new Date().toLocaleDateString('en-US', { weekday: 'long' }) && t.status === 'completed').length;
+              const wlRate = wlTotal === 0 ? 0 : Math.round((wlComp / wlTotal) * 100);
+              return (
+                <>
+                  <div style={{ background: 'var(--bg-color)', borderRadius: '999px', height: '8px', width: '100%', overflow: 'hidden' }}>
+                    <div style={{ background: '#10b981', height: '100%', width: `${wlRate}%`, transition: 'width 0.3s' }}></div>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '0.5rem' }}>{wlRate}% completion rate (today)</div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -1332,7 +1359,7 @@ const Dashboard = ({ currentUserRole }) => {
                             <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredAwaitingEnv.length}</span>
                           </h4>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                            {filteredAwaitingEnv.map(s => renderStudentCard(s, '#f59e0b'))}
+                            {filteredAwaitingEnv.map(s => renderStudentCard(s, '#f59e0b', (st) => setEnrollmentAssignModal({ show: true, student: st })))}
                           </div>
                         </div>
                         <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '150px', border: '1px solid var(--border-color)' }}>
@@ -1341,7 +1368,7 @@ const Dashboard = ({ currentUserRole }) => {
                             <span style={{ background: '#f59e0b', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredAwaitingInd.length}</span>
                           </h4>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                            {filteredAwaitingInd.map(s => renderStudentCard(s, '#f59e0b'))}
+                            {filteredAwaitingInd.map(s => renderStudentCard(s, '#f59e0b', (st) => setEnrollmentAssignModal({ show: true, student: st })))}
                           </div>
                         </div>
                       </>
@@ -1355,7 +1382,7 @@ const Dashboard = ({ currentUserRole }) => {
                             <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredEnrolled.length}</span>
                           </h4>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                            {filteredEnrolled.map(s => renderStudentCard(s, '#10b981'))}
+                            {filteredEnrolled.map(s => renderStudentCard(s, '#10b981', (st) => setEnrollmentAssignModal({ show: true, student: st })))}
                           </div>
                         </div>
                         <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '150px', border: '1px solid var(--border-color)', marginBottom: '1rem' }}>
@@ -1364,7 +1391,7 @@ const Dashboard = ({ currentUserRole }) => {
                             <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredEnrolled2.length}</span>
                           </h4>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                            {filteredEnrolled2.map(s => renderStudentCard(s, '#10b981'))}
+                            {filteredEnrolled2.map(s => renderStudentCard(s, '#10b981', (st) => setEnrollmentAssignModal({ show: true, student: st })))}
                           </div>
                         </div>
                         <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '150px', border: '1px solid var(--border-color)' }}>
@@ -1373,7 +1400,7 @@ const Dashboard = ({ currentUserRole }) => {
                             <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredEnrolled3.length}</span>
                           </h4>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                            {filteredEnrolled3.map(s => renderStudentCard(s, '#10b981'))}
+                            {filteredEnrolled3.map(s => renderStudentCard(s, '#10b981', (st) => setEnrollmentAssignModal({ show: true, student: st })))}
                           </div>
                         </div>
                       </>
@@ -1386,7 +1413,7 @@ const Dashboard = ({ currentUserRole }) => {
                           <span style={{ background: '#ef4444', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredWithdrawn.length}</span>
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                          {filteredWithdrawn.map(s => renderStudentCard(s, '#ef4444'))}
+                          {filteredWithdrawn.map(s => renderStudentCard(s, '#ef4444', (st) => setEnrollmentAssignModal({ show: true, student: st })))}
                         </div>
                       </div>
                     )}
@@ -2196,6 +2223,58 @@ const Dashboard = ({ currentUserRole }) => {
               </div>
               <button type="submit" style={{ padding: '0.8rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '0.5rem' }}>Assign Task</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ENROLLMENT ASSIGN MODAL */}
+      {enrollmentAssignModal.show && (
+        <div className="dms-modal-overlay" style={{ zIndex: 3000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="dms-modal" style={{ background: 'var(--bg-surface)', padding: '2rem', borderRadius: '12px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', border: '1px solid var(--border-color)' }}>
+            <h3 style={{ margin: '0 0 1.5rem 0', color: 'var(--text-primary)' }}>🎓 Update Enrollment</h3>
+            <div style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              Student: <strong style={{ color: 'var(--text-primary)' }}>{enrollmentAssignModal.student?.name}</strong>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Status</label>
+              <select 
+                value={enrollmentAssignModal.student?.appStatus || ''}
+                onChange={e => setEnrollmentAssignModal({ ...enrollmentAssignModal, student: { ...enrollmentAssignModal.student, appStatus: e.target.value } })}
+                style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }}
+              >
+                <option value="Awaiting Enrollment">Awaiting Enrollment</option>
+                <option value="Awaiting Induction">Awaiting Induction</option>
+                <option value="Fully Enrolled">Fully Enrolled</option>
+                <option value="Fully Enrolled 2nd Year">Fully Enrolled 2nd Year</option>
+                <option value="Fully Enrolled 3rd Year">Fully Enrolled 3rd Year</option>
+                <option value="File Withdrawn">File Withdrawn</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+              <button 
+                onClick={async () => {
+                   const student = enrollmentAssignModal.student;
+                   try {
+                     await fetch(`${API_BASE}/api/students/${student._id}`, {
+                       method: 'PUT',
+                       headers: { 'Content-Type': 'application/json' },
+                       body: JSON.stringify({ appStatus: student.appStatus })
+                     });
+                     setStudents(students.map(s => s._id === student._id ? { ...s, appStatus: student.appStatus } : s));
+                     setEnrollmentAssignModal({ show: false, student: null });
+                   } catch (e) { console.error(e); }
+                }}
+                style={{ flex: 1, padding: '0.8rem', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                Save
+              </button>
+              <button 
+                onClick={() => setEnrollmentAssignModal({ show: false, student: null })}
+                style={{ flex: 1, padding: '0.8rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
