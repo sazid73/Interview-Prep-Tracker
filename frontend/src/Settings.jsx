@@ -56,6 +56,18 @@ const Settings = ({ currentUserRole, currentUser, currentUserData }) => {
     } catch (e) { console.error(e); }
   };
 
+  const handleToggleTargetStatus = async (college, intake, currentStatus) => {
+    // If isActive is undefined (from old data), treat it as currently true, so toggle makes it false
+    const newStatus = currentStatus === undefined ? false : !currentStatus;
+    try {
+      await fetch(`${API_BASE}/api/targets`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ college, intake, isActive: newStatus })
+      });
+      fetchTargets();
+    } catch (e) { console.error(e); }
+  };
+
   const fetchUsers = () => {
     fetch(`${API_BASE}/api/users?t=${Date.now()}`)
       .then(res => res.json())
@@ -368,12 +380,18 @@ const Settings = ({ currentUserRole, currentUser, currentUserData }) => {
                       <span style={{ background: '#374151', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#fff' }}>{t.intake}</span>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981', marginBottom: '0.5rem' }}>{t.target}</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: t.isActive === false ? 'var(--text-secondary)' : '#10b981', marginBottom: '0.5rem' }}>{t.target}</div>
                       <button 
                         onClick={() => handleUpdateTarget(t.college, t.intake)}
-                        style={{ padding: '0.3rem 0.8rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+                        style={{ padding: '0.3rem 0.8rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', marginRight: '0.5rem' }}
                       >
                         Edit Target
+                      </button>
+                      <button 
+                        onClick={() => handleToggleTargetStatus(t.college, t.intake, t.isActive)}
+                        style={{ padding: '0.3rem 0.8rem', background: t.isActive === false ? '#10b981' : '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+                      >
+                        {t.isActive === false ? 'Show' : 'Hide'}
                       </button>
                     </div>
                   </div>

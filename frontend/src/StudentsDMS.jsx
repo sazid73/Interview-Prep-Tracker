@@ -1041,10 +1041,10 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
       </div>
 
       {/* Target Status Boards */}
-      {activeCollegeTab !== 'All Students' && targetsList.filter(t => t.college.toLowerCase() === activeCollegeTab.toLowerCase()).length > 0 && (
+      {activeCollegeTab !== 'All Students' && targetsList.filter(t => t.isActive !== false && t.college.toLowerCase() === activeCollegeTab.toLowerCase()).length > 0 && (
         <div style={{ padding: '0.8rem 1.5rem', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🎯 Intake Targets:</span>
-          {targetsList.filter(t => t.college.toLowerCase() === activeCollegeTab.toLowerCase()).map(tgt => {
+          {targetsList.filter(t => t.isActive !== false && t.college.toLowerCase() === activeCollegeTab.toLowerCase()).map(tgt => {
             const studentsInSession = students.filter(s => 
               s.courseAndCampus1 && s.courseAndCampus1.toLowerCase().startsWith(activeCollegeTab.toLowerCase()) && (s.session || '').toLowerCase() === tgt.intake.toLowerCase()
             );
