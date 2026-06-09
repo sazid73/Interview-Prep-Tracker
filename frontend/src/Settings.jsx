@@ -385,11 +385,29 @@ const Settings = ({ currentUserRole, currentUser, currentUserData }) => {
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>College</label>
-                    <input id="new-target-college" placeholder="e.g. GBS" style={{ padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }} />
+                    <select id="new-target-college" style={{ padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', minWidth: '150px' }}>
+                      <option value="GBS">GBS</option>
+                      <option value="VCAD">VCAD</option>
+                      <option value="LCCA">LCCA</option>
+                      <option value="CECOS">CECOS</option>
+                      <option value="Arden">Arden</option>
+                      <option value="QA-Solent/Lmet">QA-Solent/Lmet</option>
+                      <option value="OLC">OLC</option>
+                      <option value="William College">William College</option>
+                      <option value="UKMC">UKMC</option>
+                      <option value="LSC">LSC</option>
+                    </select>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Intake</label>
-                    <input id="new-target-intake" placeholder="e.g. June 26" style={{ padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }} />
+                    <input id="new-target-intake" list="intake-options" placeholder="e.g. 2026 June" style={{ padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)', minWidth: '150px' }} />
+                    <datalist id="intake-options">
+                      <option value="2026 Jan" />
+                      <option value="2026 May" />
+                      <option value="2026 June" />
+                      <option value="2026 Sep" />
+                      <option value="2026 Oct" />
+                    </datalist>
                   </div>
                   <button 
                     onClick={() => {

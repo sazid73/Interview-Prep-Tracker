@@ -1041,11 +1041,11 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
       </div>
 
       {/* Target Status Boards */}
-      {activeCollegeTab !== 'All Students' && targetsList.filter(t => t.college === activeCollegeTab).length > 0 && (
-        <div style={{ padding: '1rem 1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', background: 'var(--bg-surface)' }}>
-          {targetsList.filter(t => t.college === activeCollegeTab).map(tgt => {
+      {activeCollegeTab !== 'All Students' && targetsList.filter(t => t.college.toLowerCase() === activeCollegeTab.toLowerCase()).length > 0 && (
+        <div style={{ padding: '1.5rem', background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-color)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+          {targetsList.filter(t => t.college.toLowerCase() === activeCollegeTab.toLowerCase()).map(tgt => {
             const studentsInSession = students.filter(s => 
-              s.courseAndCampus1 && s.courseAndCampus1.startsWith(activeCollegeTab) && s.session === tgt.intake
+              s.courseAndCampus1 && s.courseAndCampus1.toLowerCase().startsWith(activeCollegeTab.toLowerCase()) && (s.session || '').toLowerCase() === tgt.intake.toLowerCase()
             );
             const passCount = studentsInSession.filter(s => 
               (s.intStatus || '').toLowerCase().includes('pass') || 
@@ -1054,13 +1054,29 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
             ).length;
             const progress = tgt.target > 0 ? Math.min(Math.round((passCount / tgt.target) * 100), 100) : 0;
             return (
-              <div key={tgt.intake} style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: `1px solid ${getTabStyle(activeCollegeTab).bg}`, minWidth: '250px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ color: 'var(--text-primary)' }}>{tgt.intake} Target</strong>
-                  <span style={{ fontSize: '0.8rem', background: getTabStyle(activeCollegeTab).bg, color: getTabStyle(activeCollegeTab).text, padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>{passCount} / {tgt.target} Passes</span>
+              <div key={tgt.intake} style={{ background: 'var(--bg-color)', borderRadius: '12px', border: `2px solid ${progress >= 100 ? '#10b981' : 'var(--border-color)'}`, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface-hover)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.5rem' }}>🎯</span>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '1.1rem' }}>{tgt.intake} Target</strong>
+                  </div>
+                  {progress >= 100 && <span style={{ color: '#10b981', fontSize: '1.1rem', fontWeight: 'bold' }}>✓ Met</span>}
                 </div>
-                <div style={{ width: '100%', height: '8px', background: 'var(--bg-surface-hover)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${progress}%`, background: progress >= 100 ? '#10b981' : getTabStyle(activeCollegeTab).bg, transition: 'width 0.5s ease' }}></div>
+                <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.2rem' }}>Pass Progress</span>
+                      <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--text-primary)', lineHeight: '1' }}>
+                        {passCount} <span style={{ fontSize: '1.2rem', color: 'var(--text-secondary)' }}>/ {tgt.target}</span>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: progress >= 100 ? '#10b981' : getTabStyle(activeCollegeTab).text === '#fff' ? 'var(--text-primary)' : getTabStyle(activeCollegeTab).bg }}>
+                      {progress}%
+                    </div>
+                  </div>
+                  <div style={{ width: '100%', height: '12px', background: 'var(--bg-surface)', borderRadius: '6px', overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
+                    <div style={{ height: '100%', width: `${progress}%`, background: progress >= 100 ? '#10b981' : getTabStyle(activeCollegeTab).bg, transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
+                  </div>
                 </div>
               </div>
             );
