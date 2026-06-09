@@ -13,41 +13,10 @@ const Interviews = ({ currentUser }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [rescheduleModal, setRescheduleModal] = useState({ show: false, interview: null, newDate: '' });
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
-  const [targets, setTargets] = useState([]);
-  const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
     fetchInterviews();
-    fetchTargets();
   }, []);
-
-  const fetchTargets = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/targets`);
-      const data = await res.json();
-      setTargets(data);
-    } catch (err) { console.error(err); }
-  };
-
-  const handleSetTarget = async (college, intake) => {
-    const newVal = prompt(`Enter new target for ${college} - ${intake}:`, '30');
-    if (newVal === null) return;
-    const targetNum = parseInt(newVal, 10);
-    if (isNaN(targetNum)) return alert('Must be a number');
-    
-    try {
-      const res = await fetch(`${API_BASE}/api/targets`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ college, intake, target: targetNum })
-      });
-      const data = await res.json();
-      setTargets(prev => {
-        const filtered = prev.filter(t => !(t.college === college && t.intake === intake));
-        return [...filtered, data.target];
-      });
-    } catch (err) { console.error(err); }
-  };
 
   const fetchInterviews = async () => {
     try {
@@ -430,41 +399,6 @@ const Interviews = ({ currentUser }) => {
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
             <button onClick={() => { setFilters({ status: '', college: '', recruiter: '', intake: '', subject: '' }); setSearchTerm(''); }} style={{ padding: '0.4rem 1rem', background: '#374151', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Clear Filters</button>
           </div>
-        </div>
-      )}
-
-      {filters.college && filters.intake && (
-        <div style={{ padding: '1.5rem', margin: '1rem', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          {(() => {
-            const tgtObj = targets.find(t => t.college === filters.college && t.intake === filters.intake);
-            const targetVal = tgtObj ? tgtObj.target : 0;
-            const passes = filteredInterviews.filter(i => (i.status || '').toLowerCase() === 'pass').length;
-            const progress = targetVal > 0 ? Math.min(Math.round((passes / targetVal) * 100), 100) : 0;
-            return (
-              <>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>🎯 {filters.college} ({filters.intake}) Target</h3>
-                    {isAdmin && (
-                      <button onClick={() => handleSetTarget(filters.college, filters.intake)} style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.2rem 0.6rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
-                        Edit Target
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                    {passes} / {targetVal || 'Not Set'} Passes
-                  </div>
-                  <div style={{ width: '100%', height: '12px', background: 'var(--bg-color)', borderRadius: '6px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${progress}%`, background: progress >= 100 ? '#10b981' : '#f59e0b', transition: 'width 0.5s ease' }}></div>
-                  </div>
-                </div>
-                <div style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', minWidth: '150px', textAlign: 'center', border: `2px solid ${progress >= 100 ? '#10b981' : '#374151'}` }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: progress >= 100 ? '#10b981' : 'var(--text-primary)' }}>{progress}%</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Target Reached</div>
-                </div>
-              </>
-            );
-          })()}
         </div>
       )}
 

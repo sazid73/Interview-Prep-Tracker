@@ -13,20 +13,48 @@ const Settings = ({ currentUserRole, currentUser, currentUserData }) => {
   const [newUserAbilities, setNewUserAbilities] = useState([]);
   const [newUserError, setNewUserError] = useState('');
   const [editingUser, setEditingUser] = useState(null); // Used to edit an existing user's config
+  const [targetsList, setTargetsList] = useState([]);
 
-  const JOB_TITLES = ['Recruiter', 'Chaser', 'Prep Coach', 'Admin Officer', 'SFE Officer', 'Manager', 'Team Leader', 'Assistant Team Leader'];
+  const JOB_TITLES = ['Recruiter', 'Chaser', 'Prep Coach', 'Admin Officer', 'Enrollment Officer', 'SFE Officer', 'Manager', 'Team Leader', 'Assistant Team Leader'];
   const ABILITIES = [
     { id: 'super_admin', label: 'Super Admin (Full Access)' },
     { id: 'manage_users', label: 'Manage Users & Access' },
     { id: 'assign_tasks', label: 'Assign Tasks to Others' },
     { id: 'manage_settings', label: 'Manage System Settings (Columns/Status)' },
     { id: 'view_all_stats', label: 'View Master Analytics' },
-    { id: 'clear_leads', label: 'Clear System Leads' }
+    { id: 'view_all_stats', label: 'View Master Analytics' },
+    { id: 'clear_leads', label: 'Clear System Leads' },
+    { id: 'Enrollment', label: 'Enrollment Officer (Can be assigned enrollments)' }
   ];
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'targets') fetchTargets();
+  }, [activeTab]);
+
+  const fetchTargets = () => {
+    fetch(`${API_BASE}/api/targets`)
+      .then(res => res.json())
+      .then(data => setTargetsList(data))
+      .catch(err => console.error(err));
+  };
+
+  const handleUpdateTarget = async (college, intake) => {
+    const newVal = prompt(`Enter new target for ${college} - ${intake}:`, '30');
+    if (newVal === null) return;
+    const target = parseInt(newVal, 10);
+    if (isNaN(target)) return alert('Must be a valid number');
+    try {
+      await fetch(`${API_BASE}/api/targets`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ college, intake, target })
+      });
+      fetchTargets();
+    } catch (e) { console.error(e); }
+  };
 
   const fetchUsers = () => {
     fetch(`${API_BASE}/api/users?t=${Date.now()}`)
@@ -132,6 +160,14 @@ const Settings = ({ currentUserRole, currentUser, currentUserData }) => {
               style={{ width: '100%', textAlign: 'left', padding: '0.8rem 1rem', background: activeTab === 'columns' ? 'var(--bg-surface-hover)' : 'transparent', color: activeTab === 'columns' ? '#8b5cf6' : 'var(--text-primary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: activeTab === 'columns' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
               <span>📊</span> Form Columns
+            </button>
+          </li>
+          <li>
+            <button 
+              onClick={() => setActiveTab('targets')}
+              style={{ width: '100%', textAlign: 'left', padding: '0.8rem 1rem', background: activeTab === 'targets' ? 'var(--bg-surface-hover)' : 'transparent', color: activeTab === 'targets' ? '#f59e0b' : 'var(--text-primary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: activeTab === 'targets' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <span>🎯</span> College Targets
             </button>
           </li>
         </ul>
@@ -315,6 +351,60 @@ const Settings = ({ currentUserRole, currentUser, currentUserData }) => {
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
             <h2 style={{ marginBottom: '2rem' }}>DMS Column Setup</h2>
             <ColumnManager currentUserRole={currentUserRole} currentUser={currentUser} currentUserData={currentUserData} />
+          </div>
+        )}
+
+        {activeTab === 'targets' && (
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            <h2 style={{ marginBottom: '2rem' }}>🎯 College Intake Targets</h2>
+            <div style={{ background: 'var(--bg-surface)', padding: '2rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Set the target number of "Pass" records for each college and intake combination. This will be displayed to staff directly on the Students DMS sheet.</p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+                {targetsList.map(t => (
+                  <div key={`${t.college}-${t.intake}`} style={{ background: 'var(--bg-color)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1.1rem' }}>{t.college}</h4>
+                      <span style={{ background: '#374151', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', color: '#fff' }}>{t.intake}</span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#10b981', marginBottom: '0.5rem' }}>{t.target}</div>
+                      <button 
+                        onClick={() => handleUpdateTarget(t.college, t.intake)}
+                        style={{ padding: '0.3rem 0.8rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+                      >
+                        Edit Target
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+                <h3 style={{ margin: '0 0 1rem 0' }}>Add New Target</h3>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>College</label>
+                    <input id="new-target-college" placeholder="e.g. GBS" style={{ padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Intake</label>
+                    <input id="new-target-intake" placeholder="e.g. June 26" style={{ padding: '0.8rem', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-primary)' }} />
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const col = document.getElementById('new-target-college').value;
+                      const int = document.getElementById('new-target-intake').value;
+                      if (!col || !int) return alert('Enter both college and intake');
+                      handleUpdateTarget(col, int);
+                    }}
+                    style={{ padding: '0.8rem 1.5rem', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Set Target
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

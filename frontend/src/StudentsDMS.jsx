@@ -24,6 +24,7 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
   const [filters, setFilters] = useState({});
   const [activeCollegeTab, setActiveCollegeTab] = useState('All Students');
   const [tableColumns, setTableColumns] = useState(defaultColumnsConfig);
+  const [targetsList, setTargetsList] = useState([]);
   const fileInputRef = useRef(null);
   
   const defaultCollegeCourses = {
@@ -116,6 +117,11 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
     fetch(`${API_BASE}/api/users`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => setUsers(data))
+      .catch(err => console.error(err));
+
+    fetch(`${API_BASE}/api/targets`, { cache: 'no-store' })
+      .then(res => res.json())
+      .then(data => setTargetsList(data))
       .catch(err => console.error(err));
 
     fetch(`${API_BASE}/api/grid`, { cache: 'no-store' })
@@ -1033,6 +1039,34 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
           )
         })}
       </div>
+
+      {/* Target Status Boards */}
+      {activeCollegeTab !== 'All Students' && targetsList.filter(t => t.college === activeCollegeTab).length > 0 && (
+        <div style={{ padding: '1rem 1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', background: 'var(--bg-surface)' }}>
+          {targetsList.filter(t => t.college === activeCollegeTab).map(tgt => {
+            const studentsInSession = students.filter(s => 
+              s.courseAndCampus1 && s.courseAndCampus1.startsWith(activeCollegeTab) && s.session === tgt.intake
+            );
+            const passCount = studentsInSession.filter(s => 
+              (s.intStatus || '').toLowerCase().includes('pass') || 
+              (s.intStatus || '').toLowerCase().includes('enrolled') ||
+              (s.appStatus || '').toLowerCase().includes('enrolled')
+            ).length;
+            const progress = tgt.target > 0 ? Math.min(Math.round((passCount / tgt.target) * 100), 100) : 0;
+            return (
+              <div key={tgt.intake} style={{ background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: `1px solid ${getTabStyle(activeCollegeTab).bg}`, minWidth: '250px', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong style={{ color: 'var(--text-primary)' }}>{tgt.intake} Target</strong>
+                  <span style={{ fontSize: '0.8rem', background: getTabStyle(activeCollegeTab).bg, color: getTabStyle(activeCollegeTab).text, padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 'bold' }}>{passCount} / {tgt.target} Passes</span>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: 'var(--bg-surface-hover)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${progress}%`, background: progress >= 100 ? '#10b981' : getTabStyle(activeCollegeTab).bg, transition: 'width 0.5s ease' }}></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div 
         className={`dms-table-wrapper ${activeCollegeTab !== 'All Students' ? 'colored-sheet-wrapper' : ''}`} 
