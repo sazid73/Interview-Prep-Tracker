@@ -372,7 +372,8 @@ app.delete('/api/interviews/:id', async (req, res) => {
 const targetSchema = new mongoose.Schema({
   college: { type: String, required: true },
   intake: { type: String, required: true },
-  target: { type: Number, default: 0 }
+  target: { type: Number, default: 0 },
+  isActive: { type: Boolean, default: true }
 });
 const CollegeTarget = mongoose.model('CollegeTarget', targetSchema);
 
@@ -387,10 +388,14 @@ app.get('/api/targets', async (req, res) => {
 
 app.put('/api/targets', async (req, res) => {
   try {
-    const { college, intake, target } = req.body;
+    const { college, intake, target, isActive } = req.body;
+    let updateFields = {};
+    if (target !== undefined) updateFields.target = target;
+    if (isActive !== undefined) updateFields.isActive = isActive;
+
     const updated = await CollegeTarget.findOneAndUpdate(
       { college, intake },
-      { $set: { target } },
+      { $set: updateFields },
       { new: true, upsert: true }
     );
     res.json({ success: true, target: updated });
