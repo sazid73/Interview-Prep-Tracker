@@ -331,7 +331,7 @@ function App() {
   // Connect WebSocket for Real-Time Live Sync
   useEffect(() => {
     const socketUrl = API_BASE || 'http://localhost:5000';
-    const socket = io(socketUrl);
+    const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
     window.appSocket = socket;
 
     socket.on('cell_updated', (data) => {
