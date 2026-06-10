@@ -330,7 +330,7 @@ function App() {
 
   // Connect WebSocket for Real-Time Live Sync
   useEffect(() => {
-    const socketUrl = API_BASE || 'http://localhost:5000';
+    const socketUrl = API_BASE || (import.meta.env.PROD ? undefined : 'http://localhost:5000');
     const socket = io(socketUrl, { transports: ['websocket', 'polling'] });
     window.appSocket = socket;
 
