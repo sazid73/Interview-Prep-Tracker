@@ -144,6 +144,7 @@ const studentLeadSchema = new mongoose.Schema({
     timestamp: String,
     user: String
   }],
+  subPendingNotes: { type: String, default: '' },
   appStatusHistory: [{
     status: String,
     note: String,

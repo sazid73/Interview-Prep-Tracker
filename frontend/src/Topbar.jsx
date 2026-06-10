@@ -140,7 +140,15 @@ const Topbar = ({ currentView, currentUser, currentUserRole, currentUserData, to
   };
 
   const handleMarkDmsTaskDone = async (studentId, currentTasksCompleted, taskType) => {
-    if (!window.confirm("Are you sure you want to mark this task as done?")) return;
+    let pendingNotes = "";
+    if (taskType === 'sub') {
+      const noteInput = window.prompt("Any pending files/notes (e.g. passport, poa)? Leave blank if fully complete:");
+      if (noteInput === null) return; // Cancelled
+      pendingNotes = noteInput.trim();
+    } else {
+      if (!window.confirm("Are you sure you want to mark this task as done?")) return;
+    }
+    
     try {
       let updatePayload = {};
       if (taskType === 'sfe') {
@@ -162,6 +170,11 @@ const Topbar = ({ currentView, currentUser, currentUserRole, currentUserData, to
           if (isCvDone && isPsDone && isQaDone && isSubDone) {
             updatePayload.appStatus = 'Submitted';
           }
+        }
+        if (taskType === 'sub' && pendingNotes) {
+          updatePayload.subPendingNotes = pendingNotes;
+        } else if (taskType === 'sub') {
+          updatePayload.subPendingNotes = ""; // Clear if previously existed but now fully complete
         }
       }
       const res = await fetch(`${API_BASE}/api/students/${studentId}`, {

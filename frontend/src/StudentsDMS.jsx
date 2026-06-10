@@ -769,6 +769,9 @@ const StudentsDMS = ({ setCurrentView, currentUser, currentUserRole, currentUser
         >
           {status}
         </span>
+        {student.subPendingNotes && (status === 'Submitted' || status === 'Completed') && (
+          <span title={`Pending Notes: ${student.subPendingNotes}`} style={{ cursor: 'help', fontSize: '1.1rem' }}>⚠️</span>
+        )}
       </div>
     );
   };

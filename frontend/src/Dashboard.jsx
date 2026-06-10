@@ -633,6 +633,11 @@ const Dashboard = ({ currentUserRole }) => {
               🚨 Urgent SFE Required {urgentSfeNote && `- ${urgentSfeNote}`}
             </div>
           )}
+          {student.subPendingNotes && (
+            <div style={{ marginTop: '0.8rem', padding: '0.5rem', background: 'rgba(245, 158, 11, 0.1)', borderLeft: '3px solid #f59e0b', borderRadius: '4px', fontSize: '0.75rem', color: '#f59e0b', fontWeight: 'bold' }}>
+              ⚠️ Pending: {student.subPendingNotes}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1092,8 +1097,13 @@ const Dashboard = ({ currentUserRole }) => {
                       {/* Column 4: Completed */}
                       {showAdminWorkflowModal === 'completed' && (
                         <div style={{ background: 'var(--bg-color)', borderRadius: '8px', padding: '1rem', minHeight: '300px', border: '1px solid var(--border-color)' }}>
-                          <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between' }}>
-                            <span>Completed / Submitted</span>
+                          <h4 style={{ margin: '0 0 1rem 0', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>
+                              Completed / Submitted
+                              {filteredCompleted.some(s => s.subPendingNotes) && (
+                                <span title="Some students have pending notes/files" style={{ marginLeft: '0.5rem', fontSize: '1.1rem', cursor: 'help' }}>⚠️</span>
+                              )}
+                            </span>
                             <span style={{ background: '#10b981', color: '#fff', padding: '0.1rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem' }}>{filteredCompleted.length}</span>
                           </h4>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
@@ -2079,9 +2089,16 @@ const Dashboard = ({ currentUserRole }) => {
                 { type: 'ps', label: '📄 PS Writer' },
                 { type: 'qa', label: '✅ QA Maker' },
                 { type: 'sub', label: '📤 Submission & QC Checker' }
-              ].map(({ type, label }) => (
+              ].map(({ type, label }) => {
+                const isEditable = assignModal.student.appStatus?.toLowerCase() === 'assign for submission' || assignModal.student.appStatus?.toLowerCase() === 'urgent submission';
+                return (
                 <div key={type} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <label style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{label}</label>
+                  {!isEditable ? (
+                    <span style={{ padding: '0.5rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+                      {(assignModal.student.chasers && assignModal.student.chasers[type]) || 'Unassigned'} (Read-Only)
+                    </span>
+                  ) : (
                   <SearchableSelect 
                     value={(assignModal.student.chasers && assignModal.student.chasers[type]) || ''}
                     onChange={(e) => handleDashboardChaserChange(type, e.target.value)}
@@ -2091,8 +2108,9 @@ const Dashboard = ({ currentUserRole }) => {
                     <option value="">Unassigned</option>
                     {allUsers.map(u => <option key={u._id} value={u.name}>{u.name}</option>)}
                   </SearchableSelect>
+                  )}
                 </div>
-              ))}
+              )})}
             </div>
 
             {/* Manual Application Status buttons temporarily locked as per user request */}
