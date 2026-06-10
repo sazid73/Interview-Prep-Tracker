@@ -131,7 +131,7 @@ const Dashboard = ({ currentUserRole }) => {
     const currentChasers = student.chasers || { cv: '', ps: '', sub: '', qa: '' };
     const newChasers = { ...currentChasers, [type]: val };
     
-    setAssignModal({ show: true, student: { ...student, chasers: newChasers, appStatus: newStatus } });
+    setAssignModal({ show: true, student: { ...student, chasers: newChasers, appStatus: newStatus }, initialStatus: assignModal.initialStatus });
     setStudents(students.map(s => s._id === student._id ? { ...s, chasers: newChasers, appStatus: newStatus } : s));
     
     try {
@@ -572,7 +572,7 @@ const Dashboard = ({ currentUserRole }) => {
     const handleClick = () => {
       if (onClickOverride === false) return; // Do nothing
       if (onClickOverride) onClickOverride(student);
-      else setAssignModal({ show: true, student });
+      else setAssignModal({ show: true, student, initialStatus: student.appStatus });
     };
 
     return (
@@ -2090,7 +2090,7 @@ const Dashboard = ({ currentUserRole }) => {
                 { type: 'qa', label: '✅ QA Maker' },
                 { type: 'sub', label: '📤 Submission & QC Checker' }
               ].map(({ type, label }) => {
-                const isEditable = assignModal.student.appStatus?.toLowerCase() === 'assign for submission' || assignModal.student.appStatus?.toLowerCase() === 'urgent submission';
+                const isEditable = assignModal.initialStatus?.toLowerCase() === 'assign for submission' || assignModal.initialStatus?.toLowerCase() === 'urgent submission';
                 return (
                 <div key={type} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <label style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{label}</label>
